@@ -1,0 +1,8 @@
+import { IsString, IsOptional, IsDateString } from 'class-validator';
+
+export class CreateSubjectTypeDto {
+
+  @IsString()
+  name: string;
+
+}

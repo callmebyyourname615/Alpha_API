@@ -1,0 +1,77 @@
+import {
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { YearLevel } from './year-level.entity';
+import { CreateYearLevelDto } from './dto/create-year-level.dto';
+import { UpdateYearLevelDto } from './dto/update-year-level.dto';
+
+@Injectable()
+export class YearLevelsService {
+  constructor(
+    @InjectRepository(YearLevel)
+    private readonly repo: Repository<YearLevel>,
+  ) {}
+
+async create(dto: CreateYearLevelDto): Promise<YearLevel> {
+  const entity = this.repo.create({
+    ...dto,            // spreads name, is_active, is_deleted
+    level_id: dto.levelId, // explicitly map levelId → level_id
+  });
+
+  return this.repo.save(entity);
+}
+
+  async findAll(): Promise<YearLevel[]> {
+    return this.repo.find({
+      where: { is_deleted: false },
+      relations: ['level'],
+    });
+  }
+
+  async findOne(id: string): Promise<YearLevel | null> {
+    return this.repo.findOne({
+      where: { id, is_deleted: false },
+      relations: ['level'],
+    });
+  }
+
+  async update(id: string, dto: UpdateYearLevelDto): Promise<YearLevel> {
+  const updateData: Partial<YearLevel> = {};
+
+  if (dto.name !== undefined) updateData.name = dto.name.trim();
+  if (dto.levelId !== undefined) updateData.level_id = dto.levelId;
+  if (dto.is_active !== undefined) updateData.is_active = dto.is_active;
+  if (dto.is_deleted !== undefined) updateData.is_deleted = dto.is_deleted;
+
+  if (Object.keys(updateData).length === 0) {
+    return (await this.findOne(id))!;
+  }
+
+  console.log('Direct update data:', updateData);
+
+  await this.repo
+    .createQueryBuilder()
+    .update(YearLevel)
+    .set(updateData)
+    .where("id = :id", { id })
+    .execute();
+
+  return (await this.findOne(id))!;
+}
+
+  async remove(id: string): Promise<void> {
+    const yearLevel = await this.repo.findOne({ where: { id } });
+
+    if (!yearLevel) {
+      throw new NotFoundException(`Year level with ID ${id} not found`);
+    }
+
+    await this.repo.update(id, {
+      is_deleted: true,
+      is_active: false,
+    });
+  }
+}
