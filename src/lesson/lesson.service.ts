@@ -15,6 +15,7 @@ import { Evaluation } from '../evaluations/evaluation.entity';
 import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
 import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class LessonService {
@@ -42,6 +43,11 @@ export class LessonService {
   ) {}
 
   private readonly RELATIONS = ['subjectType', 'yearLevel', 'curriculums'];
+
+  private lessonUploadPath(file?: Express.Multer.File): string | null {
+    if (!file?.filename) return null;
+    return `uploads/lessons/${file.filename}`;
+  }
 
   private async syncLessonSubjectLink(lessonId: string, subjectId?: string): Promise<void> {
     const normalizedSubjectId = String(subjectId || '').trim();
@@ -138,9 +144,9 @@ export class LessonService {
       curriculums,
       s_year: dto.s_year ?? null,
       t_year: dto.t_year ?? null,
-      s_file: files.s_file?.[0]?.path.replace(/\\/g, '/') ?? null,
-      t_file: files.t_file?.[0]?.path.replace(/\\/g, '/') ?? null,
-      e_file: files.e_file?.[0]?.path.replace(/\\/g, '/') ?? null,
+      s_file: this.lessonUploadPath(files.s_file?.[0]),
+      t_file: this.lessonUploadPath(files.t_file?.[0]),
+      e_file: this.lessonUploadPath(files.e_file?.[0]),
     });
 
     const saved = await this.lessonRepo.save(lesson);
@@ -220,15 +226,15 @@ export class LessonService {
 
     if (files.s_file?.[0]) {
       this.deleteFile(lesson.s_file);
-      lesson.s_file = files.s_file[0].path.replace(/\\/g, '/');
+      lesson.s_file = this.lessonUploadPath(files.s_file[0]);
     }
     if (files.t_file?.[0]) {
       this.deleteFile(lesson.t_file);
-      lesson.t_file = files.t_file[0].path.replace(/\\/g, '/');
+      lesson.t_file = this.lessonUploadPath(files.t_file[0]);
     }
     if (files.e_file?.[0]) {
       this.deleteFile(lesson.e_file);
-      lesson.e_file = files.e_file[0].path.replace(/\\/g, '/');
+      lesson.e_file = this.lessonUploadPath(files.e_file[0]);
     }
 
     const saved = await this.lessonRepo.save(lesson);
@@ -353,7 +359,11 @@ export class LessonService {
   private deleteFile(filePath: string | null): void {
     if (!filePath) return;
     try {
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      const normalizedPath = filePath.replace(/\\/g, '/').replace(/^\/+/, '');
+      const resolvedPath = path.isAbsolute(filePath)
+        ? filePath
+        : path.join(process.cwd(), normalizedPath);
+      if (fs.existsSync(resolvedPath)) fs.unlinkSync(resolvedPath);
     } catch {
       // silently ignore
     }

@@ -133,8 +133,26 @@ export class SubjectService {
 
     subjectQueuesByYearLevel.forEach((subjectQueue, yearLevelId) => {
       const lessonQueue = lessonQueuesByYearLevel.get(yearLevelId) || [];
+      const allVisibleLessonsInYearLevel = lessons.filter((lesson) => {
+        const lessonYearLevelId = String(lesson?.yearLevelId || lesson?.yearLevel?.id || '')
+          .trim();
+        const subjectTypeName = String(lesson?.subjectType?.name || '').trim();
+        return (
+          lessonYearLevelId === yearLevelId &&
+          Boolean(subjectTypeName) &&
+          lesson?.subjectType?.is_deleted !== true
+        );
+      });
 
       if (!lessonQueue.length) {
+        return;
+      }
+
+      // Legacy subjects have no subject_type_id, so matching by grade only is
+      // ambiguous once two books exist in the same grade. Do not guess: the UI
+      // should ask for an explicit subject/lesson link instead of showing the
+      // newest book under an unrelated old subject.
+      if (allVisibleLessonsInYearLevel.length !== 1) {
         return;
       }
 

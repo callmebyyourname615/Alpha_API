@@ -12,15 +12,23 @@ import {
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { mkdirSync } from 'fs';
+import { extname, join } from 'path';
 import { LessonService } from './lesson.service';
 import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
 
 const storage = diskStorage({
-  destination: './uploads/lessons',
+  destination: (_, __, cb) => {
+    const uploadPath = join(process.cwd(), 'uploads', 'lessons');
+    mkdirSync(uploadPath, { recursive: true });
+    cb(null, uploadPath);
+  },
   filename: (_, file, cb) =>
-    cb(null, `${Date.now()}${extname(file.originalname)}`),
+    cb(
+      null,
+      `${Date.now()}-${file.fieldname}-${Math.round(Math.random() * 1e9)}${extname(file.originalname)}`,
+    ),
 });
 
 type LessonBody = Record<string, unknown>;

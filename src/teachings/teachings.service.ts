@@ -238,6 +238,8 @@ export class TeachingService {
 
   // Create - Assign teacher to subject
   async create(createDto: CreateTeachingDto): Promise<Teaching> {
+    await this.validateSubjectLessonDocuments(createDto.subjectId);
+
     const existing = await this.findDuplicateAssignment({
       adminId: createDto.adminId,
       subjectId: createDto.subjectId,
@@ -347,6 +349,8 @@ export class TeachingService {
         updateDto.academicYearId ?? existingTeaching.academicYearId,
       branchId: updateDto.branchId ?? existingTeaching.branchId,
     };
+
+    await this.validateSubjectLessonDocuments(nextValues.subjectId);
 
     const duplicate = await this.findDuplicateAssignment(
       {
