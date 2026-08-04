@@ -75,6 +75,8 @@ const adminFileFields = [
   // ── Top-level files ───────────────────────────────────────────────
   { name: 'profile_pic',   maxCount: 1 },
   { name: 'home_picture',  maxCount: 1 },
+  { name: 'id_card_image', maxCount: 1 },
+  { name: 'passport_image', maxCount: 1 },
 
   // ── education_level[].certificate_image ───────────────────────────
   ...Array.from({ length: MAX_ARRAY_ITEMS }, (_, i) => ({
@@ -102,6 +104,8 @@ const adminFileFields = [
 type AdminUploadedFiles = {
   profile_pic?:  Express.Multer.File[];
   home_picture?: Express.Multer.File[];
+  id_card_image?: Express.Multer.File[];
+  passport_image?: Express.Multer.File[];
   [key: string]: Express.Multer.File[] | undefined;
   // keys: education_level_certificate_image_0..N
   //       emergency_with_ss_image_0..N
@@ -187,10 +191,25 @@ export class AdminsController {
       dto.home_picture_url = `uploads/admin/${files.home_picture[0].filename}`;
     }
 
+    if (files?.id_card_image?.[0]) {
+  dto.id_card_image = `uploads/admin/${files.id_card_image[0].filename}`;
+}
+if (files?.passport_image?.[0]) {
+  dto.passport_image = `uploads/admin/${files.passport_image[0].filename}`;
+}
+
     // Array item files
     injectArrayFilePaths(dto, files);
 
-     console.log( injectArrayFilePaths(dto, files))
+    // console.log( injectArrayFilePaths(dto, files))
+
+console.log('admin document uploads', {
+  idCard: files?.id_card_image?.[0]?.filename,
+  passport: files?.passport_image?.[0]?.filename,
+  dtoIdCard: dto.id_card_image,
+  dtoPassport: dto.passport_image,
+});
+
     return this.adminsService.create(dto);
   }
 
