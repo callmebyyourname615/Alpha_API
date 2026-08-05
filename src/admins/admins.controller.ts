@@ -201,15 +201,6 @@ if (files?.passport_image?.[0]) {
     // Array item files
     injectArrayFilePaths(dto, files);
 
-    // console.log( injectArrayFilePaths(dto, files))
-
-console.log('admin document uploads', {
-  idCard: files?.id_card_image?.[0]?.filename,
-  passport: files?.passport_image?.[0]?.filename,
-  dtoIdCard: dto.id_card_image,
-  dtoPassport: dto.passport_image,
-});
-
     return this.adminsService.create(dto);
   }
 

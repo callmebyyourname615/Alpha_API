@@ -83,9 +83,10 @@ export interface SchoolHistory {
 export interface StudentHealthInfo {
   birth_type: string;
   blood_type: string;
-  congenital_diseases?: string | undefined;
-  allergies?: string | undefined;
-  teeth_condition?: string | undefined;
+  congenital_diseases?: string[] | undefined;
+  allergies?: string[] | undefined;
+  teeth_condition?: string[] | undefined;
+  medicine?: string[] | undefined;
 }
 
 export interface StudentPhysicaldisability {
@@ -301,3 +302,4 @@ export class Student {
   @UpdateDateColumn({ type: 'timestamptz', name: 'updated_at' })
   updatedAt: Date;
 }
+

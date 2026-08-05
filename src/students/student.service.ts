@@ -223,7 +223,15 @@ export class StudentsService {
   async findAll(): Promise<Student[]> {
     return this.studentRepo.find({
       where: { is_deleted: false },
-      relations: ['branch', 'province', 'district', 'parents', 'enrollments'],
+      relations: [
+        'branch',
+        'province',
+        'district',
+        'province_db',
+        'district_db',
+        'parents',
+        'enrollments',
+      ],
     });
   }
 
@@ -390,7 +398,16 @@ export class StudentsService {
 
     return this.studentRepo.find({
       where: { id: In(studentIds), is_deleted: false },
-      relations: ['branch', 'parents', 'enrollments', 'enrollments.class'],
+      relations: [
+        'branch',
+        'province',
+        'district',
+        'province_db',
+        'district_db',
+        'parents',
+        'enrollments',
+        'enrollments.class',
+      ],
       order: {
         first_name_lao: 'ASC',
         last_name_lao: 'ASC',

@@ -78,9 +78,10 @@ export class SchoolHistoryDto {
 export class StudentHealthInfoDto {
   @IsString()                birth_type:           string;
   @IsString()                blood_type:           string;
-  @IsOptional() @IsString()  congenital_diseases?: string;
-  @IsOptional() @IsString()  allergies?:           string;
-  @IsOptional() @IsString()  teeth_condition?:     string;
+  @IsOptional() @IsArray() @IsString({ each: true }) congenital_diseases?: string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) allergies?:           string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) teeth_condition?:     string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) medicine?:             string[];
 }
 
 export class StudentPhysicaldisabilityDto {
