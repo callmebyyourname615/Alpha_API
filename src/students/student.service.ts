@@ -103,6 +103,8 @@ export class StudentsService {
       branch: dto.branchId ? ({ id: dto.branchId } as Branch) : null,
       province: dto.provinceId ? ({ id: dto.provinceId } as Province) : null,
       district: dto.districtId ? ({ id: dto.districtId } as District) : null,
+      province_db: dto.provinceDbId ? ({ id: dto.provinceDbId } as Province) : null,
+      district_db: dto.districtDbId ? ({ id: dto.districtDbId } as District) : null,
 
       student_id: dto.student_id,
       profile_image_path: dto.profile_image_path,
@@ -123,12 +125,16 @@ export class StudentsService {
       ethnicity: dto.ethnicity,
       religion: dto.religion,
       village: dto.village,
+      address: dto.address,
+      parent_address: dto.parent_address,
+      home_map: dto.home_map,
       village_bd: dto.village_bd,
-      bos_number: dto.bos_number,
+      Siblings_number: (dto as any).Siblings_number,
 
       live_with: dto.live_with ?? [],
       emergency_contacts: dto.emergency_contacts ?? [],
-      bos_info: dto.bos_info ?? [],
+      Siblings_info: (dto as any).Siblings_info ?? [],
+      his_school_nursery: dto.his_school_nursery ?? [],
       his_school_kindergarten: dto.his_school_kindergarten ?? [],
       his_school_primary: dto.his_school_primary ?? [],
       health_history: (dto as any).health_history ?? [],
@@ -278,12 +284,16 @@ export class StudentsService {
       ethnicity: dto.ethnicity ?? student.ethnicity,
       religion: dto.religion ?? student.religion,
       village: dto.village ?? student.village,
+      address: dto.address ?? student.address,
+      parent_address: dto.parent_address ?? student.parent_address,
+      home_map: dto.home_map ?? student.home_map,
       village_bd: dto.village_bd ?? student.village_bd,
-      bos_number: dto.bos_number ?? student.bos_number,
+      Siblings_number: (dto as any).Siblings_number ?? student.Siblings_number,
 
       live_with: dto.live_with ?? student.live_with,
       emergency_contacts: dto.emergency_contacts ?? student.emergency_contacts,
-      bos_info: dto.bos_info ?? student.bos_info,
+
+      Siblings_info: (dto as any).Siblings_info ?? student.Siblings_info,
       his_school_kindergarten:
         dto.his_school_kindergarten ?? student.his_school_kindergarten,
       his_school_primary: dto.his_school_primary ?? student.his_school_primary,
@@ -367,15 +377,27 @@ export class StudentsService {
   ): Promise<Student> {
     const student = await this.findById(id);
 
-    const list = student.bos_info ?? [];
+    await this.studentRepo.save(student);
+    return this.findById(id);
+  }
+
+  // ─── Update SiblingsInfo image by index ────────────────────────────────
+  async updateSiblingsInfoImage(
+    id: string,
+    index: number,
+    imagePath: string,
+  ): Promise<Student> {
+    const student = await this.findById(id);
+
+    const list = student.Siblings_info ?? [];
     if (index < 0 || index >= list.length) {
       throw new BadRequestException(
-        `bos_info index ${index} out of range (length: ${list.length})`,
+        `Siblings_info index ${index} out of range (length: ${list.length})`,
       );
     }
 
     list[index] = { ...list[index], image_url: imagePath };
-    student.bos_info = list;
+    student.Siblings_info = list;
 
     await this.studentRepo.save(student);
     return this.findById(id);
