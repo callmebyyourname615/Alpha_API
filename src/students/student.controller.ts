@@ -77,6 +77,12 @@ export const bosInfoFileInterceptor = FileInterceptor('image_url', {
   fileFilter,
 });
 
+export const siblingsInfoFileInterceptor = FileInterceptor('image_url', {
+  storage: fileStorage('siblings_info'),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter,
+});
+
 interface StudentUploadedFiles {
   profile_image?: Express.Multer.File[];
   image_passport?: Express.Multer.File[];
@@ -168,6 +174,19 @@ export class StudentsController {
     return this.service.updateBosInfoImage(id, Number(index), file.path);
   }
 
+  // ================= UPLOAD: SiblingsInfo image =================
+  // POST /students/:id/Siblings-info/:index/upload
+  @Post(':id/Siblings-info/:index/upload')
+  @UseInterceptors(siblingsInfoFileInterceptor)
+  async uploadSiblingsInfoImage(
+    @Param('id') id: string,
+    @Param('index') index: string,
+    @UploadedFile(new ImageToWebpPipe()) file: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('image_url file is required');
+    return this.service.updateSiblingsInfoImage(id, Number(index), file.path);
+  }
+
   // ================= CREATE =================
   @Post()
   @UseInterceptors(studentFilesInterceptor)
@@ -185,13 +204,17 @@ export class StudentsController {
       ...body,
       live_with: parseMaybeJson(body.live_with, []),
       emergency_contacts: parseMaybeJson(body.emergency_contacts, []),
-      bos_info: parseMaybeJson(body.bos_info, []),
+      Siblings_info: parseMaybeJson((body as any).Siblings_info, []),
       his_school_kindergarten: parseMaybeJson(
         (body as any).his_school_kindergarten,
         [],
       ),
       his_school_primary: parseMaybeJson(
         (body as any).his_school_primary,
+        [],
+      ),
+      his_school_nursery: parseMaybeJson(
+        (body as any).his_school_nursery,
         [],
       ),
       health_history: parseMaybeJson((body as any).health_history, []),
@@ -247,11 +270,14 @@ export class StudentsController {
 
     const dto: Partial<CreateStudentDto> = {
       ...body,
+      is_active: body.is_active === 'true' || body.is_active === true ? true : (body.is_active === 'false' || body.is_active === false ? false : undefined),
       live_with: parseMaybeJson(body.live_with),
       emergency_contacts: parseMaybeJson(body.emergency_contacts),
       bos_info: parseMaybeJson(body.bos_info),
+      Siblings_info: parseMaybeJson(body.Siblings_info),
       his_school_kindergarten: parseMaybeJson(body.his_school_kindergarten),
       his_school_primary: parseMaybeJson(body.his_school_primary),
+      his_school_nursery: parseMaybeJson(body.his_school_nursery),
       health_history: parseMaybeJson(body.health_history),
       physical_disability: parseMaybeJson(body.physical_disability),
       protective_info: parseMaybeJson(body.protective_info),

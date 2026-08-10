@@ -74,6 +74,19 @@ export interface BosInfo {
   image_url?: string | undefined;
 }
 
+export interface SiblingsInfo {
+  fullname: string;
+  nickname?: string | undefined;
+  dob?: string | undefined;
+  current_school?: string | undefined;
+  phone1?: string | undefined;
+  phone2?: string | undefined;
+  current_province?: string | undefined;
+  current_district?: string | undefined;
+  current_village?: string | undefined;
+  image_url?: string | undefined;
+}
+
 export interface SchoolHistory {
   academic_year: string;
   year_level: string;
@@ -83,9 +96,10 @@ export interface SchoolHistory {
 export interface StudentHealthInfo {
   birth_type: string;
   blood_type: string;
-  congenital_diseases?: string | undefined;
-  allergies?: string | undefined;
-  teeth_condition?: string | undefined;
+  congenital_diseases?: string[] | undefined;
+  allergies?: string[] | undefined;
+  teeth_condition?: string[] | undefined;
+  medicine?: string[] | undefined;
 }
 
 export interface StudentPhysicaldisability {
@@ -215,6 +229,15 @@ export class Student {
   @Column({ type: 'varchar', length: 255, nullable: true })
   village: string;
 
+  @Column({ type: 'text', nullable: true })
+  address: string;
+
+  @Column({ type: 'text', nullable: true })
+  parent_address: string;
+
+  @Column({ type: 'text', nullable: true })
+  home_map: string;
+
   @ManyToOne(() => Province, { nullable: true })
   province: Province | null;
 
@@ -241,6 +264,15 @@ export class Student {
 
   @Column({ type: 'jsonb', nullable: true, default: () => "'[]'" })
   bos_info: BosInfo[];
+
+  // =========================
+  // SIBLINGS
+  // =========================
+  @Column({ name: 'sibling_number', type: 'varchar', length: 10, nullable: true })
+  Siblings_number: string;
+
+  @Column({ name: 'sibling_info', type: 'jsonb', nullable: true, default: () => "'[]'" })
+  Siblings_info: SiblingsInfo[];
 
   // =========================
   // SCHOOL HISTORY
@@ -301,3 +333,4 @@ export class Student {
   @UpdateDateColumn({ type: 'timestamptz', name: 'updated_at' })
   updatedAt: Date;
 }
+

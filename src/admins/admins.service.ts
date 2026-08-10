@@ -156,6 +156,15 @@ export class AdminsService {
       current_academic_year: dto.current_academic_year ?? null,
       profile_pic: dto.profile_pic ?? null,
 
+      nationality: dto.nationality ?? null,
+ethnicity: dto.ethnicity ?? null,
+religion: dto.religion ?? null,
+id_card_number: dto.id_card_number ?? null,
+id_card_image: dto.id_card_image ?? null,
+passport_number: dto.passport_number ?? null,
+passport_image: dto.passport_image ?? null,
+current_status: dto.current_status ?? null,
+
       // ── jsonb arrays ──
       history_work: dto.history_work ?? [],
       education_level: dto.education_level ?? [],
@@ -183,6 +192,8 @@ export class AdminsService {
       if (!branch) throw new BadRequestException('Invalid branch ID');
       admin.branch = branch;
     }
+
+    
 
     const saved = await this.adminRepository.save(admin);
     return this.toResponseDto(saved);

@@ -155,10 +155,14 @@ export class CreateAdminDto {
   is_active?: boolean;
 
   // ── Relations ─────────────────────────────────────────────────────────────
-  @IsOptional()
-  @IsArray()
-  @IsUUID('4', { each: true })
-  role_ids?: string[];
+@IsOptional()
+@Transform(({ value }) => {
+  if (!value) return undefined;
+  return Array.isArray(value) ? value : [value];
+})
+@IsArray()
+@IsUUID('4', { each: true })
+role_ids?: string[];
 
   @IsOptional()
   @IsUUID()

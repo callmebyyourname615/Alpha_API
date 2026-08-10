@@ -65,6 +65,19 @@ export class BosInfoDto {
   @IsOptional() @IsString()  image_url?:       string;
 }
 
+export class SiblingsInfoDto {
+  @IsString()                fullname:         string;
+  @IsOptional() @IsString()  nickname?:        string;
+  @IsOptional() @IsString()  dob?:             string;
+  @IsOptional() @IsString()  current_school?:  string;
+  @IsOptional() @IsString()  phone1?:          string;
+  @IsOptional() @IsString()  phone2?:          string;
+  @IsOptional() @IsString()  current_province?: string;
+  @IsOptional() @IsString()  current_district?: string;
+  @IsOptional() @IsString()  current_village?: string;
+  @IsOptional() @IsString()  image_url?:       string;
+}
+
 export class SchoolHistoryDto {
   @IsString() academic_year: string;
   @IsString() year_level:    string;
@@ -78,9 +91,10 @@ export class SchoolHistoryDto {
 export class StudentHealthInfoDto {
   @IsString()                birth_type:           string;
   @IsString()                blood_type:           string;
-  @IsOptional() @IsString()  congenital_diseases?: string;
-  @IsOptional() @IsString()  allergies?:           string;
-  @IsOptional() @IsString()  teeth_condition?:     string;
+  @IsOptional() @IsArray() @IsString({ each: true }) congenital_diseases?: string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) allergies?:           string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) teeth_condition?:     string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) medicine?:             string[];
 }
 
 export class StudentPhysicaldisabilityDto {
@@ -174,8 +188,21 @@ export class CreateStudentDto {
   @IsOptional() @IsString()
   religion?: string;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   village?: string;
+
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @IsOptional()
+  @IsString()
+  parent_address?: string;
+
+  @IsOptional()
+  @IsString()
+  home_map?: string;
 
   @IsOptional() @IsString()
   village_bd?: string;
@@ -201,6 +228,22 @@ export class CreateStudentDto {
   @ValidateNested({ each: true })
   @Type(() => BosInfoDto)
   bos_info?: BosInfoDto[];
+
+  @IsOptional()
+  @IsString()
+  Siblings_number?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SiblingsInfoDto)
+  Siblings_info?: SiblingsInfoDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SchoolHistoryDto)
+  his_school_nursery?: SchoolHistoryDto[];
 
   @IsOptional()
   @IsArray()
