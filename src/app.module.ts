@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 import { HealthModule } from './health/health.module';
 import { HealthController } from './health/health.controller';
 import { BranchModule } from './branches/branch.module';
@@ -41,6 +43,7 @@ import { SubjectEvaluationModule } from './subject_evaluations/subject-evaluatio
 import { ScheduleModule } from '@nestjs/schedule';
 import { TeachLearningModule } from './teach_learning/teach-learning.module';
 import { TeacherHomeworkModule } from './teacher-homework/teacher-homework.module';
+import { HomeworkResultModule } from './homework-result/homework-result.module';
 import { LessonModule } from './lesson/lesson.module';
 import { EnrollmentModule } from './enrollments/enrollment.module';
 import { ExaminationResultModule } from './examination_results/examination-result.module';
@@ -66,6 +69,7 @@ import { StudentNutritionModule } from './nutrition/nutrition.module';
 import { FoodRestrictionModule } from './food_restriction/food-restriction.module';
 import { GalleryModule } from './gallery/gallery.module';
 import { RubricSettingsModule } from './rubric_settings/rubric-settings.module';
+import { RubricReportMonthSettingModule } from './rubric_report_month_settings/rubric-report-month-setting.module';
 
 @Module({
   imports: [
@@ -138,6 +142,7 @@ import { RubricSettingsModule } from './rubric_settings/rubric-settings.module';
     SubjectEvaluationModule,
     TeachLearningModule,
     TeacherHomeworkModule,
+    HomeworkResultModule,
     LessonModule,
     EnrollmentModule,
     ExaminationResultModule,
@@ -159,13 +164,14 @@ import { RubricSettingsModule } from './rubric_settings/rubric-settings.module';
     FoodRestrictionModule,
     GalleryModule,
     RubricSettingsModule,
+    RubricReportMonthSettingModule,
     TaskSubmissionModule,
     TaskNoteModule,
     ChatReadModule,
     TaskActivityModule,
   ],
-  providers: [],
+  providers: [AppService],
 
-  controllers: [HealthController],
+  controllers: [AppController, HealthController],
 })
 export class AppModule {}
