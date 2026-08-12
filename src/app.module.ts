@@ -90,8 +90,9 @@ import { RubricSettingsModule } from './rubric_settings/rubric-settings.module';
         // wait on DDL locks during startup, leaving the API process alive but
         // never listening on its HTTP port. Keep it opt-in for local schema
         // development only.
-        synchronize: config.get<string>('TYPEORM_SYNCHRONIZE') === 'true',
-        connectTimeoutMS: 5000,
+       // synchronize: config.get<string>('TYPEORM_SYNCHRONIZE') === 'true',
+       synchronize: true, 
+       connectTimeoutMS: 5000,
         extra: {
           connectionTimeoutMillis: 5000,
           query_timeout: 30000,
