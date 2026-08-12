@@ -77,6 +77,9 @@ export class BranchController {
       name: body.name,
       contact: body.contact,
       phone: body.phone,
+      branch_map: body.branch_map,
+      branch_fb: body.branch_fb,
+      branch_website: body.branch_website,
       address: body.address ? JSON.parse(body.address) : undefined,
       subjects: body.subjects ? JSON.parse(body.subjects) : undefined,
     };
