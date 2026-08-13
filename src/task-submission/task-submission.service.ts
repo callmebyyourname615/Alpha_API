@@ -8,6 +8,7 @@ import { UpdateTaskSubmissionDto } from './dto/update-task-submission.dto';
 import { TaskSubmissionSlot } from './task-submission-slot.entity';
 import { Task } from '../task/task.entity';
 import { ReviewTaskSlotDto, SubmitTaskSlotDto } from './dto/task-submission-slot.dto';
+import { TaskAccessService } from '../task-access/task-access.service';
 
 @Injectable()
 export class TaskSubmissionService {
@@ -20,6 +21,7 @@ export class TaskSubmissionService {
     private readonly slotRepo: Repository<TaskSubmissionSlot>,
     @InjectRepository(Task)
     private readonly taskRepo: Repository<Task>,
+    private readonly taskAccess: TaskAccessService,
   ) {}
 
   private buildDueAt(dateValue: string, dueTime?: string) {
@@ -33,7 +35,26 @@ export class TaskSubmissionService {
     return [task.deadline.toISOString().slice(0, 10)];
   }
 
-  async syncSlots(taskId: string, studentIds: string[]) {
+  private getReviewActorId(dto: { actor_admin_id?: string; reviewed_by_id?: string }) {
+    return dto.actor_admin_id || dto.reviewed_by_id;
+  }
+
+  private hasTeacherReviewFields(dto: Partial<CreateTaskSubmissionDto & UpdateTaskSubmissionDto>) {
+    return dto.progress_pct !== undefined
+      || dto.score !== undefined
+      || dto.max_score !== undefined
+      || dto.feedback !== undefined
+      || dto.reviewed_by_id !== undefined
+      || dto.reviewed_by_type !== undefined
+      || dto.status === 'reviewed';
+  }
+
+  private requireReviewActor(adminId: string | undefined) {
+    if (!adminId) throw new BadRequestException('Admin id is required for reviewing task submissions');
+  }
+
+  async syncSlots(taskId: string, studentIds: string[], actorAdminId?: string) {
+    await this.taskAccess.assertAdminCanMutateTask(taskId, actorAdminId);
     const task = await this.taskRepo.findOne({ where: { id: taskId } });
     if (!task) throw new NotFoundException('Task not found');
     const dates = this.getScheduleDates(task);
@@ -113,6 +134,9 @@ export class TaskSubmissionService {
   }
 
   async reviewSlot(dto: ReviewTaskSlotDto) {
+    const actorAdminId = this.getReviewActorId(dto);
+    this.requireReviewActor(actorAdminId);
+    await this.taskAccess.assertAdminCanMutateTask(dto.task_id, actorAdminId);
     const slot = await this.slotRepo.findOne({ where: { task_id: dto.task_id, student_id: dto.student_id, schedule_index: dto.schedule_index } });
     if (!slot) throw new NotFoundException('Submission schedule slot not found');
     if (!['submitted', 'late', 'reviewed'].includes(slot.status)) {
@@ -175,6 +199,9 @@ export class TaskSubmissionService {
   // Create-or-update in one call: the admin review modal always targets a
   // single (task_id, student_id) pair regardless of whether a row exists yet.
   async upsert(dto: CreateTaskSubmissionDto & Partial<UpdateTaskSubmissionDto>): Promise<TaskSubmission> {
+    const actorAdminId = this.getReviewActorId(dto as any);
+    if (this.hasTeacherReviewFields(dto)) this.requireReviewActor(actorAdminId);
+    await this.taskAccess.assertAdminCanMutateTask(dto.task_id, actorAdminId);
     let submission = await this.findForStudent(dto.task_id, dto.student_id);
     const now = new Date();
 
@@ -209,6 +236,9 @@ export class TaskSubmissionService {
 
   async update(id: string, dto: UpdateTaskSubmissionDto): Promise<TaskSubmission> {
     const submission = await this.findOne(id);
+    const actorAdminId = this.getReviewActorId(dto);
+    if (this.hasTeacherReviewFields(dto)) this.requireReviewActor(actorAdminId);
+    await this.taskAccess.assertAdminCanMutateTask(submission.task_id, actorAdminId);
     Object.assign(submission, dto);
 
     if (['submitted', 'reviewed'].includes(submission.status) && !submission.submitted_at) {
@@ -221,8 +251,10 @@ export class TaskSubmissionService {
     return this.repo.save(submission);
   }
 
-  async delete(id: string): Promise<{ message: string }> {
+  async delete(id: string, adminId?: string): Promise<{ message: string }> {
     const submission = await this.findOne(id);
+    this.requireReviewActor(adminId);
+    await this.taskAccess.assertAdminCanMutateTask(submission.task_id, adminId);
     await this.repo.remove(submission);
     return { message: 'Task submission deleted' };
   }

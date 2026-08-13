@@ -31,8 +31,17 @@ export type PracticeFrequencyUnit = 'week' | 'month';
 export interface TaskReminders {
   day_before?: boolean;
   day_before_days?: number;
+  day_before_time?: string;
+  day_before_schedule?: {
+    offset_days: number;
+    date: string;
+    time: string;
+    datetime: string;
+  }[];
   due_day?: boolean;
+  due_day_time?: string;
   overdue?: boolean;
+  overdue_time?: string;
 }
 
 export interface TaskSettings {

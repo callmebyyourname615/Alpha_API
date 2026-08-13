@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { ChatRead, ChatReaderType } from './chat-read.entity';
+import { TaskAccessService } from '../task-access/task-access.service';
 
 export interface MarkReadDto {
   module_type: string;
@@ -16,9 +17,14 @@ export class ChatReadService {
   constructor(
     @InjectRepository(ChatRead)
     private readonly repo: Repository<ChatRead>,
+    private readonly taskAccess: TaskAccessService,
   ) {}
 
   async markRead(dto: MarkReadDto): Promise<ChatRead> {
+    if (dto.module_type === 'TASK' && dto.reader_type === ChatReaderType.ADMIN) {
+      await this.taskAccess.assertAdminCanMutateTask(dto.module_id, dto.reader_id);
+    }
+
     const studentId = dto.student_id ?? null;
     let cursor = await this.repo.findOne({
       where: {

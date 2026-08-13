@@ -47,6 +47,10 @@ export class SyncTaskSlotsDto {
   @IsUUID()
   task_id: string;
 
+  @IsOptional()
+  @IsUUID()
+  actor_admin_id?: string;
+
   @IsArray()
   @ArrayUnique()
   @IsUUID('4', { each: true })
@@ -91,4 +95,8 @@ export class ReviewTaskSlotDto {
   @IsOptional()
   @IsUUID()
   reviewed_by_id?: string;
+
+  @IsOptional()
+  @IsUUID()
+  actor_admin_id?: string;
 }
