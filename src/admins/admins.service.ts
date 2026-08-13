@@ -36,6 +36,8 @@ export class AdminResponseDto {
   first_name_La?: string | null;
   last_name_La?: string | null;
   middle_name?: string | null;
+  middle_name_La?: string | null;
+  nick_name?: string | null;
   phone?: string | null;
   tell?: string | null;
   gender?: string | null;
@@ -137,6 +139,8 @@ export class AdminsService {
       first_name_La: dto.first_name_La ?? null,
       last_name_La: dto.last_name_La ?? null,
       middle_name: dto.middle_name ?? null,
+      middle_name_La: dto.middle_name_La ?? null,
+      nick_name: dto.nick_name ?? null,
       phone: dto.phone ?? null,
       tell: dto.tell ?? null,
       gender: dto.gender ?? null,
@@ -278,6 +282,8 @@ current_status: dto.current_status ?? null,
       first_name_La: dto.first_name_La ?? admin.first_name_La,
       last_name_La: dto.last_name_La ?? admin.last_name_La,
       middle_name: dto.middle_name ?? admin.middle_name,
+      middle_name_La: dto.middle_name_La ?? admin.middle_name_La,
+      nick_name: dto.nick_name ?? admin.nick_name,
       phone: dto.phone ?? admin.phone,
       tell: dto.tell ?? admin.tell,
       gender: dto.gender ?? admin.gender,
@@ -377,6 +383,8 @@ current_status: dto.current_status ?? null,
       first_name_La: str(admin.first_name_La),
       last_name_La: str(admin.last_name_La),
       middle_name: str(admin.middle_name),
+      middle_name_La: str(admin.middle_name_La),
+      nick_name: str(admin.nick_name),
       phone: str(admin.phone),
       tell: str(admin.tell),
       gender: str(admin.gender),
