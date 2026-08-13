@@ -16,6 +16,7 @@ import { Teaching } from '../teachings/teaching.entity';
 import { Attendance } from '../attendance/attendance.entity';
 import { TeachLearning } from '../teach_learning/teach-learning.entity';
 import { ParasiteInjection } from '../parasite-injection/parasite.injection.entity';
+import { Class } from '../classes/class.entity';
 
 export interface HistoryWork {
   from_date: string;
@@ -260,4 +261,7 @@ export class Admin {
 
   @OneToMany(() => ParasiteInjection, (pi) => pi.administeredBy)
   parasiteInjections: ParasiteInjection[];
+
+  @OneToMany(() => Class, (schoolClass) => schoolClass.homeroomTeacher)
+  homeroomClasses: Class[];
 }
