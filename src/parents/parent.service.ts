@@ -71,6 +71,7 @@ export class ParentService {
       work_district: dto.work_district,
       work_village: dto.work_village,
 
+      relation_type: dto.relation_type,
       occupation: dto.occupation,
       company_name: dto.company_name,
 
@@ -123,6 +124,7 @@ export class ParentService {
     if (dto.work_district !== undefined)
       parent.work_district = dto.work_district;
     if (dto.work_village !== undefined) parent.work_village = dto.work_village;
+    if (dto.relation_type !== undefined) parent.relation_type = dto.relation_type;
     if (dto.occupation !== undefined) parent.occupation = dto.occupation;
     if (dto.company_name !== undefined) parent.company_name = dto.company_name;
     if (dto.email !== undefined) parent.email = dto.email;
@@ -234,3 +236,4 @@ export class ParentService {
     return { message: 'Parent soft deleted successfully' };
   }
 }
+

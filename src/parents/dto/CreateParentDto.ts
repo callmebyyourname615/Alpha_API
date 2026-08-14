@@ -119,6 +119,10 @@ export class CreateParentDto {
 
   @IsOptional()
   @IsString()
+  relation_type?: string;
+
+  @IsOptional()
+  @IsString()
   occupation?: string;
 
   @IsOptional()

@@ -126,8 +126,11 @@ export class Parent {
   work_village: string;
 
   // ────────────────────────────────────────────────
-  // Occupation / Work
+  // Occupation / Work / Relationship
   // ────────────────────────────────────────────────
+  @Column({ length: 255, nullable: true })
+  relation_type: string;
+
   @Column({ length: 255, nullable: true })
   occupation: string;
 
