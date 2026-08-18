@@ -53,6 +53,7 @@ export class ParentService {
       passport_image_url: dto.passport_image_url,
 
       education_level: dto.education_level,
+      relation_type: dto.relation_type,
 
       phone: dto.phone,
       mobile_phone: dto.mobile_phone,
@@ -76,9 +77,6 @@ export class ParentService {
 
       profilePictureUrl: dto.profile_pic,
 
-      // Parent self-registration must always wait for an administrator.
-      // Do not trust multipart form values here: the string "false" can be
-      // coerced to true by request transformation in some Nest setups.
       isActive: false,
       approvalStatus: 'pending',
       rejectedAt: null,
@@ -133,16 +131,24 @@ export class ParentService {
       parent.id_card_url = dto.id_card;
     }
     if (dto.home_picture_url !== undefined)
-      parent.home_picture_url = dto.home_picture_url; // ✅
+      parent.home_picture_url = dto.home_picture_url;
     if (dto.family_book_url !== undefined)
-      parent.family_book_url = dto.family_book_url; // ✅
+      parent.family_book_url = dto.family_book_url;
+
+    if (dto.relation_type !== undefined)
+      parent.relation_type = dto.relation_type;
+
     if (dto.is_active !== undefined) {
-      parent.isActive = dto.is_active;
+      const activeBool = typeof dto.is_active === 'boolean'
+        ? dto.is_active
+        : String(dto.is_active).trim().toLowerCase() === 'true';
+      parent.isActive = activeBool;
       if (dto.approval_status === undefined) {
-        parent.approvalStatus = dto.is_active ? 'approved' : 'pending';
+        parent.approvalStatus = activeBool ? 'approved' : 'pending';
         parent.rejectedAt = null;
       }
     }
+
     if (dto.approval_status !== undefined) {
       parent.approvalStatus = dto.approval_status;
       parent.isActive = dto.approval_status === 'approved';
@@ -187,14 +193,14 @@ export class ParentService {
 
     const saved = await this.parentRepository.save(parent);
 
-    // Cascade: when admin approves the parent, also activate every student
-    // linked to this parent (via student_parents join table) so login/visibility
-    // is unblocked in a single click.
     if (dto.is_active !== undefined) {
+      const activeBool = typeof dto.is_active === 'boolean'
+        ? dto.is_active
+        : String(dto.is_active).trim().toLowerCase() === 'true';
       await this.studentRepository
         .createQueryBuilder()
         .update(Student)
-        .set({ is_active: dto.is_active })
+        .set({ is_active: activeBool })
         .where(
           `id IN (SELECT student_id FROM student_parents WHERE parent_id = :pid)`,
           { pid: id },

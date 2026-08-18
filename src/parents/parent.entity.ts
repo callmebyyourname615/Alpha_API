@@ -82,9 +82,11 @@ export class Parent {
   @Column({ type: 'varchar', length: 512, nullable: true })
   passport_image_url: string | null;
 
-
   @Column({ type: 'varchar', length: 255, nullable: true })
   education_level: string;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  relation_type: string;
 
   // ────────────────────────────────────────────────
   // Contact & Address

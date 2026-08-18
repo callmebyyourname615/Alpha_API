@@ -184,4 +184,8 @@ passport_image_url?: string;
 @IsOptional()
 @IsString()
 id_card_url?: string;
+
+@IsOptional()
+@IsString()
+relation_type?: string;
 }
