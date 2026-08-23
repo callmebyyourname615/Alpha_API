@@ -43,7 +43,7 @@ const adminFileInterceptorOptions = {
     },
   }),
   fileFilter: (_req, file, cb) => {
-    const allowed = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    const allowed = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.pdf'];
     const ext = extname(file.originalname).toLowerCase();
     if (!allowed.includes(ext)) {
       return cb(
@@ -93,6 +93,12 @@ const adminFileFields = [
   // ── family_info[].profile ─────────────────────────────────────────
   ...Array.from({ length: MAX_ARRAY_ITEMS }, (_, i) => ({
     name: `family_info_profile_${i}`,
+    maxCount: 1,
+  })),
+
+  // ── history_work[].work_permit_image ──────────────────────────────
+  ...Array.from({ length: MAX_ARRAY_ITEMS }, (_, i) => ({
+    name: `history_work_permit_image_${i}`,
     maxCount: 1,
   })),
 ];
@@ -146,6 +152,16 @@ function injectArrayFilePaths(
       const file = files[`family_info_profile_${i}`]?.[0];
       if (file) {
         item.profile = `uploads/admin/${file.filename}`;
+      }
+    });
+  }
+
+  // history_work[i].work_permit_image
+  if (dto.history_work?.length) {
+    dto.history_work.forEach((item, i) => {
+      const file = files[`history_work_permit_image_${i}`]?.[0];
+      if (file) {
+        item.work_permit_image = `uploads/admin/${file.filename}`;
       }
     });
   }

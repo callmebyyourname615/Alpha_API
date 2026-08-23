@@ -25,6 +25,7 @@ export class HistoryWorkDto {
   @IsString() academy_year: string;
   @IsString() teach_level: string;
   @IsString() history_school: string;
+  @IsOptional() @IsString() work_permit_image?: string;
 }
 
 export class EducationLevelDto {
@@ -48,8 +49,12 @@ export class EmergencyWithDto {
 
 export class BosInfoDto {
   @IsString() first_name: string;
+  @IsOptional() @IsString() first_name_La?: string;
   @IsString() last_name: string;
+  @IsOptional() @IsString() last_name_La?: string;
   @IsOptional() @IsString() middle_name?: string;
+  @IsOptional() @IsString() middle_name_La?: string;
+  @IsOptional() @IsString() nick_name?: string;
   @IsOptional() @IsString() dob?: string;
   @IsOptional() @IsString() work_place?: string;
   @IsOptional() @IsString() phone?: string;
@@ -57,8 +62,12 @@ export class BosInfoDto {
 
 export class FamilyInfoDto {
   @IsString() first_name: string;
+  @IsOptional() @IsString() first_name_La?: string;
   @IsString() last_name: string;
+  @IsOptional() @IsString() last_name_La?: string;
   @IsOptional() @IsString() middle_name?: string;
+  @IsOptional() @IsString() middle_name_La?: string;
+  @IsOptional() @IsString() nick_name?: string;
   @IsOptional() @IsString() dob?: string;
   @IsOptional() @IsString() id_card_image?: string;
   @IsOptional() @IsString() nationality?: string;
@@ -126,6 +135,8 @@ export class CreateAdminDto {
   @IsOptional() @IsString() first_name_La?: string;
   @IsOptional() @IsString() last_name_La?: string;
   @IsOptional() @IsString() middle_name?: string;
+  @IsOptional() @IsString() middle_name_La?: string;
+  @IsOptional() @IsString() nick_name?: string;
   @IsOptional() @IsString() phone?: string;
   @IsOptional() @IsString() tell?: string;
   @IsOptional() @IsDateString() dob?: string;
@@ -220,6 +231,8 @@ export class UpdateAdminDto {
   @IsOptional() @IsString() first_name_La?: string;
   @IsOptional() @IsString() last_name_La?: string;
   @IsOptional() @IsString() middle_name?: string;
+  @IsOptional() @IsString() middle_name_La?: string;
+  @IsOptional() @IsString() nick_name?: string;
   @IsOptional() @IsString() phone?: string;
   @IsOptional() @IsString() tell?: string;
   @IsOptional() @IsDateString() dob?: string;

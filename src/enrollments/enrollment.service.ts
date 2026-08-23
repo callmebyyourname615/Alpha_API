@@ -279,11 +279,25 @@ export class EnrollmentService {
       });
 
       if (duplicate) {
-        skipped.push({
-          studentId: item.studentId,
-          name:      `${current.student.first_name_lao} ${current.student.last_name_lao} (${current.student.first_name_eng} ${current.student.last_name_eng})`,
-          reason:    'Already enrolled in target academic year',
-        });
+        if (duplicate.classId === item.newClassId && duplicate.is_active) {
+          skipped.push({
+            studentId: item.studentId,
+            name: `${current.student?.first_name_lao || ''} ${current.student?.last_name_lao || ''}`.trim() || 'Student',
+            reason: 'Already enrolled in target class for this academic year',
+          });
+          continue;
+        }
+
+        if (current.id !== duplicate.id) {
+          current.is_active = false;
+          await this.enrollmentRepo.save(current);
+        }
+
+        duplicate.classId = item.newClassId;
+        duplicate.class = newClass;
+        duplicate.is_active = true;
+        const saved = await this.enrollmentRepo.save(duplicate);
+        promoted.push(await this.findOne(saved.id));
         continue;
       }
 

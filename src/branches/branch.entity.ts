@@ -36,13 +36,13 @@ export class Branch {
   @Column({ type: 'jsonb', nullable: true })
   address: Record<string, any>;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ type: 'text', nullable: true })
   branch_map: string | null;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ type: 'text', nullable: true })
   branch_fb: string | null;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ type: 'text', nullable: true })
   branch_website: string | null;
 
   @Column({ nullable: true })

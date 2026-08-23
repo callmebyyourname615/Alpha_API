@@ -13,6 +13,7 @@ import { Saving } from '../savings/savings.entity';
 import { Subject } from '../subjects/subject.entity';
 import { TeacherHomeworkItem } from '../teacher-homework/teacher-homework-item.entity';
 import { TeacherHomework } from '../teacher-homework/teacher-homework.entity';
+import { Admin } from '../admins/admin.entity';
 
 @Entity('classes')
 export class Class {
@@ -28,6 +29,16 @@ export class Class {
 
   @Column()
   name: string;
+
+  @Column({ type: 'uuid', name: 'homeroom_teacher_id', nullable: true })
+  homeroom_teacher_id: string | null;
+
+  @ManyToOne(() => Admin, (admin) => admin.homeroomClasses, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'homeroom_teacher_id' })
+  homeroomTeacher: Admin | null;
 
   @Column({ type: 'numeric', default: 0 })
   saving_wallet: number;

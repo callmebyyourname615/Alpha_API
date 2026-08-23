@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Level } from './level.entity';
@@ -31,6 +31,15 @@ export class LevelsService {
   }
 
   async remove(id: string): Promise<void> {
-    await this.repo.delete(id);
+    try {
+      await this.repo.delete(id);
+    } catch (error: any) {
+      if (error.code === '23503') {
+        throw new ConflictException(
+          'Cannot delete this level because it is referenced by one or more year levels. Please delete them first.'
+        );
+      }
+      throw error;
+    }
   }
 }

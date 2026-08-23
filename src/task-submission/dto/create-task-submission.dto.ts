@@ -56,6 +56,10 @@ export class UpsertTaskSubmissionDto extends CreateTaskSubmissionDto {
   reviewed_by_id?: string;
 
   @IsOptional()
+  @IsUUID()
+  actor_admin_id?: string;
+
+  @IsOptional()
   @IsString()
   reviewed_by_type?: string;
 }

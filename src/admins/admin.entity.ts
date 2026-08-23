@@ -16,6 +16,7 @@ import { Teaching } from '../teachings/teaching.entity';
 import { Attendance } from '../attendance/attendance.entity';
 import { TeachLearning } from '../teach_learning/teach-learning.entity';
 import { ParasiteInjection } from '../parasite-injection/parasite.injection.entity';
+import { Class } from '../classes/class.entity';
 
 export interface HistoryWork {
   from_date: string;
@@ -25,6 +26,7 @@ export interface HistoryWork {
   academy_year: string;
   teach_level: string;
   history_school: string;
+  work_permit_image?: string | null;
 }
 
 export interface EducationLevel {
@@ -59,6 +61,10 @@ export interface FamilyInfo {
   first_name: string;
   last_name: string;
   middle_name?: string | null;
+  first_name_La?: string | null;
+  last_name_La?: string | null;
+  middle_name_La?: string | null;
+  nick_name?: string | null;
   dob?: string | null;
   id_card_image?: string | null;
   nationality?: string | null;
@@ -88,6 +94,7 @@ export interface RestrictionItem {
 export interface OtherRestriction {
   medicine?: RestrictionItem[];
   food?: RestrictionItem[];
+  other?: RestrictionItem[];
 }
 
 @Entity('admins')
@@ -134,13 +141,19 @@ export class Admin {
   last_name: string | null;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
+  middle_name: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
   first_name_La: string | null;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
   last_name_La: string | null;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
-  middle_name: string | null;
+  middle_name_La: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  nick_name: string | null;
 
   @Column({ type: 'varchar', length: 20, nullable: true }) // length for phone
   phone: string | null;
@@ -260,4 +273,7 @@ export class Admin {
 
   @OneToMany(() => ParasiteInjection, (pi) => pi.administeredBy)
   parasiteInjections: ParasiteInjection[];
+
+  @OneToMany(() => Class, (schoolClass) => schoolClass.homeroomTeacher)
+  homeroomClasses: Class[];
 }

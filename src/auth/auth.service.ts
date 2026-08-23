@@ -36,6 +36,7 @@ async login(email: string, password: string) {
     throw new UnauthorizedException('No password set for this account');
   }
 
+
   const isPasswordValid = await bcrypt.compare(password, admin.password);
   if (!isPasswordValid) {
     throw new UnauthorizedException('Invalid email or password');
@@ -45,17 +46,19 @@ async login(email: string, password: string) {
     sub: admin.id,
     username: admin.username,
     email: admin.email,
+    first_name: admin.first_name,
+    last_name: admin.last_name,
+    profile_pic: admin.profile_pic,
     roles: (admin.roles || []).map(r => ({
       id: r.id,
       name: r.name,
       level: r.level,
     })),
     branch: admin.branch ? { id: admin.branch.id, name: admin.branch.name } : { id: '', name: 'Main Branch' }, // <-- add branch
-    user_type: 'admin',
   };
 
   return {
-    access_token: this.jwtService.sign(payload),
+    access_token: await this.jwtService.signAsync(payload),
     user: payload,
   };
 }

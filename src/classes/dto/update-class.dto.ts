@@ -11,6 +11,10 @@ export class UpdateClassDto {
   name?: string;
 
   @IsOptional()
+  @IsUUID()
+  homeroom_teacher_id?: string | null;
+
+  @IsOptional()
   @IsNumber()
   saving_wallet?: number;
 

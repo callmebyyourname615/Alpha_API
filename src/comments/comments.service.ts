@@ -11,6 +11,7 @@ import { EventActivity } from '../eventactivity/eventActivity.entity';
 import { File } from '../file/files.entity';
 import { Announcement } from '../announcements/announcement.entity';
 import { Admin } from '../admins/admin.entity';
+import { TaskAccessService } from '../task-access/task-access.service';
 
 export interface ToggleReactionDto {
   auditor_id: string;
@@ -47,10 +48,16 @@ export class CommentsService {
 
     @InjectRepository(Announcement)
     private announcementRepo: Repository<Announcement>,
+
+    private readonly taskAccess: TaskAccessService,
   ) {}
 
   // Create comment
   async create(dto: CreateCommentDto) {
+    if (dto.module_type === ModuleType.TASK && dto.auditor_type === AuditorType.ADMIN) {
+      await this.taskAccess.assertAdminCanMutateTask(dto.module_id, dto.auditor_id);
+    }
+
     // ตรวจสอบ auditor
     if (dto.auditor_type === AuditorType.ADMIN) {
       const admin = await this.adminRepo.findOne({ where: { id: dto.auditor_id } });
@@ -92,6 +99,11 @@ export class CommentsService {
   async update(id: string, dto: Partial<CreateCommentDto>) {
     const comment = await this.commentRepo.findOne({ where: { id } });
     if (!comment) throw new NotFoundException('Comment not found');
+    const adminId = dto.auditor_type === AuditorType.ADMIN ? dto.auditor_id : comment.auditor_type === AuditorType.ADMIN ? comment.auditor_id : null;
+    const moduleId = dto.module_type === ModuleType.TASK ? dto.module_id : comment.module_type === ModuleType.TASK ? comment.module_id : null;
+    if (adminId && moduleId) {
+      await this.taskAccess.assertAdminCanMutateTask(moduleId, adminId);
+    }
 
     if (dto.comment !== undefined) comment.comment = dto.comment;
     if (dto.auditor_id !== undefined) comment.auditor_id = dto.auditor_id;
@@ -188,6 +200,9 @@ export class CommentsService {
 async toggleReaction(commentId: string, dto: ToggleReactionDto) {
   const comment = await this.commentRepo.findOne({ where: { id: commentId } });
   if (!comment) throw new NotFoundException('Comment not found');
+  if (comment.module_type === ModuleType.TASK && dto.auditor_type === AuditorType.ADMIN) {
+    await this.taskAccess.assertAdminCanMutateTask(comment.module_id, dto.auditor_id);
+  }
 
   const existing = await this.reactionRepo.findOne({
     where: {
@@ -225,6 +240,9 @@ async getReactions(commentId: string) {
 
   async remove(id: string) {
     const comment = await this.findOne(id);
+    if (comment.module_type === ModuleType.TASK && comment.auditor_type === AuditorType.ADMIN) {
+      await this.taskAccess.assertAdminCanMutateTask(comment.module_id, comment.auditor_id);
+    }
     return this.commentRepo.remove(comment);
   }
 }

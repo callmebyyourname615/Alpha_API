@@ -140,6 +140,9 @@ export class BranchService {
         branch_no: dto.branch_no,
       });
       branch.name = dto.name ?? '';
+      branch.branch_map = dto.branch_map ?? null;
+      branch.branch_fb = dto.branch_fb ?? null;
+      branch.branch_website = dto.branch_website ?? null;
       branch.contact = dto.contact ?? '';
       branch.phone = dto.phone ?? '';
       branch.address =

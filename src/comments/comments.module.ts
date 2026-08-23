@@ -10,10 +10,12 @@ import { EventActivity } from '../eventactivity/eventActivity.entity';
 import { File } from '../file/files.entity';
 import { Announcement } from '../announcements/announcement.entity';
 import { Admin } from '../admins/admin.entity';
+import { TaskAccessModule } from '../task-access/task-access.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Comment, CommentReaction, Admin, Parent, Task, Event, EventActivity, File, Announcement]),
+    TaskAccessModule,
   ],
   controllers: [CommentsController],
   providers: [CommentsService],
