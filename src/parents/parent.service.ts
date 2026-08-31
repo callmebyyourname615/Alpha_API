@@ -7,6 +7,9 @@ import * as bcrypt from 'bcrypt';
 import { CreateParentDto } from './dto/CreateParentDto';
 import { UpdateParentDto } from './dto/UpdateParentDto';
 
+const resolveBranchId = (dto: Pick<CreateParentDto, 'branch_id' | 'branchId'>) =>
+  (dto.branch_id ?? dto.branchId ?? '').toString().trim() || null;
+
 @Injectable()
 export class ParentService {
   constructor(
@@ -24,6 +27,7 @@ export class ParentService {
     }
 
     const parent = this.parentRepository.create({
+      branchId: resolveBranchId(dto),
       email: dto.email,
       username: dto.username,
       passwordHash,
@@ -88,7 +92,7 @@ export class ParentService {
   async update(id: string, dto: UpdateParentDto): Promise<Parent> {
     const parent = await this.parentRepository.findOne({
       where: { id, isDeleted: false },
-      relations: ['roles'],
+      relations: ['roles', 'branch'],
     });
 
     if (!parent) {
@@ -97,6 +101,10 @@ export class ParentService {
 
     if (dto.password) {
       parent.passwordHash = await bcrypt.hash(dto.password, 10);
+    }
+
+    if (dto.branch_id !== undefined || dto.branchId !== undefined) {
+      parent.branchId = resolveBranchId(dto);
     }
 
     if (dto.first_name_lao !== undefined) parent.firstName_lao = dto.first_name_lao;
@@ -211,10 +219,14 @@ export class ParentService {
     return saved;
   }
 
-  async findAll(): Promise<Parent[]> {
+  async findAll(branchId?: string): Promise<Parent[]> {
+    const normalizedBranchId = branchId?.trim();
     return this.parentRepository.find({
-      where: { isDeleted: false },
-      relations: ['roles'],
+      where: {
+        isDeleted: false,
+        ...(normalizedBranchId ? { branchId: normalizedBranchId } : {}),
+      },
+      relations: ['roles', 'branch'],
       order: { createdAt: 'DESC' },
     });
   }
@@ -222,7 +234,7 @@ export class ParentService {
   async findOne(id: string): Promise<Parent> {
     const parent = await this.parentRepository.findOne({
       where: { id, isDeleted: false },
-      relations: ['roles'],
+      relations: ['roles', 'branch'],
     });
 
     if (!parent) {

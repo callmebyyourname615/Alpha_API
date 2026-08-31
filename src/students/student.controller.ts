@@ -6,6 +6,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
   UploadedFiles,
   UploadedFile,
   UseInterceptors,
@@ -110,9 +111,22 @@ function parseMaybeJson<T>(value: unknown, fallback?: T): T | undefined {
   return fallback;
 }
 
+function parseMaybeBoolean(value: unknown): boolean | undefined {
+  if (value === true || value === false) return value;
+  if (typeof value !== 'string') return undefined;
+  const normalized = value.trim().toLowerCase();
+  if (['true', '1', 'yes'].includes(normalized)) return true;
+  if (['false', '0', 'no'].includes(normalized)) return false;
+  return undefined;
+}
+
 type StudentDtoExtraProperties = {
   health_history?: unknown;
   physical_disability?: unknown;
+  health_review_required?: boolean;
+  healthReviewRequired?: boolean;
+  health_review_reasons?: unknown;
+  healthReviewReasons?: unknown;
   protective_info?: unknown;
   parentIds?: unknown;
 };
@@ -123,8 +137,11 @@ export class StudentsController {
 
   // ================= GET ALL =================
   @Get()
-  findAll() {
-    return this.service.findAll();
+  findAll(
+    @Query('branch_id') branchId?: string,
+    @Query('branchId') branchIdAlias?: string,
+  ) {
+    return this.service.findAll(branchId ?? branchIdAlias);
   }
 
   // ================= GET BY ID =================
@@ -222,6 +239,21 @@ export class StudentsController {
         (body as any).physical_disability,
         [],
       ),
+      health_review_required: parseMaybeBoolean(
+        (body as any).health_review_required,
+      ),
+      healthReviewRequired: parseMaybeBoolean(
+        (body as any).healthReviewRequired,
+      ),
+      health_review_reasons: parseMaybeJson(
+        (body as any).health_review_reasons,
+        [],
+      ),
+      healthReviewReasons: parseMaybeJson(
+        (body as any).healthReviewReasons,
+        [],
+      ),
+      is_active: parseMaybeBoolean((body as any).is_active),
       protective_info: parseMaybeJson((body as any).protective_info, []),
       parentIds: parseMaybeJson((body as any).parentIds, []),
     };
@@ -280,6 +312,10 @@ export class StudentsController {
       his_school_nursery: parseMaybeJson(body.his_school_nursery),
       health_history: parseMaybeJson(body.health_history),
       physical_disability: parseMaybeJson(body.physical_disability),
+      health_review_required: parseMaybeBoolean(body.health_review_required),
+      healthReviewRequired: parseMaybeBoolean(body.healthReviewRequired),
+      health_review_reasons: parseMaybeJson(body.health_review_reasons),
+      healthReviewReasons: parseMaybeJson(body.healthReviewReasons),
       protective_info: parseMaybeJson(body.protective_info),
       parentIds: parseMaybeJson(body.parentIds),
     };

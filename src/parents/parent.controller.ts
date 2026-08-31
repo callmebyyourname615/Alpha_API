@@ -5,6 +5,7 @@ import {
   Put,
   Delete,
   Param,
+  Query,
   Body,
   UploadedFiles,
   UseInterceptors,
@@ -79,8 +80,11 @@ export class ParentController {
   }
 
   @Get()
-  findAll() {
-    return this.service.findAll();
+  findAll(
+    @Query('branch_id') branchId?: string,
+    @Query('branchId') branchIdAlias?: string,
+  ) {
+    return this.service.findAll(branchId ?? branchIdAlias);
   }
 
   @Get(':id')

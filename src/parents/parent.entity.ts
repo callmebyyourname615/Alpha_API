@@ -3,16 +3,26 @@ import {
   Column,
   PrimaryGeneratedColumn,
   ManyToMany,
+  ManyToOne,
   JoinTable,
+  JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { Role } from '../roles/role.entity';
+import { Branch } from '../branches/branch.entity';
 
 @Entity('parents')
 export class Parent {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column('uuid', { name: 'branch_id', nullable: true })
+  branchId: string | null;
+
+  @ManyToOne(() => Branch, { nullable: true, onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'branch_id' })
+  branch: Branch | null;
 
   // ────────────────────────────────────────────────
   // Authentication fields – should NOT be stored as plain text!

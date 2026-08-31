@@ -37,9 +37,18 @@ export interface TaskReminders {
     date: string;
     time: string;
     datetime: string;
+    round?: number;
+    due_date?: string;
   }[];
   due_day?: boolean;
   due_day_time?: string;
+  due_day_schedule?: {
+    round: number;
+    due_date: string;
+    date: string;
+    time: string;
+    datetime: string;
+  }[];
   overdue?: boolean;
   overdue_time?: string;
 }

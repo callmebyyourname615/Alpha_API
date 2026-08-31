@@ -47,6 +47,84 @@ export class StudentsService {
     return `${s.first_name_eng ?? ''} ${s.last_name_eng ?? ''}`.trim();
   }
 
+  private coerceOptionalBoolean(value: unknown): boolean | undefined {
+    if (value === true || value === false) return value;
+    if (typeof value !== 'string') return undefined;
+    const normalized = value.trim().toLowerCase();
+    if (['true', '1', 'yes'].includes(normalized)) return true;
+    if (['false', '0', 'no'].includes(normalized)) return false;
+    return undefined;
+  }
+
+  private normalizeHealthReviewReasons(value: unknown): string[] {
+    if (typeof value === 'string') {
+      try {
+        return this.normalizeHealthReviewReasons(JSON.parse(value));
+      } catch {
+        return value
+          .split('|')
+          .map((item) => item.trim())
+          .filter(Boolean);
+      }
+    }
+
+    if (Array.isArray(value)) {
+      const parts = value.flatMap((item) => {
+        if (typeof item === 'string') return [item];
+        if (item && typeof item === 'object') {
+          return Object.values(item)
+            .flatMap((part) =>
+              Array.isArray(part) ? part : part === null ? [] : [part],
+            )
+            .map((part) => String(part));
+        }
+        return item === null || item === undefined ? [] : [String(item)];
+      });
+
+      return [...new Set(parts.map((item) => item.trim()).filter(Boolean))];
+    }
+
+    if (value && typeof value === 'object') {
+      return this.normalizeHealthReviewReasons(Object.values(value));
+    }
+
+    return [];
+  }
+
+  private buildHealthReviewState(
+    dto: Partial<CreateStudentDto>,
+    fallbackStudent?: Student,
+  ): { required: boolean; reasons: string[] } {
+    const explicitRequired = this.coerceOptionalBoolean(
+      (dto as any).health_review_required ?? (dto as any).healthReviewRequired,
+    );
+    const explicitReasons = this.normalizeHealthReviewReasons(
+      (dto as any).health_review_reasons ?? (dto as any).healthReviewReasons,
+    );
+    const disabilityReasons = this.normalizeHealthReviewReasons(
+      (dto as any).physical_disability ?? fallbackStudent?.physical_disability,
+    );
+    const reasons = explicitReasons.length ? explicitReasons : disabilityReasons;
+
+    if (explicitRequired !== undefined) {
+      return { required: explicitRequired, reasons: explicitRequired ? reasons : [] };
+    }
+
+    if (
+      (dto as any).health_review_reasons !== undefined ||
+      (dto as any).healthReviewReasons !== undefined ||
+      (dto as any).physical_disability !== undefined ||
+      !fallbackStudent
+    ) {
+      return { required: reasons.length > 0, reasons };
+    }
+
+    return {
+      required: fallbackStudent.healthReviewRequired,
+      reasons: fallbackStudent.healthReviewReasons ?? reasons,
+    };
+  }
+
   private async findPossibleDuplicates(
     dto: CreateStudentDto,
   ): Promise<Student[]> {
@@ -99,6 +177,8 @@ export class StudentsService {
       }
     }
 
+    const healthReview = this.buildHealthReviewState(dto);
+
     const student = this.studentRepo.create({
       branch: dto.branchId ? ({ id: dto.branchId } as Branch) : null,
       province: dto.provinceId ? ({ id: dto.provinceId } as Province) : null,
@@ -129,18 +209,24 @@ export class StudentsService {
       parent_address: dto.parent_address,
       home_map: dto.home_map,
       village_bd: dto.village_bd,
+      bos_number: dto.bos_number,
       Siblings_number: (dto as any).Siblings_number,
 
       live_with: dto.live_with ?? [],
       emergency_contacts: dto.emergency_contacts ?? [],
+      bos_info: dto.bos_info ?? [],
       Siblings_info: (dto as any).Siblings_info ?? [],
       his_school_nursery: dto.his_school_nursery ?? [],
       his_school_kindergarten: dto.his_school_kindergarten ?? [],
       his_school_primary: dto.his_school_primary ?? [],
       health_history: (dto as any).health_history ?? [],
+      physical_disability: (dto as any).physical_disability ?? [],
+      healthReviewRequired: healthReview.required,
+      healthReviewReasons: healthReview.reasons,
+      protective_info: (dto as any).protective_info ?? [],
 
       saving_wallet: 0,
-      is_active: false,
+      is_active: dto.is_active ?? false,
       is_deleted: false,
     });
 
@@ -226,9 +312,13 @@ export class StudentsService {
   }
 
   // ─── Find All ─────────────────────────────────────────────────────────
-  async findAll(): Promise<Student[]> {
+  async findAll(branchId?: string): Promise<Student[]> {
+    const normalizedBranchId = String(branchId ?? '').trim();
     return this.studentRepo.find({
-      where: { is_deleted: false },
+      where: {
+        is_deleted: false,
+        ...(normalizedBranchId ? { branch: { id: normalizedBranchId } } : {}),
+      },
       relations: [
         'branch',
         'province',
@@ -247,6 +337,8 @@ export class StudentsService {
     dto: Partial<CreateStudentDto>,
   ): Promise<Student> {
     const student = await this.findById(id);
+
+    const healthReview = this.buildHealthReviewState(dto, student);
 
     Object.assign(student, {
       branch: dto.branchId
@@ -288,18 +380,23 @@ export class StudentsService {
       parent_address: dto.parent_address ?? student.parent_address,
       home_map: dto.home_map ?? student.home_map,
       village_bd: dto.village_bd ?? student.village_bd,
+      bos_number: dto.bos_number ?? student.bos_number,
       Siblings_number: (dto as any).Siblings_number ?? student.Siblings_number,
 
       live_with: dto.live_with ?? student.live_with,
       emergency_contacts: dto.emergency_contacts ?? student.emergency_contacts,
+      bos_info: dto.bos_info ?? student.bos_info,
 
       Siblings_info: (dto as any).Siblings_info ?? student.Siblings_info,
+      his_school_nursery: dto.his_school_nursery ?? student.his_school_nursery,
       his_school_kindergarten:
         dto.his_school_kindergarten ?? student.his_school_kindergarten,
       his_school_primary: dto.his_school_primary ?? student.his_school_primary,
       health_history: (dto as any).health_history ?? student.health_history,
       physical_disability:
         (dto as any).physical_disability ?? student.physical_disability,
+      healthReviewRequired: healthReview.required,
+      healthReviewReasons: healthReview.reasons,
       protective_info: (dto as any).protective_info ?? student.protective_info,
 
       // Approval flag — admin's Approve button hits this endpoint with

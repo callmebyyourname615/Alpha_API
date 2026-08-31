@@ -15,6 +15,10 @@ export class CreateParentDto {
   branch_id?: string;
 
   @IsOptional()
+  @IsUUID()
+  branchId?: string;
+
+  @IsOptional()
   @IsString()
   @MaxLength(100)
   username?: string;

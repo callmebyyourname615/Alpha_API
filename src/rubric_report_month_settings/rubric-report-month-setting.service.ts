@@ -10,6 +10,7 @@ export interface SaveRubricReportMonthSettingDto {
   month: number;
   lessonFrom: number;
   lessonTo: number;
+  comment?: string | null;
 }
 
 @Injectable()
@@ -39,6 +40,7 @@ export class RubricReportMonthSettingService {
     const month = this.number(dto.month, 1);
     const lessonFrom = this.number(dto.lessonFrom, 1);
     const lessonTo = this.number(dto.lessonTo, lessonFrom);
+    const comment = this.text(dto.comment);
 
     if (!classId || !subjectId) {
       throw new BadRequestException('classId and subjectId are required.');
@@ -54,6 +56,7 @@ export class RubricReportMonthSettingService {
     setting.month = month;
     setting.lessonFrom = lessonFrom;
     setting.lessonTo = lessonTo;
+    setting.comment = comment;
     return this.repo.save(setting);
   }
 }
