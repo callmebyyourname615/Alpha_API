@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, In, Repository } from 'typeorm';
 import { File } from '../file/files.entity';
@@ -181,14 +185,22 @@ export class GalleryService {
   async update(id: string, dto: UpdateGalleryPostDto) {
     const post = await this.requirePost(id);
     const nextStatus = dto.status ?? post.status;
+    const hasPhotoFileIds = dto.photo_file_ids !== undefined;
+    const hasTaggedStudentIds = dto.tagged_student_ids !== undefined;
     if (nextStatus === 'published') {
       const [existingPhotos, existingTags] = await Promise.all([
-        Object.prototype.hasOwnProperty.call(dto, 'photo_file_ids')
+        hasPhotoFileIds
           ? Promise.resolve([])
-          : this.photos.find({ where: { gallery_id: id }, select: ['file_id'] }),
-        Object.prototype.hasOwnProperty.call(dto, 'tagged_student_ids')
+          : this.photos.find({
+              where: { gallery_id: id },
+              select: ['file_id'],
+            }),
+        hasTaggedStudentIds
           ? Promise.resolve([])
-          : this.tags.find({ where: { gallery_id: id }, select: ['student_id'] }),
+          : this.tags.find({
+              where: { gallery_id: id },
+              select: ['student_id'],
+            }),
       ]);
       await this.assertPublishable({
         title: dto.title ?? post.title,
@@ -196,24 +208,30 @@ export class GalleryService {
         category: dto.category ?? post.category,
         visibility: dto.visibility ?? post.visibility,
         photoFileIds:
-          dto.photo_file_ids ?? existingPhotos.map((photo) => photo.file_id).filter((id): id is string => Boolean(id)),
-        taggedStudentIds: dto.tagged_student_ids ?? existingTags.map((tag) => tag.student_id),
+          dto.photo_file_ids ??
+          existingPhotos
+            .map((photo) => photo.file_id)
+            .filter((id): id is string => Boolean(id)),
+        taggedStudentIds:
+          dto.tagged_student_ids ?? existingTags.map((tag) => tag.student_id),
       });
     }
     Object.assign(
       post,
       Object.fromEntries(
         Object.entries(dto).filter(
-          ([key]) => !['photo_file_ids', 'tagged_student_ids'].includes(key),
+          ([key, value]) =>
+            value !== undefined &&
+            !['photo_file_ids', 'tagged_student_ids'].includes(key),
         ),
       ),
     );
     if (dto.status === 'published' && !post.published_at)
       post.published_at = new Date();
     await this.posts.save(post);
-    if (dto.photo_file_ids) await this.replacePhotos(id, dto.photo_file_ids);
-    if (dto.tagged_student_ids)
-      await this.replaceTags(id, dto.tagged_student_ids);
+    if (hasPhotoFileIds) await this.replacePhotos(id, dto.photo_file_ids ?? []);
+    if (hasTaggedStudentIds)
+      await this.replaceTags(id, dto.tagged_student_ids ?? []);
     return this.findOne(id);
   }
 
@@ -339,12 +357,14 @@ export class GalleryService {
   }) {
     const missing: string[] = [];
     const title = input.title?.trim() || '';
-    if (!title || title.toLocaleLowerCase() === 'untitled gallery') missing.push('title');
+    if (!title || title.toLocaleLowerCase() === 'untitled gallery')
+      missing.push('title');
     if (!input.description?.trim()) missing.push('description');
     if (!input.category?.trim()) missing.push('category');
     const photoIds = Array.from(new Set(input.photoFileIds.filter(Boolean)));
     if (!photoIds.length) missing.push('at least one photo');
-    if (input.visibility === 'private' && !input.taggedStudentIds.length) missing.push('at least one tagged student');
+    if (input.visibility === 'private' && !input.taggedStudentIds.length)
+      missing.push('at least one tagged student');
     if (missing.length)
       throw new BadRequestException({
         message: `Complete the gallery before publishing: ${missing.join(', ')}`,
@@ -354,13 +374,26 @@ export class GalleryService {
     const [activeFileCount, validStudentCount] = await Promise.all([
       this.files.count({ where: { id: In(photoIds), is_deleted: false } }),
       input.visibility === 'private'
-        ? this.students.count({ where: { id: In(Array.from(new Set(input.taggedStudentIds.filter(Boolean)))) } })
+        ? this.students.count({
+            where: {
+              id: In(
+                Array.from(new Set(input.taggedStudentIds.filter(Boolean))),
+              ),
+            },
+          })
         : Promise.resolve(0),
     ]);
     if (activeFileCount !== photoIds.length)
-      throw new BadRequestException('One or more selected gallery photos are unavailable');
-    if (input.visibility === 'private' && validStudentCount !== new Set(input.taggedStudentIds.filter(Boolean)).size)
-      throw new BadRequestException('One or more tagged students are unavailable');
+      throw new BadRequestException(
+        'One or more selected gallery photos are unavailable',
+      );
+    if (
+      input.visibility === 'private' &&
+      validStudentCount !== new Set(input.taggedStudentIds.filter(Boolean)).size
+    )
+      throw new BadRequestException(
+        'One or more tagged students are unavailable',
+      );
   }
 
   private async replaceTags(galleryId: string, studentIds: string[]) {
@@ -391,18 +424,24 @@ export class GalleryService {
             },
           })
         : Promise.resolve(null);
-    const [photos, tags, likesCount, commentsCount, currentViewerLike, authorName] =
-      await Promise.all([
-        this.photos.find({
-          where: { gallery_id: post.id },
-          order: { sort_order: 'ASC' },
-        }),
-        this.tags.find({ where: { gallery_id: post.id } }),
-        this.likes.count({ where: { gallery_id: post.id } }),
-        this.comments.count({ where: { gallery_id: post.id } }),
-        viewerLike,
-        this.resolvePostAuthorName(post),
-      ]);
+    const [
+      photos,
+      tags,
+      likesCount,
+      commentsCount,
+      currentViewerLike,
+      authorName,
+    ] = await Promise.all([
+      this.photos.find({
+        where: { gallery_id: post.id },
+        order: { sort_order: 'ASC' },
+      }),
+      this.tags.find({ where: { gallery_id: post.id } }),
+      this.likes.count({ where: { gallery_id: post.id } }),
+      this.comments.count({ where: { gallery_id: post.id } }),
+      viewerLike,
+      this.resolvePostAuthorName(post),
+    ]);
     return {
       ...post,
       photos,
@@ -421,9 +460,13 @@ export class GalleryService {
         where: { id: post.author_id },
         select: ['id', 'first_name', 'last_name', 'email'],
       });
-      return [author?.first_name, author?.last_name]
-        .filter((value): value is string => Boolean(value?.trim()))
-        .join(' ') || author?.email || null;
+      return (
+        [author?.first_name, author?.last_name]
+          .filter((value): value is string => Boolean(value?.trim()))
+          .join(' ') ||
+        author?.email ||
+        null
+      );
     }
     if (post.author_type?.toLowerCase() === 'parent') {
       const author = await this.parents.findOne({
@@ -437,14 +480,16 @@ export class GalleryService {
           'email',
         ],
       });
-      return [author?.firstName_eng, author?.lastName_eng]
-        .filter((value): value is string => Boolean(value?.trim()))
-        .join(' ') ||
+      return (
+        [author?.firstName_eng, author?.lastName_eng]
+          .filter((value): value is string => Boolean(value?.trim()))
+          .join(' ') ||
         [author?.firstName_lao, author?.lastName_lao]
           .filter((value): value is string => Boolean(value?.trim()))
           .join(' ') ||
         author?.email ||
-        null;
+        null
+      );
     }
     return null;
   }
@@ -496,7 +541,8 @@ export class GalleryService {
       const laoName = [parent.firstName_lao, parent.lastName_lao]
         .filter((value): value is string => Boolean(value?.trim()))
         .join(' ');
-      if (englishName || laoName) nameByActorId.set(parent.id, englishName || laoName);
+      if (englishName || laoName)
+        nameByActorId.set(parent.id, englishName || laoName);
     }
     for (const admin of admins) {
       const name = [admin.first_name, admin.last_name]
@@ -540,9 +586,9 @@ export class GalleryService {
   private isUuid(value?: string) {
     return Boolean(
       value &&
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-          value,
-        ),
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        value,
+      ),
     );
   }
 }
