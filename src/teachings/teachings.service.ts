@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Teaching } from './teaching.entity';
 import { Subject } from '../subjects/subject.entity';
 import { Lesson } from '../lesson/lesson.entity';
@@ -28,9 +28,6 @@ export class TeachingService {
     'subject',
     'subject.class',
     'subject.subjectType',
-    'subject.lessons',
-    'subject.lessons.subjectType',
-    'subject.lessons.yearLevel',
     'academicYear',
     'branch',
   ] as const;
@@ -140,11 +137,45 @@ export class TeachingService {
     );
   }
 
-  private async getAvailableLessons(): Promise<Lesson[]> {
+  private async getAvailableLessons(yearLevelIds?: string[]): Promise<Lesson[]> {
     return this.lessonRepo.find({
+      where: yearLevelIds?.length ? { yearLevelId: In(yearLevelIds) } : {},
       relations: ['subjectType', 'yearLevel'],
       order: { updatedAt: 'DESC' },
     });
+  }
+
+  private async attachSubjectLessons(teachings: Teaching[]): Promise<void> {
+    const subjectIds = [
+      ...new Set(
+        teachings
+          .map((teaching) => teaching.subject?.id)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+
+    if (!subjectIds.length) return;
+
+    const subjectsWithLessons = await this.subjectRepo
+      .createQueryBuilder('subject')
+      .leftJoinAndSelect('subject.lessons', 'lesson')
+      .leftJoinAndSelect('lesson.subjectType', 'lessonSubjectType')
+      .leftJoinAndSelect('lesson.yearLevel', 'lessonYearLevel')
+      .select('subject.id')
+      .addSelect('lesson')
+      .addSelect('lessonSubjectType')
+      .addSelect('lessonYearLevel')
+      .where('subject.id IN (:...subjectIds)', { subjectIds })
+      .getMany();
+
+    const lessonsBySubjectId = new Map(
+      subjectsWithLessons.map((subject) => [subject.id, subject.lessons ?? []]),
+    );
+
+    for (const teaching of teachings) {
+      if (!teaching.subject?.id) continue;
+      teaching.subject.lessons = lessonsBySubjectId.get(teaching.subject.id) ?? [];
+    }
   }
 
   private async findDuplicateAssignment(
@@ -266,10 +297,7 @@ export class TeachingService {
       .leftJoinAndSelect('teaching.academicYear', 'academicYear')
       .leftJoinAndSelect('teaching.branch', 'branch')
       .leftJoinAndSelect('subject.class', 'class')
-      .leftJoinAndSelect('subject.subjectType', 'subjectType')
-      .leftJoinAndSelect('subject.lessons', 'lessons')
-      .leftJoinAndSelect('lessons.subjectType', 'lessonSubjectType')
-      .leftJoinAndSelect('lessons.yearLevel', 'lessonYearLevel');
+      .leftJoinAndSelect('subject.subjectType', 'subjectType');
 
     if (branchId) {
       query.andWhere('teaching.branchId = :branchId', { branchId });
@@ -283,7 +311,11 @@ export class TeachingService {
     const teachings = await query
       .orderBy('teaching.createdAt', 'DESC')
       .getMany();
-    return this.hydrateTeachings(teachings, await this.getAvailableLessons());
+    await this.attachSubjectLessons(teachings);
+    return this.hydrateTeachings(
+      teachings,
+      await this.getAvailableLessons(this.getTeachingYearLevelIds(teachings)),
+    );
   }
 
   async findByAdmin(dto: GetTeachingByAdminDto) {
@@ -297,9 +329,6 @@ export class TeachingService {
       .leftJoinAndSelect('teaching.branch', 'branch')
       .leftJoinAndSelect('subject.class', 'class')
       .leftJoinAndSelect('subject.subjectType', 'subjectType')
-      .leftJoinAndSelect('subject.lessons', 'lessons')
-      .leftJoinAndSelect('lessons.subjectType', 'lessonSubjectType')
-      .leftJoinAndSelect('lessons.yearLevel', 'lessonYearLevel')
       .where('teaching.adminId = :adminId', { adminId });
 
     if (branchId) {
@@ -312,9 +341,11 @@ export class TeachingService {
       });
     }
 
+    const rows = await query.orderBy('teaching.createdAt', 'DESC').getMany();
+    await this.attachSubjectLessons(rows);
     const teachings = this.hydrateTeachings(
-      await query.orderBy('teaching.createdAt', 'DESC').getMany(),
-      await this.getAvailableLessons(),
+      rows,
+      await this.getAvailableLessons(this.getTeachingYearLevelIds(rows)),
     );
 
     return {
@@ -336,7 +367,21 @@ export class TeachingService {
       );
     }
 
-    return this.hydrateTeaching(teaching, await this.getAvailableLessons());
+    await this.attachSubjectLessons([teaching]);
+    return this.hydrateTeaching(
+      teaching,
+      await this.getAvailableLessons(this.getTeachingYearLevelIds([teaching])),
+    );
+  }
+
+  private getTeachingYearLevelIds(teachings: Teaching[]): string[] {
+    return [
+      ...new Set(
+        teachings
+          .map((teaching) => this.getSubjectYearLevelId(teaching.subject))
+          .filter(Boolean),
+      ),
+    ];
   }
 
   // Update

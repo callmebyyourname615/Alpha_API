@@ -12,6 +12,7 @@ import { Class } from '../classes/class.entity';
 import { SubjectType } from '../subject_types/subject-type.entity';
 import { CreateSubjectDto } from './dto/create-subject.dto';
 import { UpdateSubjectDto } from './dto/update-subject.dto';
+import { CacheService } from '../common/cache.service';
 
 @Injectable()
 export class SubjectService {
@@ -27,6 +28,8 @@ export class SubjectService {
 
     @InjectRepository(SubjectType)
     private readonly subjectTypeRepo: Repository<SubjectType>,
+
+    private readonly cache: CacheService,
   ) {}
 
   private readonly RELATIONS = [
@@ -248,32 +251,41 @@ export class SubjectService {
     if (dto.is_active !== undefined) subject.is_active = dto.is_active;
 
     const saved = await this.subjectRepo.save(subject);
+    await this.clearSubjectCache(saved.id);
     return this.getSubject(saved.id);
   }
 
   // ─── READ ──────────────────────────────────────────────────────────────────
 
   async findAll(): Promise<Subject[]> {
-    const subjects = await this.subjectRepo.find({
-      where: { is_deleted: false },
-      relations: this.RELATIONS,
-      order: { create_dt: 'DESC' },
-    });
-    const lessons = await this.lessonRepo.find({
-      relations: ['subjectType', 'yearLevel', 'curriculums'],
-      order: { createdAt: 'DESC' },
-    });
-    const hydratedSubjects = this.hydrateSubjectsWithFallbackLessons(
-      subjects,
-      lessons,
-    );
+    return this.cache.getOrSet('subjects:all', 600, async () => {
+      const subjects = await this.subjectRepo.find({
+        where: { is_deleted: false },
+        relations: this.RELATIONS,
+        order: { create_dt: 'DESC' },
+      });
+      const lessons = await this.lessonRepo.find({
+        relations: ['subjectType', 'yearLevel', 'curriculums'],
+        order: { createdAt: 'DESC' },
+      });
+      const hydratedSubjects = this.hydrateSubjectsWithFallbackLessons(
+        subjects,
+        lessons,
+      );
 
-    return hydratedSubjects.filter((subject) =>
-      this.hasVisibleSubjectType(subject),
-    );
+      return hydratedSubjects.filter((subject) =>
+        this.hasVisibleSubjectType(subject),
+      );
+    });
   }
 
   async findOne(id: string): Promise<Subject> {
+    return this.cache.getOrSet(`subjects:${id}`, 600, () =>
+      this.findOneUncached(id),
+    );
+  }
+
+  private async findOneUncached(id: string): Promise<Subject> {
     const subject = await this.getSubject(id);
 
     // Legacy subjects may have subject_type_id = NULL and no linked lessons.
@@ -333,6 +345,7 @@ export class SubjectService {
     if (dto.is_active !== undefined) subject.is_active = dto.is_active;
 
     await this.subjectRepo.save(subject);
+    await this.clearSubjectCache(id);
     return this.getSubject(id);
   }
 
@@ -342,6 +355,13 @@ export class SubjectService {
     const subject = await this.getSubject(id);
     subject.is_deleted = true;
     await this.subjectRepo.save(subject);
+    await this.clearSubjectCache(id);
     return { message: `Subject ${id} deleted successfully` };
+  }
+
+  private async clearSubjectCache(id?: string): Promise<void> {
+    await this.cache.del('subjects:all');
+    await this.cache.del('branches:all');
+    if (id) await this.cache.del(`subjects:${id}`);
   }
 }

@@ -73,6 +73,7 @@ import { GalleryModule } from './gallery/gallery.module';
 import { RubricSettingsModule } from './rubric_settings/rubric-settings.module';
 import { RubricReportMonthSettingModule } from './rubric_report_month_settings/rubric-report-month-setting.module';
 import { RubricEvaluationFinalScoreModule } from './rubric_evaluation_final_scores/rubric-evaluation-final-score.module';
+import { CacheModule } from './common/cache.module';
 
 @Module({
   imports: [
@@ -93,14 +94,13 @@ import { RubricEvaluationFinalScoreModule } from './rubric_evaluation_final_scor
         password: config.get<string>('DB_PASS'),
         database: config.get<string>('DB_NAME'),
         autoLoadEntities: true,
-        // Schema synchronization against the shared PostgreSQL database can
-        // wait on DDL locks during startup, leaving the API process alive but
-        // never listening on its HTTP port. Keep it opt-in for local schema
-        // development only.
-       // synchronize: config.get<string>('TYPEORM_SYNCHRONIZE') === 'true',
-       synchronize: true, 
-       connectTimeoutMS: 5000,
+        // Keep schema synchronization opt-in only. In shared/staging/production
+        // databases it can block startup on DDL locks and should be replaced by
+        // migrations.
+        synchronize: config.get<string>('TYPEORM_SYNCHRONIZE') === 'true',
+        connectTimeoutMS: 5000,
         extra: {
+          max: Number(config.get<string>('DB_POOL_MAX') ?? '10'),
           connectionTimeoutMillis: 5000,
           query_timeout: 30000,
         },
@@ -108,6 +108,7 @@ import { RubricEvaluationFinalScoreModule } from './rubric_evaluation_final_scor
     }),
 
     LoggerModule,
+    CacheModule,
     HealthModule,
     AuthModule,
     BranchModule,

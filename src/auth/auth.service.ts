@@ -24,6 +24,20 @@ async login(email: string, password: string) {
     .addSelect('admin.password')
     .leftJoinAndSelect('admin.roles', 'roles')
     .leftJoinAndSelect('admin.branch', 'branch')
+    .select([
+      'admin.id',
+      'admin.username',
+      'admin.email',
+      'admin.password',
+      'admin.first_name',
+      'admin.last_name',
+      'admin.profile_pic',
+      'roles.id',
+      'roles.name',
+      'roles.level',
+      'branch.id',
+      'branch.name',
+    ])
     .where('(LOWER(TRIM(admin.email)) = :login OR LOWER(TRIM(admin.username)) = :login)', { login })
     .andWhere('admin.is_active = true')
     .andWhere('admin.is_deleted = false')
@@ -69,8 +83,24 @@ async loginParent(email: string, password: string) {
   // passwordHash has select: false, so we must explicitly select it
   const parent = await this.parentRepo
     .createQueryBuilder('parent')
-    .addSelect('parent.passwordHash')
     .leftJoinAndSelect('parent.roles', 'roles')
+    .select([
+      'parent.id',
+      'parent.username',
+      'parent.email',
+      'parent.passwordHash',
+      'parent.firstName_lao',
+      'parent.firstName_eng',
+      'parent.lastName_lao',
+      'parent.lastName_eng',
+      'parent.isActive',
+      'parent.approvalStatus',
+      'parent.rejectedAt',
+      'parent.rejectReason',
+      'roles.id',
+      'roles.name',
+      'roles.level',
+    ])
     .where('(LOWER(TRIM(parent.email)) = :login OR LOWER(TRIM(parent.username)) = :login)', { login })
     .andWhere('parent.isDeleted = false')
     .getOne();

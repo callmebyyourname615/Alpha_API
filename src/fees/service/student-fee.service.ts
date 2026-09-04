@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, In } from 'typeorm';
 import { StudentFee } from '../entities/student-fee.entity';
 import { PaymentRecord } from '../entities/payment-record.entity';
 import { FeeAssignmentService } from './fee-assignment.service';
@@ -42,21 +42,28 @@ export class StudentFeeService {
       throw new BadRequestException('Net amount after discount must be greater than zero.');
     }
 
-    const results: StudentFee[] = [];
-
-    await this.dataSource.transaction(async (manager) => {
-      for (const studentId of dto.student_ids) {
-        // Skip if already assigned
-        const existing = await manager.findOne(StudentFee, {
+    const studentIds = Array.from(new Set(dto.student_ids));
+    const existingFees = studentIds.length
+      ? await this.studentFeeRepo.find({
           where: {
             fee_assignment_id: dto.fee_assignment_id,
-            student_id: studentId,
+            student_id: In(studentIds),
           },
-        });
-        if (existing) continue;
+          select: ['student_id'],
+        })
+      : [];
+    const existingStudentIds = new Set(
+      existingFees.map((fee) => fee.student_id),
+    );
+    const assignableStudentIds = studentIds.filter(
+      (studentId) => !existingStudentIds.has(studentId),
+    );
+    const results: StudentFee[] = [];
+    const slots = generateInstallments(dto.payment_plan, netAmount);
 
-        // Create StudentFee record
-        const studentFee = manager.create(StudentFee, {
+    await this.dataSource.transaction(async (manager) => {
+      const studentFees = assignableStudentIds.map((studentId) =>
+        manager.create(StudentFee, {
           fee_assignment_id: dto.fee_assignment_id,
           student_id: studentId,
           payment_plan: dto.payment_plan,
@@ -65,12 +72,14 @@ export class StudentFeeService {
             dto.payment_plan === PaymentPlan.YEARLY ? yearlyDiscount : 0,
           paid_amount: 0,
           status: FeeStatus.PENDING,
-        });
-        const savedFee = await manager.save(StudentFee, studentFee);
+        }),
+      );
+      const savedFees = studentFees.length
+        ? await manager.save(StudentFee, studentFees)
+        : [];
 
-        // Generate installment records
-        const slots = generateInstallments(dto.payment_plan, netAmount);
-        const records = slots.map((slot) =>
+      const records = savedFees.flatMap((savedFee) =>
+        slots.map((slot) =>
           manager.create(PaymentRecord, {
             student_fee_id: savedFee.id,
             amount: slot.amount,
@@ -78,11 +87,13 @@ export class StudentFeeService {
             due_date: slot.due_date,
             status: PaymentRecordStatus.PENDING,
           }),
-        );
+        ),
+      );
+      if (records.length) {
         await manager.save(PaymentRecord, records);
-
-        results.push(savedFee);
       }
+
+      results.push(...savedFees);
     });
 
     return results;

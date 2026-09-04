@@ -10,6 +10,7 @@ import { UpdateBranchDto } from './dto/update-branch.dto';
 
 import * as fs from 'fs';
 import { AcademicYear } from '../academic_years/academic-year.entity';
+import { CacheService } from '../common/cache.service';
 
 @Injectable()
 export class BranchService {
@@ -19,6 +20,8 @@ export class BranchService {
 
     @InjectRepository(Subject)
     private readonly subjectRepo: Repository<Subject>,
+
+    private readonly cache: CacheService,
   ) {}
 
   private readonly branchSubjectRelations = [
@@ -169,19 +172,29 @@ export class BranchService {
     }
 
     // 7️⃣ save branch
-    return await this.branchRepo.save(branch);
+    const saved = await this.branchRepo.save(branch);
+    await this.clearBranchCache(saved.id);
+    return saved;
   }
   async findAll(): Promise<Branch[]> {
-    const branches = await this.branchRepo.find({
-      where: { is_deleted: false },
-      relations: [...this.branchSubjectRelations],
-      order: { created_at: 'DESC' },
-    });
+    return this.cache.getOrSet('branches:all', 900, async () => {
+      const branches = await this.branchRepo.find({
+        where: { is_deleted: false },
+        relations: [...this.branchSubjectRelations],
+        order: { created_at: 'DESC' },
+      });
 
-    return branches.map((branch) => this.filterBranchSubjects(branch));
+      return branches.map((branch) => this.filterBranchSubjects(branch));
+    });
   }
 
   async findOne(id: string): Promise<Branch> {
+    return this.cache.getOrSet(`branches:${id}`, 900, async () => {
+      return this.findOneUncached(id);
+    });
+  }
+
+  private async findOneUncached(id: string): Promise<Branch> {
     const branch = await this.branchRepo
       .createQueryBuilder('branch')
       .leftJoinAndSelect('branch.subjects', 'subject')
@@ -205,7 +218,7 @@ export class BranchService {
     dto: UpdateBranchDto,
     file?: Express.Multer.File,
   ): Promise<Branch> {
-    const branch = await this.findOne(id);
+    const branch = await this.findOneUncached(id);
 
     // ✅ Only assign safe fields, not subjects or address directly
     if (dto.branch_id) branch.branch_id = dto.branch_id;
@@ -256,7 +269,9 @@ export class BranchService {
       branch.profile_pic = `/uploads/branches/${file.filename}`;
     }
 
-    return await this.branchRepo.save(branch);
+    const saved = await this.branchRepo.save(branch);
+    await this.clearBranchCache(id);
+    return saved;
   }
   async remove(id: string): Promise<{ message: string }> {
     const result = await this.branchRepo.update(
@@ -268,6 +283,12 @@ export class BranchService {
       throw new NotFoundException('Branch not found or already deleted');
     }
 
+    await this.clearBranchCache(id);
     return { message: 'Branch deleted successfully' };
+  }
+
+  private async clearBranchCache(id?: string): Promise<void> {
+    await this.cache.del('branches:all');
+    if (id) await this.cache.del(`branches:${id}`);
   }
 }

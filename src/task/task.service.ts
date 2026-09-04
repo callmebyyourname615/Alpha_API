@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { Brackets, In, Repository } from 'typeorm';
 import { Task } from './task.entity';
 import { FileService } from '../file/file.service';
 import { CreateTaskDto } from './dto/CreateTaskDto';
@@ -8,6 +8,8 @@ import { UpdateTaskDto } from './dto/UpdateTaskDto';
 import { Enrollment } from '../enrollments/enrollment.entity';
 import { Student } from '../students/student.entity';
 import { TaskSubmissionSlot } from '../task-submission/task-submission-slot.entity';
+import { File } from '../file/files.entity';
+import { CacheService } from '../common/cache.service';
 
 @Injectable()
 export class TaskService {
@@ -20,8 +22,21 @@ export class TaskService {
     private readonly studentRepo: Repository<Student>,
     @InjectRepository(TaskSubmissionSlot)
     private readonly submissionSlotRepo: Repository<TaskSubmissionSlot>,
+    @InjectRepository(File)
+    private readonly fileRepo: Repository<File>,
     private readonly fileService: FileService,
+    private readonly cache: CacheService,
   ) {}
+
+  private readonly taskListTtlSeconds = 60;
+  private readonly taskDetailTtlSeconds = 120;
+  private readonly taskWorkloadTtlSeconds = 60;
+  private readonly activeTaskStatuses = [
+    'assigned',
+    'in_progress',
+    'submitted',
+    'overdue',
+  ] as const;
 
   async create(
     data: CreateTaskDto,
@@ -84,14 +99,15 @@ export class TaskService {
 
     // Save multiple files
     if (files?.length) {
-      for (const file of files) {
-        if (!file.path) continue; // skip if no path
-        await this.fileService.create({
-          module: 'task',
-          task_id: savedTask.id,
-          file_path: file.path,
-        } as any);
-      }
+      await this.fileService.createMany(
+        files
+          .filter((file) => file.path)
+          .map((file) => ({
+            module: 'task',
+            task_id: savedTask.id,
+            file_path: file.path,
+          })),
+      );
     }
 
     const task = await this.taskRepo.findOne({
@@ -103,6 +119,7 @@ export class TaskService {
       throw new NotFoundException('Task not found after saving');
     }
 
+    await this.clearTaskCache(savedTask.id);
     return task;
   }
 
@@ -195,9 +212,13 @@ export class TaskService {
   }
 
   async findAll(): Promise<Task[]> {
-    return this.taskRepo.find({
-      relations: ['student', 'files'],
-      order: { created_at: 'DESC' },
+    return this.cache.getOrSet('tasks:all', this.taskListTtlSeconds, async () => {
+      const tasks = await this.taskRepo.find({
+        relations: ['student'],
+        order: { created_at: 'DESC' },
+      });
+      await this.attachFiles(tasks);
+      return tasks;
     });
   }
 
@@ -206,6 +227,14 @@ export class TaskService {
    * completed; this includes overdue work because it still needs attention.
    */
   async getWorkload(taskId?: string) {
+    return this.cache.getOrSet(
+      taskId ? `tasks:${taskId}:workload` : 'tasks:workload:all',
+      this.taskWorkloadTtlSeconds,
+      () => this.getWorkloadUncached(taskId),
+    );
+  }
+
+  private async getWorkloadUncached(taskId?: string) {
     const selectedTask = taskId
       ? await this.taskRepo.findOne({
           where: { id: taskId },
@@ -229,9 +258,10 @@ export class TaskService {
           ]
         : [],
     );
-    const activeEnrollments = await this.enrollmentRepo.find({
-      where: { is_active: true },
-      relations: ['student', 'class'],
+    const activeEnrollments = await this.loadWorkloadEnrollments({
+      taskId,
+      classIds: [...classIds],
+      directStudentIds: [...directStudentIds],
     });
     const targetStudents = new Map<string, any>();
     if (!taskId) {
@@ -256,38 +286,88 @@ export class TaskService {
     if (selectedTask?.student?.id)
       targetStudents.set(selectedTask.student.id, selectedTask.student);
 
-    const activeTasks = await this.taskRepo.find({ relations: ['student'] });
-    const activeStatuses = new Set(['assigned', 'in_progress', 'submitted', 'overdue']);
+    const activeStatuses = new Set<string>(this.activeTaskStatuses);
     const threshold = 5;
     const now = new Date();
     const soon = new Date(now);
     soon.setDate(soon.getDate() + 7);
-    const submissionSlots = await this.submissionSlotRepo.find();
+    const targetStudentIds = [...targetStudents.keys()];
+    const targetClassIds = [
+      ...new Set(
+        activeEnrollments
+          .filter((entry) => targetStudentIds.includes(entry.studentId))
+          .map((entry) => entry.classId),
+      ),
+    ];
+    const activeTasks = await this.loadActiveTasksForWorkload({
+      targetStudentIds,
+      targetClassIds,
+      allStudents: !taskId,
+    });
+    const activeTaskIds = activeTasks.map((task) => task.id);
+    const submissionSlots =
+      targetStudentIds.length && activeTaskIds.length
+        ? await this.submissionSlotRepo.find({
+            where: {
+              task_id: In(activeTaskIds),
+              student_id: In(targetStudentIds),
+            },
+          })
+        : [];
     const slotByTaskStudentRound = new Map(
       submissionSlots.map((slot) => [`${slot.task_id}:${slot.student_id}:${slot.schedule_index}`, slot]),
     );
+    const roomsByStudentId = new Map<string, string[]>();
+    const studentIdsByClassId = new Map<string, string[]>();
+    for (const enrollment of activeEnrollments) {
+      if (enrollment.class?.name) {
+        const rooms = roomsByStudentId.get(enrollment.studentId) ?? [];
+        rooms.push(enrollment.class.name);
+        roomsByStudentId.set(enrollment.studentId, rooms);
+      }
+
+      const studentList = studentIdsByClassId.get(enrollment.classId) ?? [];
+      studentList.push(enrollment.studentId);
+      studentIdsByClassId.set(enrollment.classId, studentList);
+    }
+
+    const activeTasksByStudentId = new Map<string, Task[]>();
+    const pushTaskForStudent = (studentId: string, task: Task) => {
+      if (!targetStudents.has(studentId)) return;
+      const list = activeTasksByStudentId.get(studentId) ?? [];
+      if (!list.some((existing) => existing.id === task.id)) list.push(task);
+      activeTasksByStudentId.set(studentId, list);
+    };
+
+    for (const task of activeTasks) {
+      if (!activeStatuses.has(task.status)) continue;
+      for (const studentId of task.assignment_student_ids || []) {
+        pushTaskForStudent(studentId, task);
+      }
+      if (task.student?.id) {
+        pushTaskForStudent(task.student.id, task);
+      }
+
+      const taskUsesClass = ['class', 'multiple'].includes(
+        task.assignment_mode || '',
+      );
+      if (!taskUsesClass) continue;
+
+      const taskClassIds = [
+        ...(task.assignment_class_ids || []),
+        ...(task.class_id ? [task.class_id] : []),
+      ];
+      for (const classId of taskClassIds) {
+        for (const studentId of studentIdsByClassId.get(classId) ?? []) {
+          pushTaskForStudent(studentId, task);
+        }
+      }
+    }
 
     const students = [...targetStudents.values()].map((student) => {
-      const active = activeTasks.filter((task) => {
-        if (!activeStatuses.has(task.status)) return false;
-        const individual = (task.assignment_student_ids || []).includes(student.id)
-          || task.student?.id === student.id;
-        const studentClassIds = activeEnrollments
-          .filter((entry) => entry.studentId === student.id)
-          .map((entry) => entry.classId);
-        const taskUsesClass = ['class', 'multiple'].includes(
-          task.assignment_mode || '',
-        );
-        const byClass = taskUsesClass && studentClassIds.some((classId) =>
-          (task.assignment_class_ids || []).includes(classId) || task.class_id === classId,
-        );
-        return individual || byClass;
-      });
+      const active = activeTasksByStudentId.get(student.id) ?? [];
       const dueSoon = active.filter((task) => task.deadline >= now && task.deadline <= soon);
-      const rooms = activeEnrollments
-        .filter((entry) => entry.studentId === student.id)
-        .map((entry) => entry.class?.name)
-        .filter(Boolean);
+      const rooms = roomsByStudentId.get(student.id) ?? [];
       return {
         id: student.id,
         student_id: student.student_id,
@@ -334,16 +414,50 @@ export class TaskService {
   }
 
   async findOne(id: string): Promise<Task> {
+    return this.cache.getOrSet(
+      `tasks:${id}`,
+      this.taskDetailTtlSeconds,
+      () => this.findOneUncached(id),
+    );
+  }
+
+  private async findOneUncached(id: string): Promise<Task> {
     const task = await this.taskRepo.findOne({
       where: { id },
-      relations: ['student', 'files'],
+      relations: ['student'],
     });
 
     if (!task) {
       throw new NotFoundException('Task not found');
     }
 
+    await this.attachFiles([task]);
     return task; // ตอนนี้ guaranteed non-null
+  }
+
+  private async attachFiles(tasks: Task[]) {
+    if (!tasks.length) return;
+
+    const taskIds = tasks.map((task) => task.id);
+    const files = await this.fileRepo.find({
+      where: {
+        task_id: In(taskIds),
+        is_deleted: false,
+      },
+      order: { created_at: 'ASC' },
+    });
+
+    const filesByTaskId = new Map<string, File[]>();
+    for (const file of files) {
+      if (!file.task_id) continue;
+      const list = filesByTaskId.get(file.task_id) ?? [];
+      list.push(file);
+      filesByTaskId.set(file.task_id, list);
+    }
+
+    for (const task of tasks) {
+      task.files = filesByTaskId.get(task.id) ?? [];
+    }
   }
 
   async update(
@@ -351,7 +465,7 @@ export class TaskService {
     data: UpdateTaskDto,
     files?: Express.Multer.File[], // รับไฟล์ใหม่จาก frontend
   ): Promise<Task> {
-    const task = await this.findOne(id); // findOne already throws NotFoundException
+    const task = await this.findOneUncached(id); // findOne already throws NotFoundException
 
     const {
       student_id,
@@ -420,20 +534,21 @@ export class TaskService {
 
     // ถ้ามีไฟล์ใหม่
     if (files?.length) {
-      for (const file of files) {
-        await this.fileService.create({
+      await this.fileService.createMany(
+        files.map((file) => ({
           module: 'task',
           task_id: updatedTask.id,
           file_path: file.path,
-        });
-      }
+        })),
+      );
     }
 
+    await this.clearTaskCache(id);
     return updatedTask;
   }
 
   async delete(id: string): Promise<{ message: string }> {
-    const task = await this.findOne(id); // findOne throws NotFoundException
+    const task = await this.findOneUncached(id); // findOne throws NotFoundException
 
     // 1️⃣ ดึงไฟล์ทั้งหมดที่เกี่ยวข้องกับ Task
     const files = await this.fileService.findByModuleAndOwner('task', id);
@@ -446,6 +561,88 @@ export class TaskService {
     // 3️⃣ ลบ Task
     await this.taskRepo.remove(task);
 
+    await this.clearTaskCache(id);
     return { message: 'Task and its files deleted' };
+  }
+
+  private async loadWorkloadEnrollments(input: {
+    taskId?: string;
+    classIds: string[];
+    directStudentIds: string[];
+  }): Promise<Enrollment[]> {
+    if (!input.taskId) {
+      return this.enrollmentRepo.find({
+        where: { is_active: true },
+        relations: ['student', 'class'],
+      });
+    }
+
+    const where: any[] = [];
+    if (input.classIds.length) {
+      where.push({ classId: In(input.classIds), is_active: true });
+    }
+    if (input.directStudentIds.length) {
+      where.push({ studentId: In(input.directStudentIds), is_active: true });
+    }
+    if (!where.length) return [];
+
+    return this.enrollmentRepo.find({
+      where,
+      relations: ['student', 'class'],
+    });
+  }
+
+  private async loadActiveTasksForWorkload(input: {
+    targetStudentIds: string[];
+    targetClassIds: string[];
+    allStudents: boolean;
+  }): Promise<Task[]> {
+    if (input.allStudents) {
+      return this.taskRepo.find({
+        where: { status: In([...this.activeTaskStatuses]) },
+        relations: ['student'],
+      });
+    }
+
+    if (!input.targetStudentIds.length && !input.targetClassIds.length) {
+      return [];
+    }
+
+    const qb = this.taskRepo
+      .createQueryBuilder('task')
+      .leftJoinAndSelect('task.student', 'student')
+      .where('task.status IN (:...statuses)', {
+        statuses: [...this.activeTaskStatuses],
+      })
+      .andWhere(
+        new Brackets((scope) => {
+          if (input.targetStudentIds.length) {
+            scope.orWhere('student.id IN (:...targetStudentIds)', {
+              targetStudentIds: input.targetStudentIds,
+            });
+            scope.orWhere('task.assignment_student_ids ?| :targetStudentIds', {
+              targetStudentIds: input.targetStudentIds,
+            });
+          }
+          if (input.targetClassIds.length) {
+            scope.orWhere('task.class_id IN (:...targetClassIds)', {
+              targetClassIds: input.targetClassIds,
+            });
+            scope.orWhere('task.assignment_class_ids ?| :targetClassIds', {
+              targetClassIds: input.targetClassIds,
+            });
+          }
+        }),
+      );
+
+    return qb.getMany();
+  }
+
+  private async clearTaskCache(id?: string): Promise<void> {
+    await this.cache.delPattern('tasks:*');
+    if (id) {
+      await this.cache.del(`tasks:${id}`);
+      await this.cache.del(`tasks:${id}:workload`);
+    }
   }
 }

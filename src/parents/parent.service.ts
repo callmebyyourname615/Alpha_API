@@ -6,6 +6,7 @@ import { Student } from '../students/student.entity';
 import * as bcrypt from 'bcrypt';
 import { CreateParentDto } from './dto/CreateParentDto';
 import { UpdateParentDto } from './dto/UpdateParentDto';
+import { CacheService } from '../common/cache.service';
 
 const resolveBranchId = (dto: Pick<CreateParentDto, 'branch_id' | 'branchId'>) =>
   (dto.branch_id ?? dto.branchId ?? '').toString().trim() || null;
@@ -17,7 +18,11 @@ export class ParentService {
     private readonly parentRepository: Repository<Parent>,
     @InjectRepository(Student)
     private readonly studentRepository: Repository<Student>,
+    private readonly cache: CacheService,
   ) {}
+
+  private readonly parentListTtlSeconds = 60;
+  private readonly parentDetailTtlSeconds = 120;
 
   async create(dto: CreateParentDto): Promise<Parent> {
     let passwordHash: string | undefined;
@@ -86,18 +91,13 @@ export class ParentService {
       rejectedAt: null,
     });
 
-    return this.parentRepository.save(parent);
+    const saved = await this.parentRepository.save(parent);
+    await this.clearParentCache(saved.id);
+    return saved;
   }
 
   async update(id: string, dto: UpdateParentDto): Promise<Parent> {
-    const parent = await this.parentRepository.findOne({
-      where: { id, isDeleted: false },
-      relations: ['roles', 'branch'],
-    });
-
-    if (!parent) {
-      throw new NotFoundException(`Parent with ID ${id} not found`);
-    }
+    const parent = await this.findOneUncached(id);
 
     if (dto.password) {
       parent.passwordHash = await bcrypt.hash(dto.password, 10);
@@ -215,24 +215,42 @@ export class ParentService {
           { pid: id },
         )
         .execute();
+      await this.clearStudentCache();
     }
 
+    await this.clearParentCache(id);
     return saved;
   }
 
   async findAll(branchId?: string): Promise<Parent[]> {
     const normalizedBranchId = branchId?.trim();
-    return this.parentRepository.find({
-      where: {
-        isDeleted: false,
-        ...(normalizedBranchId ? { branchId: normalizedBranchId } : {}),
+    return this.cache.getOrSet(
+      `parents:all:branch:${normalizedBranchId || 'all'}`,
+      this.parentListTtlSeconds,
+      async () => {
+        const parents = await this.parentRepository.find({
+          where: {
+            isDeleted: false,
+            ...(normalizedBranchId ? { branchId: normalizedBranchId } : {}),
+          },
+          relations: ['branch'],
+          order: { createdAt: 'DESC' },
+        });
+        await this.attachRoles(parents);
+        return parents;
       },
-      relations: ['roles', 'branch'],
-      order: { createdAt: 'DESC' },
-    });
+    );
   }
 
   async findOne(id: string): Promise<Parent> {
+    return this.cache.getOrSet(
+      `parents:${id}`,
+      this.parentDetailTtlSeconds,
+      () => this.findOneUncached(id),
+    );
+  }
+
+  private async findOneUncached(id: string): Promise<Parent> {
     const parent = await this.parentRepository.findOne({
       where: { id, isDeleted: false },
       relations: ['roles', 'branch'],
@@ -245,11 +263,43 @@ export class ParentService {
     return parent;
   }
 
+  private async attachRoles(parents: Parent[]) {
+    if (!parents.length) return;
+
+    const parentIds = parents.map((parent) => parent.id);
+    const parentsWithRoles = await this.parentRepository
+      .createQueryBuilder('parent')
+      .leftJoinAndSelect('parent.roles', 'role')
+      .select('parent.id')
+      .addSelect('role')
+      .where('parent.id IN (:...parentIds)', { parentIds })
+      .getMany();
+
+    const rolesByParentId = new Map(
+      parentsWithRoles.map((parent) => [parent.id, parent.roles ?? []]),
+    );
+
+    for (const parent of parents) {
+      parent.roles = rolesByParentId.get(parent.id) ?? [];
+    }
+  }
+
   async softDelete(id: string): Promise<{ message: string }> {
-    const parent = await this.findOne(id);
+    const parent = await this.findOneUncached(id);
     parent.isDeleted = true;
     parent.isActive = false;
     await this.parentRepository.save(parent);
+    await this.clearParentCache(id);
+    await this.clearStudentCache();
     return { message: 'Parent soft deleted successfully' };
+  }
+
+  private async clearParentCache(id?: string): Promise<void> {
+    await this.cache.delPattern('parents:*');
+    if (id) await this.cache.del(`parents:${id}`);
+  }
+
+  private async clearStudentCache(): Promise<void> {
+    await this.cache.delPattern('students:*');
   }
 }

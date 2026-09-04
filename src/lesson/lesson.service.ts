@@ -16,6 +16,7 @@ import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
 import * as fs from 'fs';
 import * as path from 'path';
+import { CacheService } from '../common/cache.service';
 
 @Injectable()
 export class LessonService {
@@ -40,6 +41,8 @@ export class LessonService {
 
     @InjectRepository(Evaluation)
     private readonly evaluationRepo: Repository<Evaluation>,
+
+    private readonly cache: CacheService,
   ) {}
 
   private readonly RELATIONS = ['subjectType', 'yearLevel', 'curriculums'];
@@ -151,6 +154,7 @@ export class LessonService {
 
     const saved = await this.lessonRepo.save(lesson);
     await this.syncLessonSubjectLink(saved.id, dto.subjectId);
+    await this.clearLessonRelatedCache(saved.id);
     return this.findOne(saved.id);
   }
 
@@ -159,26 +163,42 @@ export class LessonService {
     yearLevelId?: string,
     curriculumId?: string,
   ): Promise<Lesson[]> {
-    const query = this.lessonRepo
-      .createQueryBuilder('lesson')
-      .leftJoinAndSelect('lesson.subjectType', 'subjectType')
-      .leftJoinAndSelect('lesson.yearLevel', 'yearLevel')
-      .leftJoinAndSelect('lesson.curriculums', 'curriculum');
+    const key = [
+      'lessons',
+      `subject-type:${subjectTypeId || 'all'}`,
+      `year-level:${yearLevelId || 'all'}`,
+      `curriculum:${curriculumId || 'all'}`,
+    ].join(':');
 
-    if (subjectTypeId) {
-      query.andWhere('lesson.subjectTypeId = :subjectTypeId', { subjectTypeId });
-    }
-    if (yearLevelId) {
-      query.andWhere('lesson.yearLevelId = :yearLevelId', { yearLevelId });
-    }
-    if (curriculumId) {
-      query.andWhere('curriculum.id = :curriculumId', { curriculumId });
-    }
+    return this.cache.getOrSet(key, 600, async () => {
+      const query = this.lessonRepo
+        .createQueryBuilder('lesson')
+        .leftJoinAndSelect('lesson.subjectType', 'subjectType')
+        .leftJoinAndSelect('lesson.yearLevel', 'yearLevel')
+        .leftJoinAndSelect('lesson.curriculums', 'curriculum');
 
-    return query.orderBy('lesson.createdAt', 'DESC').getMany();
+      if (subjectTypeId) {
+        query.andWhere('lesson.subjectTypeId = :subjectTypeId', { subjectTypeId });
+      }
+      if (yearLevelId) {
+        query.andWhere('lesson.yearLevelId = :yearLevelId', { yearLevelId });
+      }
+      if (curriculumId) {
+        query.andWhere('curriculum.id = :curriculumId', { curriculumId });
+      }
+
+      return query.orderBy('lesson.createdAt', 'DESC').getMany();
+    });
   }
 
   async findOne(id: string): Promise<Lesson> {
+    const lesson = await this.cache.getOrSet(`lessons:${id}`, 600, () =>
+      this.findOneUncached(id),
+    );
+    return lesson;
+  }
+
+  private async findOneUncached(id: string): Promise<Lesson> {
     const lesson = await this.lessonRepo.findOne({
       where: { id },
       relations: this.RELATIONS,
@@ -196,7 +216,7 @@ export class LessonService {
       e_file?: Express.Multer.File[];
     },
   ): Promise<Lesson> {
-    const lesson = await this.findOne(id);
+    const lesson = await this.findOneUncached(id);
 
     if (dto.subjectTypeId) {
       const subjectType = await this.subjectTypeRepo.findOne({
@@ -239,18 +259,27 @@ export class LessonService {
 
     const saved = await this.lessonRepo.save(lesson);
     await this.syncLessonSubjectLink(saved.id, dto.subjectId);
+    await this.clearLessonRelatedCache(saved.id);
     return this.findOne(saved.id);
   }
 
   async remove(id: string): Promise<{ message: string }> {
-    const lesson = await this.findOne(id);
+    const lesson = await this.findOneUncached(id);
     await this.removeLessonDependencies(id);
     await this.unlinkLessonFromSubjects(id);
     this.deleteFile(lesson.s_file);
     this.deleteFile(lesson.t_file);
     this.deleteFile(lesson.e_file);
     await this.lessonRepo.remove(lesson);
+    await this.clearLessonRelatedCache(id);
     return { message: `Lesson ${id} deleted successfully` };
+  }
+
+  private async clearLessonRelatedCache(id?: string): Promise<void> {
+    await this.cache.delPattern('lessons:*');
+    await this.cache.delPattern('subjects:*');
+    await this.cache.del('branches:all');
+    if (id) await this.cache.del(`lessons:${id}`);
   }
 
   private async removeLessonDependencies(lessonId: string): Promise<void> {

@@ -15,6 +15,7 @@ import { SearchStudentByClassDto } from './dto/search-students.dto';
 import { Branch } from '../branches/branch.entity';
 import { Province } from '../location/province.entity';
 import { District } from '../location/district.entity';
+import { CacheService } from '../common/cache.service';
 
 @Injectable()
 export class StudentsService {
@@ -27,7 +28,26 @@ export class StudentsService {
 
     @InjectRepository(Enrollment)
     private readonly enrollmentRepo: Repository<Enrollment>,
+
+    private readonly cache: CacheService,
   ) {}
+
+  private readonly studentListTtlSeconds = 60;
+  private readonly studentDetailTtlSeconds = 120;
+
+  private readonly studentListRelations = [
+    'branch',
+    'province',
+    'district',
+    'province_db',
+    'district_db',
+  ] as const;
+
+  private readonly studentDetailRelations = [
+    ...this.studentListRelations,
+    'parents',
+    'enrollments',
+  ] as const;
 
   // ─── Duplicate guard ──────────────────────────────────────────────────
   // "Duplicate" = same parent + matching full name (Lao OR English) + same
@@ -137,6 +157,14 @@ export class StudentsService {
     const candidates = await this.studentRepo
       .createQueryBuilder('student')
       .innerJoin('student.parents', 'parent')
+      .select([
+        'student.id',
+        'student.first_name_lao',
+        'student.last_name_lao',
+        'student.first_name_eng',
+        'student.last_name_eng',
+        'student.dob',
+      ])
       .where('parent.id IN (:...parentIds)', { parentIds: dto.parentIds })
       .andWhere('student.dob = :dob', { dob: new Date(dto.dob) })
       .andWhere('student.is_deleted = false')
@@ -236,6 +264,7 @@ export class StudentsService {
       await this.linkParents(saved.id, dto.parentIds);
     }
 
+    await this.clearStudentCache(saved.id);
     return this.findById(saved.id);
   }
 
@@ -257,7 +286,10 @@ export class StudentsService {
     }
 
     student.parents = parents;
-    return this.studentRepo.save(student);
+    const saved = await this.studentRepo.save(student);
+    await this.clearStudentCache(studentId);
+    await this.clearParentCache();
+    return saved;
   }
 
   // ─── Enroll Student ───────────────────────────────────────────────────
@@ -289,22 +321,24 @@ export class StudentsService {
       is_active: dto.is_active ?? true,
     });
 
-    return this.enrollmentRepo.save(enrollment);
+    const saved = await this.enrollmentRepo.save(enrollment);
+    await this.clearStudentCache(dto.studentId);
+    return saved;
   }
 
   // ─── Find By ID ───────────────────────────────────────────────────────
   async findById(id: string): Promise<Student> {
+    return this.cache.getOrSet(
+      `students:${id}`,
+      this.studentDetailTtlSeconds,
+      () => this.findByIdUncached(id),
+    );
+  }
+
+  private async findByIdUncached(id: string): Promise<Student> {
     const student = await this.studentRepo.findOne({
       where: { id },
-      relations: [
-        'branch',
-        'province',
-        'district',
-        'province_db',
-        'district_db',
-        'parents',
-        'enrollments',
-      ],
+      relations: [...this.studentDetailRelations],
     });
 
     if (!student) throw new NotFoundException('Student not found');
@@ -314,21 +348,21 @@ export class StudentsService {
   // ─── Find All ─────────────────────────────────────────────────────────
   async findAll(branchId?: string): Promise<Student[]> {
     const normalizedBranchId = String(branchId ?? '').trim();
-    return this.studentRepo.find({
-      where: {
-        is_deleted: false,
-        ...(normalizedBranchId ? { branch: { id: normalizedBranchId } } : {}),
+    return this.cache.getOrSet(
+      `students:all:branch:${normalizedBranchId || 'all'}`,
+      this.studentListTtlSeconds,
+      async () => {
+        const students = await this.studentRepo.find({
+          where: {
+            is_deleted: false,
+            ...(normalizedBranchId ? { branchId: normalizedBranchId } : {}),
+          },
+          relations: [...this.studentListRelations],
+        });
+        await this.attachListRelations(students);
+        return students;
       },
-      relations: [
-        'branch',
-        'province',
-        'district',
-        'province_db',
-        'district_db',
-        'parents',
-        'enrollments',
-      ],
-    });
+    );
   }
 
   // ─── Update Student ───────────────────────────────────────────────────
@@ -336,7 +370,7 @@ export class StudentsService {
     id: string,
     dto: Partial<CreateStudentDto>,
   ): Promise<Student> {
-    const student = await this.findById(id);
+    const student = await this.findByIdUncached(id);
 
     const healthReview = this.buildHealthReviewState(dto, student);
 
@@ -437,6 +471,7 @@ export class StudentsService {
       await this.linkParents(id, dto.parentIds);
     }
 
+    await this.clearStudentCache(id);
     return this.findById(updated.id);
   }
 
@@ -450,7 +485,7 @@ export class StudentsService {
       profile_image: string;
     }>,
   ): Promise<Student> {
-    const student = await this.findById(id);
+    const student = await this.findByIdUncached(id);
 
     const list = student.live_with ?? [];
     if (index < 0 || index >= list.length) {
@@ -463,6 +498,7 @@ export class StudentsService {
     student.live_with = list;
 
     await this.studentRepo.save(student);
+    await this.clearStudentCache(id);
     return this.findById(id);
   }
 
@@ -472,9 +508,10 @@ export class StudentsService {
     index: number,
     imagePath: string,
   ): Promise<Student> {
-    const student = await this.findById(id);
+    const student = await this.findByIdUncached(id);
 
     await this.studentRepo.save(student);
+    await this.clearStudentCache(id);
     return this.findById(id);
   }
 
@@ -484,7 +521,7 @@ export class StudentsService {
     index: number,
     imagePath: string,
   ): Promise<Student> {
-    const student = await this.findById(id);
+    const student = await this.findByIdUncached(id);
 
     const list = student.Siblings_info ?? [];
     if (index < 0 || index >= list.length) {
@@ -497,51 +534,115 @@ export class StudentsService {
     student.Siblings_info = list;
 
     await this.studentRepo.save(student);
+    await this.clearStudentCache(id);
     return this.findById(id);
   }
 
   // ─── Find By Class ────────────────────────────────────────────────────
   async findByClass(dto: SearchStudentByClassDto): Promise<Student[]> {
-    const enrollments = await this.enrollmentRepo.find({
-      where: {
-        classId: In(dto.classIds),
-        ...(dto.isActive !== undefined
-          ? { is_active: dto.isActive }
-          : { is_active: true }),
-      },
-      select: ['studentId'],
-    });
+    return this.cache.getOrSet(
+      this.getStudentByClassCacheKey(dto),
+      this.studentListTtlSeconds,
+      async () => {
+        const enrollments = await this.enrollmentRepo.find({
+          where: {
+            classId: In(dto.classIds),
+            ...(dto.isActive !== undefined
+              ? { is_active: dto.isActive }
+              : { is_active: true }),
+          },
+          select: ['studentId'],
+        });
 
-    const studentIds = [...new Set(enrollments.map((e) => e.studentId))];
-    if (studentIds.length === 0) return [];
+        const studentIds = [...new Set(enrollments.map((e) => e.studentId))];
+        if (studentIds.length === 0) return [];
 
-    return this.studentRepo.find({
-      where: { id: In(studentIds), is_deleted: false },
-      relations: [
-        'branch',
-        'province',
-        'district',
-        'province_db',
-        'district_db',
-        'parents',
-        'enrollments',
-        'enrollments.class',
-      ],
-      order: {
-        first_name_lao: 'ASC',
-        last_name_lao: 'ASC',
-        first_name_eng: 'ASC',
-        last_name_eng: 'ASC',
+        const students = await this.studentRepo.find({
+          where: { id: In(studentIds), is_deleted: false },
+          relations: [...this.studentListRelations],
+          order: {
+            first_name_lao: 'ASC',
+            last_name_lao: 'ASC',
+            first_name_eng: 'ASC',
+            last_name_eng: 'ASC',
+          },
+        });
+        await this.attachListRelations(students, { includeEnrollmentClass: true });
+        return students;
       },
-    });
+    );
+  }
+
+  private async attachListRelations(
+    students: Student[],
+    options: { includeEnrollmentClass?: boolean } = {},
+  ) {
+    if (!students.length) return;
+
+    const studentIds = students.map((student) => student.id);
+    const [studentsWithParents, enrollments] = await Promise.all([
+      this.studentRepo
+        .createQueryBuilder('student')
+        .leftJoinAndSelect('student.parents', 'parent')
+        .select('student.id')
+        .addSelect('parent')
+        .where('student.id IN (:...studentIds)', { studentIds })
+        .getMany(),
+      this.enrollmentRepo.find({
+        where: { studentId: In(studentIds) },
+        relations: options.includeEnrollmentClass ? ['class'] : [],
+      }),
+    ]);
+
+    const parentsByStudentId = new Map(
+      studentsWithParents.map((student) => [student.id, student.parents ?? []]),
+    );
+    const enrollmentsByStudentId = new Map<string, Enrollment[]>();
+
+    for (const enrollment of enrollments) {
+      const list = enrollmentsByStudentId.get(enrollment.studentId) ?? [];
+      list.push(enrollment);
+      enrollmentsByStudentId.set(enrollment.studentId, list);
+    }
+
+    for (const student of students) {
+      student.parents = parentsByStudentId.get(student.id) ?? [];
+      student.enrollments = enrollmentsByStudentId.get(student.id) ?? [];
+    }
   }
 
   // ─── Delete Student (soft) ────────────────────────────────────────────
   async deleteStudent(id: string): Promise<{ message: string }> {
-    const student = await this.findById(id);
+    const student = await this.findByIdUncached(id);
     student.is_deleted = true;
     student.is_active = false;
     await this.studentRepo.save(student);
+    await this.clearStudentCache(id);
     return { message: `Student ${id} deleted successfully` };
+  }
+
+  private getStudentByClassCacheKey(dto: SearchStudentByClassDto): string {
+    const classIds = [...new Set(dto.classIds ?? [])].sort();
+    const isActive =
+      dto.isActive === undefined ? 'default-active' : String(dto.isActive);
+    const branchId = String((dto as any).branchId ?? '').trim() || 'all';
+    const academicYearId =
+      String((dto as any).academicYearId ?? '').trim() || 'all';
+    return [
+      'students:by-class',
+      `classes:${classIds.join(',')}`,
+      `active:${isActive}`,
+      `branch:${branchId}`,
+      `academic-year:${academicYearId}`,
+    ].join(':');
+  }
+
+  private async clearStudentCache(id?: string): Promise<void> {
+    await this.cache.delPattern('students:*');
+    if (id) await this.cache.del(`students:${id}`);
+  }
+
+  private async clearParentCache(): Promise<void> {
+    await this.cache.delPattern('parents:*');
   }
 }

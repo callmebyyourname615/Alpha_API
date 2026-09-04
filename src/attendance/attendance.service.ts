@@ -7,11 +7,12 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
+import { Repository } from 'typeorm';
 
 import { Attendance, AttendanceType } from './attendance.entity';
 import { Student } from '../students/student.entity';
 import { AttendanceRule } from './attendance_rules';
+import { CacheService } from '../common/cache.service';
 
 @Injectable()
 export class AttendanceService {
@@ -24,7 +25,12 @@ export class AttendanceService {
 
     @InjectRepository(Student)
     private studentRepo: Repository<Student>,
+
+    private readonly cache: CacheService,
   ) {}
+
+  private readonly attendanceListTtlSeconds = 45;
+  private readonly attendanceDetailTtlSeconds = 120;
 
   // =====================================================
   // QR SCAN (CHECK-IN)
@@ -43,19 +49,10 @@ export class AttendanceService {
       throw new BadRequestException('Invalid attendance date format. Expected YYYY-MM-DD.');
     }
 
-    const student = await this.studentRepo.findOne({
-      where: { id: dto.studentId },
-      relations: [
-        'enrollments',
-        'enrollments.class',
-        'enrollments.class.yearLevel',
-        'enrollments.class.yearLevel.level',
-      ],
-    });
-
-    if (!student) throw new NotFoundException('Student not found. This QR code may be outdated.');
-
-    const levelId = student.enrollments?.[0]?.class?.yearLevel?.level?.id;
+    const levelId = await this.getStudentLevelId(
+      dto.studentId,
+      'Student not found. This QR code may be outdated.',
+    );
 
     if (!levelId) throw new BadRequestException('Student level not found');
 
@@ -63,9 +60,7 @@ export class AttendanceService {
       .toLocaleDateString('en-US', { weekday: 'long' })
       .toLowerCase();
 
-    const rule = await this.ruleRepo.findOne({
-      where: { levelId, dayOfWeek: day },
-    });
+    const rule = await this.getAttendanceRule(levelId, day);
 
     if (!rule) throw new BadRequestException('Rule not found');
 
@@ -112,7 +107,9 @@ export class AttendanceService {
       attendance.remark = 'LATE';
     }
 
-    return this.repo.save(attendance);
+    const saved = await this.repo.save(attendance);
+    await this.clearAttendanceCache(saved.id);
+    return saved;
   }
 
   // =====================================================
@@ -123,20 +120,8 @@ export class AttendanceService {
     attendanceDate: string;
     deviceTime?: string;
   }) {
-    // ── 1. Load student + level (same as scan) ────────────────────────────
-    const student = await this.studentRepo.findOne({
-      where: { id: dto.studentId },
-      relations: [
-        'enrollments',
-        'enrollments.class',
-        'enrollments.class.yearLevel',
-        'enrollments.class.yearLevel.level',
-      ],
-    });
-
-    if (!student) throw new NotFoundException('Student not found');
-
-    const levelId = student.enrollments?.[0]?.class?.yearLevel?.level?.id;
+    // ── 1. Load only the level needed by the rule engine ──────────────────
+    const levelId = await this.getStudentLevelId(dto.studentId, 'Student not found');
     if (!levelId) throw new BadRequestException('Student level not found');
 
     // ── 2. Load rule for the day ──────────────────────────────────────────
@@ -144,9 +129,7 @@ export class AttendanceService {
       .toLocaleDateString('en-US', { weekday: 'long' })
       .toLowerCase();
 
-    const rule = await this.ruleRepo.findOne({
-      where: { levelId, dayOfWeek: day },
-    });
+    const rule = await this.getAttendanceRule(levelId, day);
 
     if (!rule) throw new BadRequestException('Rule not found');
 
@@ -176,7 +159,9 @@ export class AttendanceService {
 
     attendance.check_out = now;
 
-    return this.repo.save(attendance);
+    const saved = await this.repo.save(attendance);
+    await this.clearAttendanceCache(saved.id);
+    return saved;
   }
 
   // =====================================================
@@ -189,51 +174,78 @@ export class AttendanceService {
 
     Object.assign(attendance, dto);
 
-    return this.repo.save(attendance);
+    const saved = await this.repo.save(attendance);
+    await this.clearAttendanceCache(saved.id);
+    return saved;
   }
 
   // =====================================================
   // 🔵 AUTO ABSENT (CRON SUPPORT)
   // =====================================================
-  async markAbsent(date: string) {
-    const students = await this.studentRepo.find({
-      relations: [
-        'enrollments',
-        'enrollments.class',
-        'enrollments.class.yearLevel',
-        'enrollments.class.yearLevel.level',
-      ],
-    });
-
-    const existing = await this.repo.find({
-      where: { attendance_date: date },
-    });
-
-    const existingMap = new Set(existing.map((a) => a.student_id));
-
-    const absentList: Attendance[] = [];
-
-    for (const student of students) {
-      if (!existingMap.has(student.id)) {
-        absentList.push(
-          this.repo.create({
-            student_id: student.id,
-            attendance_date: date,
-            type: AttendanceType.ABSENT,
-            remark: 'AUTO ABSENT (NO SCAN)',
-          }),
-        );
-      }
-    }
-
-    if (absentList.length) {
-      await this.repo.save(absentList);
-    }
+  async markAbsent(date: string, clearCache = true) {
+    await this.repo.query(
+      `
+        INSERT INTO "attendances" (
+          "student_id",
+          "attendance_date",
+          "type",
+          "scan_method",
+          "remark",
+          "created_at",
+          "updated_at"
+        )
+        SELECT
+          "students"."id",
+          $1::date,
+          $2,
+          'QR',
+          'AUTO ABSENT (NO SCAN)',
+          NOW(),
+          NOW()
+        FROM "students"
+        WHERE NOT EXISTS (
+          SELECT 1
+          FROM "attendances"
+          WHERE "attendances"."student_id" = "students"."id"
+            AND "attendances"."attendance_date" = $1::date
+        )
+        ON CONFLICT ("student_id", "attendance_date") DO NOTHING
+      `,
+      [date, AttendanceType.ABSENT],
+    );
+    if (clearCache) await this.clearAttendanceCache();
   }
 
   // =====================================================
   // HELPERS
   // =====================================================
+  private async getStudentLevelId(
+    studentId: string,
+    notFoundMessage: string,
+  ): Promise<string | null> {
+    const row = await this.studentRepo
+      .createQueryBuilder('student')
+      .leftJoin('student.enrollments', 'enrollment')
+      .leftJoin('enrollment.class', 'class')
+      .leftJoin('class.yearLevel', 'yearLevel')
+      .leftJoin('yearLevel.level', 'level')
+      .select('student.id', 'student_id')
+      .addSelect('level.id', 'level_id')
+      .where('student.id = :studentId', { studentId })
+      .getRawOne<{ student_id: string; level_id: string | null }>();
+
+    if (!row) throw new NotFoundException(notFoundMessage);
+    return row.level_id ?? null;
+  }
+
+  private async getAttendanceRule(levelId: string, dayOfWeek: string) {
+    return this.cache.getOrSet(
+      `attendance-rule:${levelId}:${dayOfWeek}`,
+      600,
+      () => this.ruleRepo.findOne({ where: { levelId, dayOfWeek } }),
+    );
+  }
+
   private toMinutes(time: string): number {
     const [h, m] = time.split(':').map(Number);
     return h * 60 + m;
@@ -246,11 +258,17 @@ export class AttendanceService {
   // =====================================================
   // CRUD
   // =====================================================
-  create(dto: Partial<Attendance>) {
-    return this.repo.save(this.repo.create(dto));
+  async create(dto: Partial<Attendance>) {
+    const saved = await this.repo.save(this.repo.create(dto));
+    await this.clearAttendanceCache(saved.id);
+    return saved;
   }
 
-  async findAll(filters?: { startDate?: string; endDate?: string; classId?: string }) {
+  async findAll(filters?: {
+    startDate?: string;
+    endDate?: string;
+    classId?: string;
+  }) {
     const today = new Date().toISOString().split('T')[0];
 
     // Determine the single date being queried (if any)
@@ -263,35 +281,66 @@ export class AttendanceService {
 
     // Auto-mark absent for the queried date (today or any specific past date)
     if (singleDate) {
-      await this.markAbsent(singleDate);
+      await this.ensureAbsentMarked(singleDate);
     }
 
-    const where: any = {};
+    return this.cache.getOrSet(
+      `attendances:list:${this.stableCacheKey({
+        startDate: filters?.startDate,
+        endDate: filters?.endDate,
+        classId: filters?.classId,
+      })}`,
+      this.attendanceListTtlSeconds,
+      async () => {
+        const qb = this.repo
+          .createQueryBuilder('attendance')
+          .leftJoinAndSelect('attendance.student', 'student')
+          .leftJoinAndSelect('student.enrollments', 'enrollment')
+          .leftJoinAndSelect('enrollment.class', 'class')
+          .leftJoinAndSelect('class.yearLevel', 'yearLevel')
+          .leftJoinAndSelect('yearLevel.level', 'level');
 
-    if (singleDate) {
-      where.attendance_date = singleDate;
-    } else if (filters?.startDate && filters?.endDate) {
-      where.attendance_date = Between(filters.startDate, filters.endDate);
-    } else if (filters?.startDate) {
-      where.attendance_date = MoreThanOrEqual(filters.startDate);
-    } else if (filters?.endDate) {
-      where.attendance_date = LessThanOrEqual(filters.endDate);
-    }
+        if (singleDate) {
+          qb.where('attendance.attendance_date = :singleDate', { singleDate });
+        } else if (filters?.startDate && filters?.endDate) {
+          qb.where('attendance.attendance_date BETWEEN :startDate AND :endDate', {
+            startDate: filters.startDate,
+            endDate: filters.endDate,
+          });
+        } else if (filters?.startDate) {
+          qb.where('attendance.attendance_date >= :startDate', {
+            startDate: filters.startDate,
+          });
+        } else if (filters?.endDate) {
+          qb.where('attendance.attendance_date <= :endDate', {
+            endDate: filters.endDate,
+          });
+        }
 
-    return this.repo.find({
-      where,
-      relations: [
-        'student',
-        'student.enrollments',
-        'student.enrollments.class',
-        'student.enrollments.class.yearLevel',
-        'student.enrollments.class.yearLevel.level',
-      ],
-      order: { attendance_date: 'DESC', created_at: 'DESC' },
-    });
+        const normalizedClassId = filters?.classId?.trim();
+        if (normalizedClassId) {
+          qb.andWhere('enrollment.class_id = :classId', {
+            classId: normalizedClassId,
+          });
+        }
+
+        return qb
+          .orderBy('attendance.attendance_date', 'DESC')
+          .addOrderBy('attendance.created_at', 'DESC')
+          .getMany();
+      },
+    );
   }
 
   async findOne(id: string) {
+    return this.cache.getOrSet(
+      `attendances:${id}`,
+      this.attendanceDetailTtlSeconds,
+      () => this.findOneUncached(id),
+    );
+  }
+
+  private async findOneUncached(id: string) {
     const attendance = await this.repo.findOne({ where: { id } });
 
     if (!attendance) throw new NotFoundException('Attendance not found');
@@ -300,13 +349,47 @@ export class AttendanceService {
   }
 
   async update(id: string, dto: Partial<Attendance>) {
-    const attendance = await this.findOne(id);
+    const attendance = await this.findOneUncached(id);
     Object.assign(attendance, dto);
-    return this.repo.save(attendance);
+    const saved = await this.repo.save(attendance);
+    await this.clearAttendanceCache(saved.id);
+    return saved;
   }
 
   async remove(id: string) {
-    const attendance = await this.findOne(id);
-    return this.repo.remove(attendance);
+    const attendance = await this.findOneUncached(id);
+    const removed = await this.repo.remove(attendance);
+    await this.clearAttendanceCache(id);
+    return removed;
+  }
+
+  private async clearAttendanceCache(id?: string): Promise<void> {
+    await Promise.all([
+      this.cache.delPattern('attendances:list:*'),
+      id ? this.cache.del(`attendances:${id}`) : Promise.resolve(),
+    ]);
+  }
+
+  private async ensureAbsentMarked(date: string): Promise<void> {
+    await this.cache.getOrSet(
+      `attendances:auto-absent:${date}`,
+      this.attendanceListTtlSeconds,
+      async () => {
+        await this.markAbsent(date, false);
+        return true;
+      },
+    );
+  }
+
+  private stableCacheKey(value: Record<string, unknown>): string {
+    const entries = Object.entries(value)
+      .filter(([, item]) => item !== undefined && item !== null && item !== '')
+      .sort(([left], [right]) => left.localeCompare(right));
+
+    if (!entries.length) return 'default';
+
+    return entries
+      .map(([key, item]) => `${key}=${String(item).trim()}`)
+      .join(':');
   }
 }

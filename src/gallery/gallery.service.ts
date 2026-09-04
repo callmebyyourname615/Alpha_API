@@ -20,6 +20,7 @@ import {
   ToggleGalleryLikeDto,
   UpdateGalleryPostDto,
 } from './dto/gallery.dto';
+import { CacheService } from '../common/cache.service';
 
 @Injectable()
 export class GalleryService {
@@ -38,7 +39,12 @@ export class GalleryService {
     @InjectRepository(Student) private readonly students: Repository<Student>,
     @InjectRepository(Parent) private readonly parents: Repository<Parent>,
     @InjectRepository(Admin) private readonly admins: Repository<Admin>,
+    private readonly cache: CacheService,
   ) {}
+
+  private readonly galleryListTtlSeconds = 60;
+  private readonly galleryDetailTtlSeconds = 60;
+  private readonly galleryCommentsTtlSeconds = 30;
 
   async findAll(query: {
     search?: string;
@@ -119,8 +125,10 @@ export class GalleryService {
     qb.andWhere('post.status = :status', {
       status: query.status || 'published',
     });
-    return Promise.all(
-      (await qb.getMany()).map((post) => this.serialize(post, query)),
+    return this.cache.getOrSet(
+      `gallery:list:${this.stableCacheKey(query)}`,
+      this.galleryListTtlSeconds,
+      async () => this.serializeMany(await qb.getMany(), query),
     );
   }
 
@@ -141,18 +149,24 @@ export class GalleryService {
       viewer?.parent_scope === 'parent',
       viewer?.student_id,
     );
-    return this.serialize(post, viewer);
+    return this.cache.getOrSet(
+      `gallery:${id}:${this.stableCacheKey(viewer ?? {})}`,
+      this.galleryDetailTtlSeconds,
+      () => this.serialize(post, viewer),
+    );
   }
 
   async listCategories() {
-    const rows = await this.posts
-      .createQueryBuilder('post')
-      .select('DISTINCT TRIM(post.category)', 'category')
-      .where('post.category IS NOT NULL')
-      .andWhere("TRIM(post.category) <> ''")
-      .orderBy('category', 'ASC')
-      .getRawMany<{ category: string }>();
-    return rows.map((row) => row.category).filter(Boolean);
+    return this.cache.getOrSet('gallery:categories', 600, async () => {
+      const rows = await this.posts
+        .createQueryBuilder('post')
+        .select('DISTINCT TRIM(post.category)', 'category')
+        .where('post.category IS NOT NULL')
+        .andWhere("TRIM(post.category) <> ''")
+        .orderBy('category', 'ASC')
+        .getRawMany<{ category: string }>();
+      return rows.map((row) => row.category).filter(Boolean);
+    });
   }
 
   async create(dto: CreateGalleryPostDto) {
@@ -179,6 +193,7 @@ export class GalleryService {
     const saved = await this.posts.save(post);
     await this.replacePhotos(saved.id, dto.photo_file_ids ?? []);
     await this.replaceTags(saved.id, dto.tagged_student_ids ?? []);
+    await this.clearGalleryCache(saved.id);
     return this.findOne(saved.id);
   }
 
@@ -232,6 +247,7 @@ export class GalleryService {
     if (hasPhotoFileIds) await this.replacePhotos(id, dto.photo_file_ids ?? []);
     if (hasTaggedStudentIds)
       await this.replaceTags(id, dto.tagged_student_ids ?? []);
+    await this.clearGalleryCache(id);
     return this.findOne(id);
   }
 
@@ -251,6 +267,7 @@ export class GalleryService {
       this.comments.delete({ gallery_id: id }),
     ]);
     await this.posts.delete(id);
+    await this.clearGalleryCache(id);
     return { message: 'Gallery post deleted' };
   }
 
@@ -274,6 +291,7 @@ export class GalleryService {
           actor_type: dto.actor_type,
         }),
       );
+    await this.clearGalleryCache(id);
     return {
       liked: !existing,
       likes_count: await this.likes.count({ where: { gallery_id: id } }),
@@ -295,11 +313,17 @@ export class GalleryService {
       viewer?.parent_scope === 'parent',
       viewer?.student_id,
     );
-    const comments = await this.comments.find({
-      where: { gallery_id: id },
-      order: { created_at: 'ASC' },
-    });
-    return this.withCommentAuthorDetails(comments);
+    return this.cache.getOrSet(
+      `gallery:${id}:comments:${this.stableCacheKey(viewer ?? {})}`,
+      this.galleryCommentsTtlSeconds,
+      async () => {
+        const comments = await this.comments.find({
+          where: { gallery_id: id },
+          order: { created_at: 'ASC' },
+        });
+        return this.withCommentAuthorDetails(comments);
+      },
+    );
   }
   async addComment(id: string, dto: CreateGalleryCommentDto) {
     const post = await this.requirePost(id);
@@ -318,6 +342,7 @@ export class GalleryService {
     const comment = await this.comments.save(
       this.comments.create({ gallery_id: id, ...commentData }),
     );
+    await this.clearGalleryCache(id);
     return (await this.withCommentAuthorDetails([comment]))[0];
   }
 
@@ -414,43 +439,198 @@ export class GalleryService {
     post: GalleryPost,
     viewer?: { actor_id?: string; actor_type?: string },
   ) {
+    return (await this.serializeMany([post], viewer))[0];
+  }
+
+  private async serializeMany(
+    posts: GalleryPost[],
+    viewer?: { actor_id?: string; actor_type?: string },
+  ) {
+    if (!posts.length) return [];
+
+    const postIds = posts.map((post) => post.id);
+    const validViewer =
+      viewer?.actor_id && viewer?.actor_type && this.isUuid(viewer.actor_id);
     const viewerLike =
-      viewer?.actor_id && viewer?.actor_type && this.isUuid(viewer.actor_id)
-        ? this.likes.findOne({
+      validViewer
+        ? this.likes.find({
             where: {
-              gallery_id: post.id,
+              gallery_id: In(postIds),
               actor_id: viewer.actor_id,
               actor_type: viewer.actor_type,
             },
+            select: ['gallery_id'],
           })
-        : Promise.resolve(null);
+        : Promise.resolve([]);
     const [
       photos,
       tags,
-      likesCount,
-      commentsCount,
-      currentViewerLike,
-      authorName,
+      likesCounts,
+      commentsCounts,
+      currentViewerLikes,
+      authorNames,
     ] = await Promise.all([
       this.photos.find({
-        where: { gallery_id: post.id },
+        where: { gallery_id: In(postIds) },
         order: { sort_order: 'ASC' },
       }),
-      this.tags.find({ where: { gallery_id: post.id } }),
-      this.likes.count({ where: { gallery_id: post.id } }),
-      this.comments.count({ where: { gallery_id: post.id } }),
+      this.tags.find({ where: { gallery_id: In(postIds) } }),
+      this.likes
+        .createQueryBuilder('galleryLike')
+        .select('galleryLike.gallery_id', 'gallery_id')
+        .addSelect('COUNT(*)', 'count')
+        .where('galleryLike.gallery_id IN (:...postIds)', { postIds })
+        .groupBy('galleryLike.gallery_id')
+        .getRawMany<{ gallery_id: string; count: string }>(),
+      this.comments
+        .createQueryBuilder('galleryComment')
+        .select('galleryComment.gallery_id', 'gallery_id')
+        .addSelect('COUNT(*)', 'count')
+        .where('galleryComment.gallery_id IN (:...postIds)', { postIds })
+        .groupBy('galleryComment.gallery_id')
+        .getRawMany<{ gallery_id: string; count: string }>(),
       viewerLike,
-      this.resolvePostAuthorName(post),
+      this.resolvePostAuthorNames(posts),
     ]);
-    return {
-      ...post,
-      photos,
-      tagged_student_ids: tags.map((tag) => tag.student_id),
-      author_name: authorName,
-      likes_count: likesCount,
-      comments_count: commentsCount,
-      viewer_liked: Boolean(currentViewerLike),
-    };
+
+    const photosByPostId = this.groupBy(photos, (photo) => photo.gallery_id);
+    const tagsByPostId = this.groupBy(tags, (tag) => tag.gallery_id);
+    const likesCountByPostId = new Map(
+      likesCounts.map((row) => [row.gallery_id, Number(row.count)]),
+    );
+    const commentsCountByPostId = new Map(
+      commentsCounts.map((row) => [row.gallery_id, Number(row.count)]),
+    );
+    const viewerLikedPostIds = new Set(
+      currentViewerLikes.map((like) => like.gallery_id),
+    );
+
+    return posts.map((post) => {
+      const postTags = tagsByPostId.get(post.id) ?? [];
+      return {
+        ...post,
+        photos: photosByPostId.get(post.id) ?? [],
+        tagged_student_ids: postTags.map((tag) => tag.student_id),
+        author_name: authorNames.get(post.id) ?? null,
+        likes_count: likesCountByPostId.get(post.id) ?? 0,
+        comments_count: commentsCountByPostId.get(post.id) ?? 0,
+        viewer_liked: viewerLikedPostIds.has(post.id),
+      };
+    });
+  }
+
+  private groupBy<T>(
+    items: T[],
+    keyOf: (item: T) => string,
+  ): Map<string, T[]> {
+    const grouped = new Map<string, T[]>();
+    for (const item of items) {
+      const key = keyOf(item);
+      const list = grouped.get(key) ?? [];
+      list.push(item);
+      grouped.set(key, list);
+    }
+    return grouped;
+  }
+
+  private async resolvePostAuthorNames(posts: GalleryPost[]) {
+    const adminIds = Array.from(
+      new Set(
+        posts
+          .filter((post) => post.author_type?.toLowerCase() === 'admin')
+          .map((post) => post.author_id)
+          .filter((id): id is string => this.isUuid(id)),
+      ),
+    );
+    const parentIds = Array.from(
+      new Set(
+        posts
+          .filter((post) => post.author_type?.toLowerCase() === 'parent')
+          .map((post) => post.author_id)
+          .filter((id): id is string => this.isUuid(id)),
+      ),
+    );
+
+    const [admins, parents] = await Promise.all([
+      adminIds.length
+        ? this.admins.find({
+            where: { id: In(adminIds) },
+            select: ['id', 'first_name', 'last_name', 'email'],
+          })
+        : Promise.resolve([]),
+      parentIds.length
+        ? this.parents.find({
+            where: { id: In(parentIds) },
+            select: [
+              'id',
+              'firstName_eng',
+              'lastName_eng',
+              'firstName_lao',
+              'lastName_lao',
+              'email',
+            ],
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const adminNameById = new Map(
+      admins.map((admin) => [admin.id, this.formatAdminName(admin)]),
+    );
+    const parentNameById = new Map(
+      parents.map((parent) => [parent.id, this.formatParentName(parent)]),
+    );
+    const authorNameByPostId = new Map<string, string | null>();
+
+    for (const post of posts) {
+      const authorType = post.author_type?.toLowerCase();
+      if (authorType === 'admin') {
+        authorNameByPostId.set(
+          post.id,
+          adminNameById.get(post.author_id ?? '') ?? null,
+        );
+      } else if (authorType === 'parent') {
+        authorNameByPostId.set(
+          post.id,
+          parentNameById.get(post.author_id ?? '') ?? null,
+        );
+      } else {
+        authorNameByPostId.set(post.id, null);
+      }
+    }
+
+    return authorNameByPostId;
+  }
+
+  private formatAdminName(
+    author?: Pick<Admin, 'first_name' | 'last_name' | 'email'> | null,
+  ) {
+    return (
+      [author?.first_name, author?.last_name]
+        .filter((value): value is string => Boolean(value?.trim()))
+        .join(' ') ||
+      author?.email ||
+      null
+    );
+  }
+
+  private formatParentName(
+    author?: Pick<
+      Parent,
+      | 'firstName_eng'
+      | 'lastName_eng'
+      | 'firstName_lao'
+      | 'lastName_lao'
+      | 'email'
+    > | null,
+  ) {
+    const englishName = [author?.firstName_eng, author?.lastName_eng]
+      .filter((value): value is string => Boolean(value?.trim()))
+      .join(' ');
+    const laoName = [author?.firstName_lao, author?.lastName_lao]
+      .filter((value): value is string => Boolean(value?.trim()))
+      .join(' ');
+
+    return englishName || laoName || author?.email || null;
   }
 
   private async resolvePostAuthorName(post: GalleryPost) {
@@ -460,13 +640,7 @@ export class GalleryService {
         where: { id: post.author_id },
         select: ['id', 'first_name', 'last_name', 'email'],
       });
-      return (
-        [author?.first_name, author?.last_name]
-          .filter((value): value is string => Boolean(value?.trim()))
-          .join(' ') ||
-        author?.email ||
-        null
-      );
+      return this.formatAdminName(author);
     }
     if (post.author_type?.toLowerCase() === 'parent') {
       const author = await this.parents.findOne({
@@ -480,16 +654,7 @@ export class GalleryService {
           'email',
         ],
       });
-      return (
-        [author?.firstName_eng, author?.lastName_eng]
-          .filter((value): value is string => Boolean(value?.trim()))
-          .join(' ') ||
-        [author?.firstName_lao, author?.lastName_lao]
-          .filter((value): value is string => Boolean(value?.trim()))
-          .join(' ') ||
-        author?.email ||
-        null
-      );
+      return this.formatParentName(author);
     }
     return null;
   }
@@ -501,12 +666,22 @@ export class GalleryService {
   }
 
   private async withCommentAuthorDetails(comments: GalleryComment[]) {
-    const parentIds = comments
-      .filter((comment) => comment.author_type.toLowerCase() === 'parent')
-      .map((comment) => comment.author_id);
-    const adminIds = comments
-      .filter((comment) => comment.author_type.toLowerCase() === 'admin')
-      .map((comment) => comment.author_id);
+    const parentIds = [
+      ...new Set(
+        comments
+          .filter((comment) => comment.author_type.toLowerCase() === 'parent')
+          .map((comment) => comment.author_id)
+          .filter((id) => this.isUuid(id)),
+      ),
+    ];
+    const adminIds = [
+      ...new Set(
+        comments
+          .filter((comment) => comment.author_type.toLowerCase() === 'admin')
+          .map((comment) => comment.author_id)
+          .filter((id) => this.isUuid(id)),
+      ),
+    ];
     const [parents, admins] = await Promise.all([
       parentIds.length
         ? this.parents.find({
@@ -590,5 +765,20 @@ export class GalleryService {
         value,
       ),
     );
+  }
+
+  private stableCacheKey(value: Record<string, unknown>): string {
+    return Object.keys(value)
+      .sort()
+      .map((key) => `${key}=${String(value[key] ?? '').trim()}`)
+      .join('&') || 'default';
+  }
+
+  private async clearGalleryCache(id?: string): Promise<void> {
+    await Promise.all([
+      this.cache.del('gallery:categories'),
+      this.cache.delPattern('gallery:list:*'),
+      id ? this.cache.delPattern(`gallery:${id}:*`) : Promise.resolve(),
+    ]);
   }
 }
