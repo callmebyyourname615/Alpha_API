@@ -19,6 +19,7 @@ import { v4 as uuid } from 'uuid';
 import { ParentService } from './parent.service';
 import { CreateParentDto } from './dto/CreateParentDto';
 import { UpdateParentDto } from './dto/UpdateParentDto';
+import { Public } from '../auth/public.decorator';
 
 const fileInterceptorOptions = {
   storage: diskStorage({
@@ -55,6 +56,7 @@ const fileFields = [
 export class ParentController {
   constructor(private readonly service: ParentService) {}
 
+  @Public()
   @Post()
   @UseInterceptors(FileFieldsInterceptor(fileFields, fileInterceptorOptions))
   create(

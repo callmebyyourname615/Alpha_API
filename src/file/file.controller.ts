@@ -7,6 +7,7 @@ import type { Response } from 'express';
 import { FileService } from './file.service';
 import { File } from './files.entity';
 import { TaskSubmissionService } from '../task-submission/task-submission.service';
+import { Public } from '../auth/public.decorator';
 
 const ALLOWED_MIME_TYPES = [
   'image/jpeg', 'image/png', 'image/webp', 'image/gif',
@@ -35,6 +36,7 @@ export class FileController {
     return this.fileService.findAll();
   }
 
+  @Public()
   @Get('serve/:module/:filename')
   serveFile(
     @Param('module') module: string,

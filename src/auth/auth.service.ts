@@ -21,6 +21,7 @@ async login(email: string, password: string) {
   const login = email.trim().toLowerCase();
   const admin = await this.adminRepo
     .createQueryBuilder('admin')
+    .addSelect('admin.password')
     .leftJoinAndSelect('admin.roles', 'roles')
     .leftJoinAndSelect('admin.branch', 'branch')
     .where('(LOWER(TRIM(admin.email)) = :login OR LOWER(TRIM(admin.username)) = :login)', { login })

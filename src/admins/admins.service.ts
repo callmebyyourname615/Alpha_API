@@ -353,7 +353,8 @@ current_status: dto.current_status ?? null,
     currentPassword: string,
     newPassword: string,
   ): Promise<{ message: string }> {
-    const admin = await this.findOneRaw(id);
+    const admin = await this.adminRepository.createQueryBuilder('admin').addSelect('admin.password').where('admin.id = :id AND admin.is_deleted = false', { id }).getOne();
+    if (!admin) throw new NotFoundException(`Admin ${id} not found`);
     if (!admin.password) throw new BadRequestException('No password set');
 
     const match = await bcrypt.compare(currentPassword, admin.password);
