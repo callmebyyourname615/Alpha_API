@@ -51,7 +51,7 @@ export class ParentService {
       family_book_url: dto.family_book_url ?? null,
 
       idCard_no: dto.idCard_no,
-      id_card_url: dto.id_card,
+      id_card_url: dto.id_card ?? dto.id_card_url,
 
       passport_number: dto.passport_number,
       passport_image_url: dto.passport_image_url,
@@ -169,6 +169,7 @@ export class ParentService {
     } else if (dto.reject_reason !== undefined) {
       parent.rejectReason = dto.reject_reason.trim() || null;
     }
+
     if (dto.nickname !== undefined) parent.nickname = dto.nickname;
 
     if (dto.family_book_number !== undefined)

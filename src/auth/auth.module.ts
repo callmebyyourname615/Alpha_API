@@ -10,11 +10,13 @@ import { Parent } from '../parents/parent.entity';
   imports: [
     TypeOrmModule.forFeature([Admin, Parent]),
     JwtModule.register({
-      secret: 'MY_SUPER_SECRET_KEY',
+      global: true,
+      secret: process.env.JWT_SECRET || 'MY_SUPER_SECRET_KEY',
       signOptions: { expiresIn: '12h' },
     }),
   ],
   controllers: [AuthController],
   providers: [AuthService],
+  exports: [AuthService, JwtModule],
 })
 export class AuthModule {}

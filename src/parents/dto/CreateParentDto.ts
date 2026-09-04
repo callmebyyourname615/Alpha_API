@@ -43,13 +43,13 @@ export class CreateParentDto {
   @MaxLength(100)
   first_name_eng: string;
 
-    @IsString()
-    @MaxLength(100)
-    midle_name_lao: string;
+  @IsString()
+  @MaxLength(100)
+  midle_name_lao: string;
 
-    @IsString()
-    @MaxLength(100)
-    midle_name_eng: string;
+  @IsString()
+  @MaxLength(100)
+  midle_name_eng: string;
 
   @IsString()
   @MaxLength(100)
@@ -123,6 +123,10 @@ export class CreateParentDto {
 
   @IsOptional()
   @IsString()
+  relation_type?: string;
+
+  @IsOptional()
+  @IsString()
   occupation?: string;
 
   @IsOptional()
@@ -154,42 +158,38 @@ export class CreateParentDto {
   home_picture_url?: string; // ✅
 
   @IsOptional()
-@IsString()
-nickname?: string;
+  @IsString()
+  nickname?: string;
 
-@IsOptional()
-@IsString()
-family_book_number?: string;
+  @IsOptional()
+  @IsString()
+  family_book_number?: string;
 
-@IsOptional()
-@IsString()
-idCard_no?: string;
+  @IsOptional()
+  @IsString()
+  idCard_no?: string;
 
-@IsOptional()
-@IsString()
-passport_number?: string;
+  @IsOptional()
+  @IsString()
+  passport_number?: string;
 
-@IsOptional()
-@IsString()
-education_level?: string;
+  @IsOptional()
+  @IsString()
+  education_level?: string;
 
-@IsOptional()
-@IsString()
-home_number?: string;
+  @IsOptional()
+  @IsString()
+  home_number?: string;
 
-@IsOptional()
-@IsString()
-home_unit?: string;
+  @IsOptional()
+  @IsString()
+  home_unit?: string;
 
-@IsOptional()
-@IsString()
-passport_image_url?: string;
+  @IsOptional()
+  @IsString()
+  passport_image_url?: string;
 
-@IsOptional()
-@IsString()
-id_card_url?: string;
-
-@IsOptional()
-@IsString()
-relation_type?: string;
+  @IsOptional()
+  @IsString()
+  id_card_url?: string;
 }

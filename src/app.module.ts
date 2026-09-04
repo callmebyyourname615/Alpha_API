@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { HealthModule } from './health/health.module';
 import { HealthController } from './health/health.controller';
 import { BranchModule } from './branches/branch.module';
@@ -172,7 +174,13 @@ import { RubricEvaluationFinalScoreModule } from './rubric_evaluation_final_scor
     ChatReadModule,
     TaskActivityModule,
   ],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+  ],
 
   controllers: [AppController, HealthController],
 })

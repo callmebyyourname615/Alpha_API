@@ -105,7 +105,7 @@ export class Admin {
   @Column({ type: 'varchar', length: 255, unique: true, nullable: true })
   username: string | null;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true, select: false })
   password: string | null;
 
   @Column({ type: 'varchar', length: 255, unique: true, nullable: true })
