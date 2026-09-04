@@ -45,4 +45,11 @@ export class AuthController {
       throw err;
     }
   }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  async refresh(@Req() req: Request) {
+    const user = req['user'];
+    return this.authService.refreshToken(user);
+  }
 }

@@ -129,44 +129,19 @@ async loginParent(email: string, password: string) {
   };
 }
 
-
-  /*  async loginParent(email: string, password: string) {
-    const parent = await this.parentRepo.findOne({
-      where: { email, is_active: true, is_deleted: false },
-      relations: ['branch'],
-    });
-
-    if (!parent) throw new UnauthorizedException('Invalid email or password');
-
-    // Validate branch status
-    if (
-      !parent.branch ||
-      parent.branch.is_deleted ||
-      !parent.branch.is_active
-    ) {
-      throw new UnauthorizedException('Parent branch is not valid or inactive');
-    }
-
-    const isMatch = await bcrypt.compare(password, parent.password);
-    if (!isMatch) throw new UnauthorizedException('Invalid email or password');
-
-    const payload = {
-      id: parent.id,
-      email: parent.email,
-      first_name: parent.first_name,
-      last_name: parent.last_name,
-      branch: { id: parent.branch.id, name: parent.branch.name },
-      phone: parent.phone,
-      user_type: 'parent',
-    };
-
-    return {
-      access_token: this.jwtService.sign(payload, { expiresIn: '12h' }),
-      parent: payload,
-    };
-  }*/
-
   async hashPassword(password: string) {
     return bcrypt.hash(password, 10);
+  }
+
+  async refreshToken(userPayload: any) {
+    if (!userPayload || !userPayload.sub) {
+      throw new UnauthorizedException('Invalid token payload');
+    }
+    const { exp, iat, nbf, ...cleanPayload } = userPayload;
+    const access_token = await this.jwtService.signAsync(cleanPayload);
+    return {
+      access_token,
+      user: cleanPayload,
+    };
   }
 }
