@@ -43,8 +43,8 @@ async function bootstrap() {
 
   // Univer workbook snapshots can be large because they store cell styles,
   // merges, dimensions and multi-sheet rubric templates as JSON.
-  app.use(express.json({ limit: '25mb' }));
-  app.use(express.urlencoded({ limit: '25mb', extended: true }));
+  app.use(express.json({ limit: '150mb' }));
+  app.use(express.urlencoded({ limit: '150mb', extended: true }));
 
   // Replace Nest default logger with custom Winston logger
   app.useLogger(logger);
