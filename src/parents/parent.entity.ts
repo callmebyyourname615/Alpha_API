@@ -3,16 +3,26 @@ import {
   Column,
   PrimaryGeneratedColumn,
   ManyToMany,
+  ManyToOne,
   JoinTable,
+  JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { Role } from '../roles/role.entity';
+import { Branch } from '../branches/branch.entity';
 
 @Entity('parents')
 export class Parent {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column('uuid', { name: 'branch_id', nullable: true })
+  branchId: string | null;
+
+  @ManyToOne(() => Branch, { nullable: true, onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'branch_id' })
+  branch: Branch | null;
 
   // ────────────────────────────────────────────────
   // Authentication fields – should NOT be stored as plain text!
@@ -82,9 +92,11 @@ export class Parent {
   @Column({ type: 'varchar', length: 512, nullable: true })
   passport_image_url: string | null;
 
-
   @Column({ type: 'varchar', length: 255, nullable: true })
   education_level: string;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  relation_type: string;
 
   // ────────────────────────────────────────────────
   // Contact & Address
@@ -126,11 +138,8 @@ export class Parent {
   work_village: string;
 
   // ────────────────────────────────────────────────
-  // Occupation / Work / Relationship
+  // Occupation / Work
   // ────────────────────────────────────────────────
-  @Column({ length: 255, nullable: true })
-  relation_type: string;
-
   @Column({ length: 255, nullable: true })
   occupation: string;
 

@@ -7,6 +7,9 @@ import * as bcrypt from 'bcrypt';
 import { CreateParentDto } from './dto/CreateParentDto';
 import { UpdateParentDto } from './dto/UpdateParentDto';
 
+const resolveBranchId = (dto: Pick<CreateParentDto, 'branch_id' | 'branchId'>) =>
+  (dto.branch_id ?? dto.branchId ?? '').toString().trim() || null;
+
 @Injectable()
 export class ParentService {
   constructor(
@@ -24,6 +27,7 @@ export class ParentService {
     }
 
     const parent = this.parentRepository.create({
+      branchId: resolveBranchId(dto),
       email: dto.email,
       username: dto.username,
       passwordHash,
@@ -47,12 +51,13 @@ export class ParentService {
       family_book_url: dto.family_book_url ?? null,
 
       idCard_no: dto.idCard_no,
-      id_card_url: dto.id_card,
+      id_card_url: dto.id_card ?? dto.id_card_url,
 
       passport_number: dto.passport_number,
       passport_image_url: dto.passport_image_url,
 
       education_level: dto.education_level,
+      relation_type: dto.relation_type,
 
       phone: dto.phone,
       mobile_phone: dto.mobile_phone,
@@ -71,15 +76,11 @@ export class ParentService {
       work_district: dto.work_district,
       work_village: dto.work_village,
 
-      relation_type: dto.relation_type,
       occupation: dto.occupation,
       company_name: dto.company_name,
 
       profilePictureUrl: dto.profile_pic,
 
-      // Parent self-registration must always wait for an administrator.
-      // Do not trust multipart form values here: the string "false" can be
-      // coerced to true by request transformation in some Nest setups.
       isActive: false,
       approvalStatus: 'pending',
       rejectedAt: null,
@@ -91,7 +92,7 @@ export class ParentService {
   async update(id: string, dto: UpdateParentDto): Promise<Parent> {
     const parent = await this.parentRepository.findOne({
       where: { id, isDeleted: false },
-      relations: ['roles'],
+      relations: ['roles', 'branch'],
     });
 
     if (!parent) {
@@ -100,6 +101,10 @@ export class ParentService {
 
     if (dto.password) {
       parent.passwordHash = await bcrypt.hash(dto.password, 10);
+    }
+
+    if (dto.branch_id !== undefined || dto.branchId !== undefined) {
+      parent.branchId = resolveBranchId(dto);
     }
 
     if (dto.first_name_lao !== undefined) parent.firstName_lao = dto.first_name_lao;
@@ -124,7 +129,6 @@ export class ParentService {
     if (dto.work_district !== undefined)
       parent.work_district = dto.work_district;
     if (dto.work_village !== undefined) parent.work_village = dto.work_village;
-    if (dto.relation_type !== undefined) parent.relation_type = dto.relation_type;
     if (dto.occupation !== undefined) parent.occupation = dto.occupation;
     if (dto.company_name !== undefined) parent.company_name = dto.company_name;
     if (dto.email !== undefined) parent.email = dto.email;
@@ -135,16 +139,24 @@ export class ParentService {
       parent.id_card_url = dto.id_card;
     }
     if (dto.home_picture_url !== undefined)
-      parent.home_picture_url = dto.home_picture_url; // ✅
+      parent.home_picture_url = dto.home_picture_url;
     if (dto.family_book_url !== undefined)
-      parent.family_book_url = dto.family_book_url; // ✅
+      parent.family_book_url = dto.family_book_url;
+
+    if (dto.relation_type !== undefined)
+      parent.relation_type = dto.relation_type;
+
     if (dto.is_active !== undefined) {
-      parent.isActive = dto.is_active;
+      const activeBool = typeof dto.is_active === 'boolean'
+        ? dto.is_active
+        : String(dto.is_active).trim().toLowerCase() === 'true';
+      parent.isActive = activeBool;
       if (dto.approval_status === undefined) {
-        parent.approvalStatus = dto.is_active ? 'approved' : 'pending';
+        parent.approvalStatus = activeBool ? 'approved' : 'pending';
         parent.rejectedAt = null;
       }
     }
+
     if (dto.approval_status !== undefined) {
       parent.approvalStatus = dto.approval_status;
       parent.isActive = dto.approval_status === 'approved';
@@ -157,6 +169,7 @@ export class ParentService {
     } else if (dto.reject_reason !== undefined) {
       parent.rejectReason = dto.reject_reason.trim() || null;
     }
+
     if (dto.nickname !== undefined) parent.nickname = dto.nickname;
 
     if (dto.family_book_number !== undefined)
@@ -189,14 +202,14 @@ export class ParentService {
 
     const saved = await this.parentRepository.save(parent);
 
-    // Cascade: when admin approves the parent, also activate every student
-    // linked to this parent (via student_parents join table) so login/visibility
-    // is unblocked in a single click.
     if (dto.is_active !== undefined) {
+      const activeBool = typeof dto.is_active === 'boolean'
+        ? dto.is_active
+        : String(dto.is_active).trim().toLowerCase() === 'true';
       await this.studentRepository
         .createQueryBuilder()
         .update(Student)
-        .set({ is_active: dto.is_active })
+        .set({ is_active: activeBool })
         .where(
           `id IN (SELECT student_id FROM student_parents WHERE parent_id = :pid)`,
           { pid: id },
@@ -207,10 +220,14 @@ export class ParentService {
     return saved;
   }
 
-  async findAll(): Promise<Parent[]> {
+  async findAll(branchId?: string): Promise<Parent[]> {
+    const normalizedBranchId = branchId?.trim();
     return this.parentRepository.find({
-      where: { isDeleted: false },
-      relations: ['roles'],
+      where: {
+        isDeleted: false,
+        ...(normalizedBranchId ? { branchId: normalizedBranchId } : {}),
+      },
+      relations: ['roles', 'branch'],
       order: { createdAt: 'DESC' },
     });
   }
@@ -218,7 +235,7 @@ export class ParentService {
   async findOne(id: string): Promise<Parent> {
     const parent = await this.parentRepository.findOne({
       where: { id, isDeleted: false },
-      relations: ['roles'],
+      relations: ['roles', 'branch'],
     });
 
     if (!parent) {
@@ -236,4 +253,3 @@ export class ParentService {
     return { message: 'Parent soft deleted successfully' };
   }
 }
-

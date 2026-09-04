@@ -38,7 +38,7 @@ export class TaskSubmissionController {
 
   @Post('slots/sync')
   syncSlots(@Body() dto: SyncTaskSlotsDto) {
-    return this.service.syncSlots(dto.task_id, dto.student_ids);
+    return this.service.syncSlots(dto.task_id, dto.student_ids, dto.actor_admin_id);
   }
 
   @Post('slots/submit')
@@ -72,7 +72,7 @@ export class TaskSubmissionController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.service.delete(id);
+  remove(@Param('id') id: string, @Query('admin_id') adminId?: string) {
+    return this.service.delete(id, adminId);
   }
 }

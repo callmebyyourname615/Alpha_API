@@ -70,6 +70,7 @@ import { FoodRestrictionModule } from './food_restriction/food-restriction.modul
 import { GalleryModule } from './gallery/gallery.module';
 import { RubricSettingsModule } from './rubric_settings/rubric-settings.module';
 import { RubricReportMonthSettingModule } from './rubric_report_month_settings/rubric-report-month-setting.module';
+import { RubricEvaluationFinalScoreModule } from './rubric_evaluation_final_scores/rubric-evaluation-final-score.module';
 
 @Module({
   imports: [
@@ -165,6 +166,7 @@ import { RubricReportMonthSettingModule } from './rubric_report_month_settings/r
     GalleryModule,
     RubricSettingsModule,
     RubricReportMonthSettingModule,
+    RubricEvaluationFinalScoreModule,
     TaskSubmissionModule,
     TaskNoteModule,
     ChatReadModule,

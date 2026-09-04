@@ -270,6 +270,24 @@ export class CreateStudentDto {
   physical_disability?: StudentPhysicaldisabilityDto[];
 
   @IsOptional()
+  @IsBoolean()
+  health_review_required?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  health_review_reasons?: string[];
+
+  @IsOptional()
+  @IsBoolean()
+  healthReviewRequired?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  healthReviewReasons?: string[];
+
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => StudentprotectiveInfoDto)

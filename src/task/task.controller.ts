@@ -24,17 +24,19 @@ import { randomUUID } from 'crypto';
 import type { Request } from 'express';
 
 // With multipart requests class-transformer can instantiate a nested DTO
-// before its JSON field is parsed, leaving `settings` as `{}`. Keep the raw
-// field available and restore the parsed object before it reaches the service.
-function restoreMultipartSettings<T extends { settings?: unknown }>(data: T, rawBody: any): T {
-  const raw = rawBody?.settings;
-  if (typeof raw !== 'string') return data;
-  try {
-    const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === 'object') data.settings = parsed;
-  } catch {
-    // Validation/service will handle malformed input as before.
-  }
+// before its JSON field is parsed, leaving JSON fields as `{}`. Keep the raw
+// fields available and restore parsed objects before they reach the service.
+function restoreMultipartJsonFields<T extends { settings?: unknown; reminders?: unknown }>(data: T, rawBody: any): T {
+  (['settings', 'reminders'] as const).forEach((field) => {
+    const raw = rawBody?.[field];
+    if (typeof raw !== 'string') return;
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') data[field] = parsed;
+    } catch {
+      // Validation/service will handle malformed input as before.
+    }
+  });
   return data;
 }
 
@@ -77,7 +79,7 @@ export class TaskController {
     @UploadedFiles() files: Express.Multer.File[],
     @Req() request: Request,
   ) {
-    return this.taskService.create(restoreMultipartSettings(data, request.body), files);
+    return this.taskService.create(restoreMultipartJsonFields(data, request.body), files);
   }
 
   @Get()
@@ -145,6 +147,6 @@ export class TaskController {
     @UploadedFiles() files: Express.Multer.File[],
     @Req() request: Request,
   ): Promise<Task> {
-    return this.taskService.update(id, restoreMultipartSettings(data, request.body), files);
+    return this.taskService.update(id, restoreMultipartJsonFields(data, request.body), files);
   }
 }

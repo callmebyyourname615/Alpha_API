@@ -4,16 +4,21 @@ import { Repository } from 'typeorm';
 import { Notification } from './notification.entity';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { UpdateNotificationDto } from './dto/update-notification.dto';
+import { TaskAccessService } from '../task-access/task-access.service';
 
 @Injectable()
 export class NotificationsService {
   constructor(
     @InjectRepository(Notification)
     private repo: Repository<Notification>,
+    private readonly taskAccess: TaskAccessService,
   ) {}
 
   // ================= CREATE =================
   async create(dto: CreateNotificationDto) {
+    if (dto.module_type === 'TASK') {
+      await this.taskAccess.assertAdminCanMutateTask(dto.module_id, dto.admin_id);
+    }
     const data = this.repo.create(dto);
     return await this.repo.save(data);
   }
@@ -41,6 +46,9 @@ export class NotificationsService {
   // ================= UPDATE =================
   async update(id: string, dto: UpdateNotificationDto) {
     const data = await this.findOne(id);
+    if ((dto as any).module_type === 'TASK' || data.module_type === 'TASK') {
+      await this.taskAccess.assertAdminCanMutateTask((dto as any).module_id || data.module_id, (dto as any).admin_id || data.admin_id);
+    }
     Object.assign(data, dto);
     return await this.repo.save(data);
   }
@@ -48,6 +56,9 @@ export class NotificationsService {
   // ================= DELETE (soft delete) =================
   async remove(id: string) {
     const data = await this.findOne(id);
+    if (data.module_type === 'TASK') {
+      await this.taskAccess.assertAdminCanMutateTask(data.module_id, data.admin_id);
+    }
     data.is_deleted = true;
     return await this.repo.save(data);
   }

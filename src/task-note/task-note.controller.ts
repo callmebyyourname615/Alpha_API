@@ -30,12 +30,12 @@ export class TaskNoteController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateTaskNoteDto) {
-    return this.service.update(id, dto);
+  update(@Param('id') id: string, @Body() dto: UpdateTaskNoteDto, @Query('admin_id') adminId?: string) {
+    return this.service.update(id, dto, adminId);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.service.delete(id);
+  remove(@Param('id') id: string, @Query('admin_id') adminId?: string) {
+    return this.service.delete(id, adminId);
   }
 }

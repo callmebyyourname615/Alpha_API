@@ -11,6 +11,7 @@ import {
   IsArray,
   ArrayUnique,
   IsIn,
+  Matches,
   ValidateNested,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
@@ -86,11 +87,63 @@ export type TaskVisibility = (typeof TaskVisibilities)[number];
 export const PracticeFrequencyUnits = ['week', 'month'] as const;
 export type PracticeFrequencyUnit = (typeof PracticeFrequencyUnits)[number];
 
+export class DayBeforeReminderDto {
+  @IsInt()
+  @Min(-7)
+  @Max(-1)
+  offset_days: number;
+
+  @IsDateString()
+  date: string;
+
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
+  time: string;
+
+  @IsDateString()
+  datetime: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(52)
+  round?: number;
+
+  @IsOptional()
+  @IsDateString()
+  due_date?: string;
+}
+
+export class DueDayReminderDto {
+  @IsInt()
+  @Min(1)
+  @Max(52)
+  round: number;
+
+  @IsDateString()
+  due_date: string;
+
+  @IsDateString()
+  date: string;
+
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
+  time: string;
+
+  @IsDateString()
+  datetime: string;
+}
+
 export class TaskRemindersDto {
   @IsOptional() @Transform(parseBool) @IsBoolean() day_before?: boolean;
   @IsOptional() @Transform(parseInt10) @IsInt() @Min(1) @Max(7) day_before_days?: number;
+  @IsOptional() @IsString() @Matches(/^([01]\d|2[0-3]):[0-5]\d$/) day_before_time?: string;
+  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => DayBeforeReminderDto) day_before_schedule?: DayBeforeReminderDto[];
   @IsOptional() @Transform(parseBool) @IsBoolean() due_day?: boolean;
+  @IsOptional() @IsString() @Matches(/^([01]\d|2[0-3]):[0-5]\d$/) due_day_time?: string;
+  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => DueDayReminderDto) due_day_schedule?: DueDayReminderDto[];
   @IsOptional() @Transform(parseBool) @IsBoolean() overdue?: boolean;
+  @IsOptional() @IsString() @Matches(/^([01]\d|2[0-3]):[0-5]\d$/) overdue_time?: string;
 }
 
 export class SubmissionScheduleDto {
@@ -215,6 +268,7 @@ export class CreateTaskDto {
 
   @IsOptional()
   @Transform(parseJson)
+  @ValidateNested()
   @Type(() => TaskRemindersDto)
   reminders?: TaskRemindersDto;
 

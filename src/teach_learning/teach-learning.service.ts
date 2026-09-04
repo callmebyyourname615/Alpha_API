@@ -55,9 +55,51 @@ export class TeachLearningService {
 
   async findAll(): Promise<TeachLearning[]> {
     return await this.teachLearningRepo.find({
-      relations: ['admin', 'subject'],
+      relations: ['admin', 'admin.branch', 'subject'],
       order: { createdAt: 'DESC' },
     });
+  }
+
+  async findLatestBySubjects(
+    subjectIds: string[],
+    branchId?: string,
+  ): Promise<Record<string, TeachLearning>> {
+    const normalizedSubjectIds = [
+      ...new Set(subjectIds.map((value) => String(value || '').trim()).filter(Boolean)),
+    ];
+    const normalizedBranchId = String(branchId || '').trim();
+
+    if (!normalizedSubjectIds.length) {
+      return {};
+    }
+
+    const query = this.teachLearningRepo
+      .createQueryBuilder('teachLearning')
+      .leftJoinAndSelect('teachLearning.admin', 'admin')
+      .leftJoinAndSelect('admin.branch', 'branch')
+      .leftJoinAndSelect('teachLearning.subject', 'subject')
+      .where('teachLearning.subject_id IN (:...subjectIds)', {
+        subjectIds: normalizedSubjectIds,
+      });
+
+    if (normalizedBranchId) {
+      query.andWhere('branch.id = :branchId', { branchId: normalizedBranchId });
+    }
+
+    const records = await query
+      .orderBy('teachLearning.updated_at', 'DESC')
+      .addOrderBy('teachLearning.end_date', 'DESC')
+      .addOrderBy('teachLearning.start_date', 'DESC')
+      .addOrderBy('teachLearning.created_at', 'DESC')
+      .getMany();
+
+    return records.reduce<Record<string, TeachLearning>>((latestBySubject, record) => {
+      if (!latestBySubject[record.subjectId]) {
+        latestBySubject[record.subjectId] = record;
+      }
+
+      return latestBySubject;
+    }, {});
   }
 
   async findOne(id: string): Promise<TeachLearning> {

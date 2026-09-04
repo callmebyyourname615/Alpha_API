@@ -6,9 +6,10 @@ import { TaskSubmissionSlot } from './task-submission-slot.entity';
 import { Task } from '../task/task.entity';
 import { TaskSubmissionService } from './task-submission.service';
 import { TaskSubmissionController } from './task-submission.controller';
+import { TaskAccessModule } from '../task-access/task-access.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([TaskSubmission, TaskSubmissionAttempt, TaskSubmissionSlot, Task])],
+  imports: [TypeOrmModule.forFeature([TaskSubmission, TaskSubmissionAttempt, TaskSubmissionSlot, Task]), TaskAccessModule],
   providers: [TaskSubmissionService],
   controllers: [TaskSubmissionController],
   exports: [TaskSubmissionService],

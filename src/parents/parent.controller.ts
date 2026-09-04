@@ -5,6 +5,7 @@ import {
   Put,
   Delete,
   Param,
+  Query,
   Body,
   UploadedFiles,
   UseInterceptors,
@@ -28,27 +29,16 @@ const fileInterceptorOptions = {
   }),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    const allowedImages = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-    const allowedDocs = ['.pdf'];
+    const allowedExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.pdf'];
     const ext = extname(file.originalname).toLowerCase();
 
-    // family_book only allows PDF, others only images
-    if (file.fieldname === 'family_book') {
-      if (!allowedDocs.includes(ext)) {
-        return cb(
-          new BadRequestException(`family_book must be a PDF file`),
-          false,
-        );
-      }
-    } else {
-      if (!allowedImages.includes(ext)) {
-        return cb(
-          new BadRequestException(
-            `File type '${ext}' not allowed. Allowed: ${allowedImages.join(', ')}`,
-          ),
-          false,
-        );
-      }
+    if (!allowedExts.includes(ext)) {
+      return cb(
+        new BadRequestException(
+          `File type '${ext}' not allowed. Allowed: ${allowedExts.join(', ')}`,
+        ),
+        false,
+      );
     }
     cb(null, true);
   },
@@ -90,8 +80,11 @@ export class ParentController {
   }
 
   @Get()
-  findAll() {
-    return this.service.findAll();
+  findAll(
+    @Query('branch_id') branchId?: string,
+    @Query('branchId') branchIdAlias?: string,
+  ) {
+    return this.service.findAll(branchId ?? branchIdAlias);
   }
 
   @Get(':id')

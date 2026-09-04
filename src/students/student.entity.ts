@@ -298,6 +298,17 @@ export class Student {
   @Column({ type: 'jsonb', nullable: true, default: () => "'[]'" })
   physical_disability: StudentPhysicaldisability[];
 
+  @Column({ name: 'health_review_required', default: false })
+  healthReviewRequired: boolean;
+
+  @Column({
+    name: 'health_review_reasons',
+    type: 'jsonb',
+    nullable: true,
+    default: () => "'[]'",
+  })
+  healthReviewReasons: string[];
+
   @Column({ type: 'jsonb', nullable: true, default: () => "'[]'" })
   protective_info: StudentprotectiveInfo[];
 
