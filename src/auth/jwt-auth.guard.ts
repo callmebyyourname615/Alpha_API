@@ -38,6 +38,23 @@ export class JwtAuthGuard implements CanActivate {
         secret: process.env.JWT_SECRET || 'MY_SUPER_SECRET_KEY',
       });
       request['user'] = payload;
+
+      // Sliding session: If token has less than 60 minutes remaining, automatically
+      // generate a renewed token and send it back via response header 'X-Refreshed-Token'
+      if (payload && payload.exp) {
+        const nowInSeconds = Math.floor(Date.now() / 1000);
+        const remainingSeconds = payload.exp - nowInSeconds;
+
+        if (remainingSeconds > 0 && remainingSeconds < 60 * 60) {
+          const { exp, iat, nbf, ...cleanPayload } = payload;
+          const refreshedToken = await this.jwtService.signAsync(cleanPayload);
+          const response = context.switchToHttp().getResponse();
+          if (response && typeof response.setHeader === 'function') {
+            response.setHeader('X-Refreshed-Token', refreshedToken);
+            response.setHeader('Access-Control-Expose-Headers', 'X-Refreshed-Token');
+          }
+        }
+      }
     } catch {
       throw new UnauthorizedException('Invalid or expired authentication token. Please log in again.');
     }
