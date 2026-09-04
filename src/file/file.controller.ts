@@ -51,11 +51,16 @@ export class FileController {
       const safeModule = module.replace(/[^a-zA-Z0-9_-]/g, '');
       const safeFilename = filename.replace(/[^a-zA-Z0-9_.\-]/g, '');
 
-      // Construct the full file path
-      const fullPath = join(process.cwd(), 'uploads', safeModule, safeFilename);
+      // Construct the full file path and verify it remains within uploads
+      const uploadsDir = join(process.cwd(), 'uploads');
+      const fullPath = join(uploadsDir, safeModule, safeFilename);
 
-      // Check if file exists
-      if (!fs.existsSync(fullPath)) {
+      if (!fullPath.startsWith(uploadsDir)) {
+        throw new BadRequestException('Invalid file path');
+      }
+
+      // Check if file exists and is a regular file
+      if (!fs.existsSync(fullPath) || !fs.statSync(fullPath).isFile()) {
         throw new NotFoundException('File not found');
       }
 
