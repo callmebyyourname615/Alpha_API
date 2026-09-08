@@ -8,6 +8,7 @@ import {
   IsUUID,
   MaxLength,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class CreateParentDto {
   @IsOptional()
@@ -35,29 +36,45 @@ export class CreateParentDto {
   @IsDateString()
   join_date?: Date;
 
+  @IsOptional()
   @IsString()
   @MaxLength(100)
-  first_name_lao: string;
+  first_name?: string;
 
+  @IsOptional()
   @IsString()
   @MaxLength(100)
-  first_name_eng: string;
+  last_name?: string;
 
+  @IsOptional()
   @IsString()
   @MaxLength(100)
-  midle_name_lao: string;
+  first_name_lao?: string;
 
+  @IsOptional()
   @IsString()
   @MaxLength(100)
-  midle_name_eng: string;
+  first_name_eng?: string;
 
+  @IsOptional()
   @IsString()
   @MaxLength(100)
-  last_name_lao: string;
+  midle_name_lao?: string;
 
+  @IsOptional()
   @IsString()
   @MaxLength(100)
-  last_name_eng: string;
+  midle_name_eng?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  last_name_lao?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  last_name_eng?: string;
 
   @IsOptional()
   @IsString()
@@ -73,9 +90,10 @@ export class CreateParentDto {
   @IsDateString()
   dob?: Date;
 
+  @IsOptional()
   @IsString()
   @MaxLength(20)
-  gender: string;
+  gender?: string;
 
   @IsOptional()
   @IsString()
@@ -134,8 +152,22 @@ export class CreateParentDto {
   company_name?: string;
 
   @IsOptional()
+  @Transform(({ value }) => {
+    if (value === true || value === 'true' || value === 1 || value === '1') return true;
+    if (value === false || value === 'false' || value === 0 || value === '0') return false;
+    return undefined;
+  })
   @IsBoolean()
   is_active?: boolean;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === true || value === 'true' || value === 1 || value === '1') return true;
+    if (value === false || value === 'false' || value === 0 || value === '0') return false;
+    return undefined;
+  })
+  @IsBoolean()
+  isActive?: boolean;
 
   @IsOptional()
   @IsIn(['pending', 'approved', 'rejected'])
