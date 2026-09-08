@@ -32,12 +32,12 @@ export class ParentService {
       username: dto.username,
       passwordHash,
 
-      firstName_lao: dto.first_name_lao,
-      firstName_eng: dto.first_name_eng,
-      midleName_lao: dto.midle_name_lao,
-      midleName_eng: dto.midle_name_eng,
-      lastName_lao: dto.last_name_lao,
-      lastName_eng: dto.last_name_eng,
+      firstName_lao: dto.first_name_lao || dto.first_name || '',
+      firstName_eng: dto.first_name_eng || dto.first_name || '',
+      midleName_lao: dto.midle_name_lao || '',
+      midleName_eng: dto.midle_name_eng || '',
+      lastName_lao: dto.last_name_lao || dto.last_name || '',
+      lastName_eng: dto.last_name_eng || dto.last_name || '',
       nickname: dto.nickname,
 
       dateOfBirth: dto.dob,
@@ -81,8 +81,13 @@ export class ParentService {
 
       profilePictureUrl: dto.profile_pic,
 
-      isActive: false,
-      approvalStatus: 'pending',
+      isActive:
+        dto.is_active !== undefined
+          ? dto.is_active
+          : dto.isActive !== undefined
+            ? dto.isActive
+            : true,
+      approvalStatus: dto.approval_status ?? 'approved',
       rejectedAt: null,
     });
 
