@@ -209,7 +209,7 @@ export class StudentsController {
   @UseInterceptors(studentFilesInterceptor)
   async createStudent(
     @UploadedFiles() files: StudentUploadedFiles,
-    @Body() body: CreateStudentDto,
+    @Body() body: any,
   ) {
     const [profileFile, passportFile, imageUrlFile] = await Promise.all([
       ImageToWebpPipe.convertOne(files?.profile_image),

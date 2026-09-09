@@ -8,28 +8,32 @@ import {
   IsEmail,
   IsBoolean,
 } from 'class-validator';
-import { Transform, Type } from 'class-transformer';
+import { Transform, Type, plainToInstance } from 'class-transformer';
 
 // =========================
 // TRANSFORM HELPERS
 // =========================
 
-export const TransformJsonArray = () =>
+export const TransformJsonArray = (cls?: new (...args: any[]) => any) =>
   Transform(({ value }) => {
     if (value === undefined || value === null || value === '') return undefined;
+    let list = value;
     if (typeof value === 'string') {
       const trimmed = value.trim();
       if (!trimmed || trimmed === 'null' || trimmed === 'undefined') return undefined;
       if (trimmed === '[]') return [];
       try {
         const parsed = JSON.parse(trimmed);
-        return Array.isArray(parsed) ? parsed : [parsed];
+        list = Array.isArray(parsed) ? parsed : [parsed];
       } catch {
         return [];
       }
     }
-    if (Array.isArray(value)) return value;
-    return [value];
+    if (!Array.isArray(list)) list = [list];
+    if (cls) {
+      return list.map((item: any) => plainToInstance(cls, item));
+    }
+    return list;
   });
 
 export const TransformBoolean = () =>
@@ -275,21 +279,21 @@ export class CreateStudentDto {
 
   // ─── JSONB array fields ──────────────────────────────────────────────
   @IsOptional()
-  @TransformJsonArray()
+  @TransformJsonArray(LiveWithDto)
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => LiveWithDto)
   live_with?: LiveWithDto[];
 
   @IsOptional()
-  @TransformJsonArray()
+  @TransformJsonArray(EmergencyContactDto)
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => EmergencyContactDto)
   emergency_contacts?: EmergencyContactDto[];
 
   @IsOptional()
-  @TransformJsonArray()
+  @TransformJsonArray(BosInfoDto)
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => BosInfoDto)
@@ -300,42 +304,42 @@ export class CreateStudentDto {
   Siblings_number?: string;
 
   @IsOptional()
-  @TransformJsonArray()
+  @TransformJsonArray(SiblingsInfoDto)
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => SiblingsInfoDto)
   Siblings_info?: SiblingsInfoDto[];
 
   @IsOptional()
-  @TransformJsonArray()
+  @TransformJsonArray(SchoolHistoryDto)
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => SchoolHistoryDto)
   his_school_nursery?: SchoolHistoryDto[];
 
   @IsOptional()
-  @TransformJsonArray()
+  @TransformJsonArray(SchoolHistoryDto)
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => SchoolHistoryDto)
   his_school_kindergarten?: SchoolHistoryDto[];
 
   @IsOptional()
-  @TransformJsonArray()
+  @TransformJsonArray(SchoolHistoryDto)
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => SchoolHistoryDto)
   his_school_primary?: SchoolHistoryDto[];
 
   @IsOptional()
-  @TransformJsonArray()
+  @TransformJsonArray(StudentHealthInfoDto)
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => StudentHealthInfoDto)
   health_history?: StudentHealthInfoDto[];
 
   @IsOptional()
-  @TransformJsonArray()
+  @TransformJsonArray(StudentPhysicaldisabilityDto)
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => StudentPhysicaldisabilityDto)
@@ -364,7 +368,7 @@ export class CreateStudentDto {
   healthReviewReasons?: string[];
 
   @IsOptional()
-  @TransformJsonArray()
+  @TransformJsonArray(StudentprotectiveInfoDto)
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => StudentprotectiveInfoDto)

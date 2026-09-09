@@ -79,7 +79,7 @@ async function bootstrap() {
   app.setGlobalPrefix(prefix);
 
   // Serve static uploads at /uploads
-  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+  app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/uploads/',
   });
 
