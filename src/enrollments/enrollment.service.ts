@@ -37,8 +37,8 @@ export class EnrollmentService {
   // CREATE
   // =========================
   async create(dto: CreateEnrollmentDto): Promise<Enrollment> {
-    const student = await this.studentRepo.findOne({ where: { id: dto.studentId } });
-    if (!student) throw new BadRequestException('studentId not found');
+    const student = await this.studentRepo.findOne({ where: { id: dto.studentId, is_deleted: false } });
+    if (!student) throw new BadRequestException('studentId not found or student is deleted');
 
     const academicYear = await this.academicYearRepo.findOne({ where: { id: dto.academicYearId } });
     if (!academicYear) throw new BadRequestException('academicYearId not found');
@@ -84,10 +84,11 @@ export class EnrollmentService {
   ): Promise<Enrollment[]> {
     const query = this.enrollmentRepo
       .createQueryBuilder('enrollment')
-      .leftJoinAndSelect('enrollment.student',      'student')
+      .innerJoinAndSelect('enrollment.student',      'student')
       .leftJoinAndSelect('enrollment.academicYear', 'academicYear')
       .leftJoinAndSelect('enrollment.class',        'class')
-      .leftJoinAndSelect('enrollment.branch',       'branch');
+      .leftJoinAndSelect('enrollment.branch',       'branch')
+      .where('student.is_deleted = :isDeleted', { isDeleted: false });
 
     if (branchId)       query.andWhere('enrollment.branchId = :branchId',             { branchId });
     if (academicYearId) query.andWhere('enrollment.academicYearId = :academicYearId', { academicYearId });
@@ -101,10 +102,16 @@ export class EnrollmentService {
   // FIND ONE
   // =========================
   async findOne(id: string): Promise<Enrollment> {
-    const enrollment = await this.enrollmentRepo.findOne({
-      where: { id },
-      relations: ['student', 'academicYear', 'class', 'branch'],
-    });
+    const enrollment = await this.enrollmentRepo
+      .createQueryBuilder('enrollment')
+      .innerJoinAndSelect('enrollment.student',      'student')
+      .leftJoinAndSelect('enrollment.academicYear', 'academicYear')
+      .leftJoinAndSelect('enrollment.class',        'class')
+      .leftJoinAndSelect('enrollment.branch',       'branch')
+      .where('enrollment.id = :id', { id })
+      .andWhere('student.is_deleted = :isDeleted', { isDeleted: false })
+      .getOne();
+
     if (!enrollment) throw new NotFoundException(`Enrollment with ID ${id} not found`);
     return enrollment;
   }
@@ -113,7 +120,7 @@ export class EnrollmentService {
   // FIND BY STUDENT (history)
   // =========================
   async findByStudent(studentId: string): Promise<Enrollment[]> {
-    const student = await this.studentRepo.findOne({ where: { id: studentId } });
+    const student = await this.studentRepo.findOne({ where: { id: studentId, is_deleted: false } });
     if (!student) throw new NotFoundException('studentId not found');
 
     return this.enrollmentRepo.find({
@@ -127,6 +134,9 @@ export class EnrollmentService {
   // FIND ACTIVE ENROLLMENT
   // =========================
   async findActiveByStudent(studentId: string): Promise<Enrollment | null> {
+    const student = await this.studentRepo.findOne({ where: { id: studentId, is_deleted: false } });
+    if (!student) return null;
+
     return this.enrollmentRepo.findOne({
       where: { studentId, is_active: true },
       relations: ['academicYear', 'class', 'branch'],
@@ -180,14 +190,17 @@ export class EnrollmentService {
     const newClass = await this.classRepo.findOne({ where: { id: dto.newClassId } });
     if (!newClass) throw new BadRequestException('newClassId not found');
 
-    const currentEnrollments = await this.enrollmentRepo.find({
-      where: {
-        classId:        dto.currentClassId,
-        academicYearId: dto.currentAcademicYearId,
-        is_active:      true,
-      },
-      relations: ['student', 'branch', 'academicYear', 'class'],
-    });
+    const currentEnrollments = await this.enrollmentRepo
+      .createQueryBuilder('enrollment')
+      .innerJoinAndSelect('enrollment.student',      'student')
+      .leftJoinAndSelect('enrollment.branch',       'branch')
+      .leftJoinAndSelect('enrollment.academicYear', 'academicYear')
+      .leftJoinAndSelect('enrollment.class',        'class')
+      .where('enrollment.classId = :classId', { classId: dto.currentClassId })
+      .andWhere('enrollment.academicYearId = :academicYearId', { academicYearId: dto.currentAcademicYearId })
+      .andWhere('enrollment.is_active = :isActive', { isActive: true })
+      .andWhere('student.is_deleted = :isDeleted', { isDeleted: false })
+      .getMany();
 
     if (!currentEnrollments.length) {
       throw new BadRequestException(
@@ -254,13 +267,17 @@ export class EnrollmentService {
     const skipped:  { studentId: string; name: string; reason: string }[] = [];
 
     for (const item of dto.students) {
-      const current = await this.enrollmentRepo.findOne({
-        where: { studentId: item.studentId, is_active: true },
-        relations: ['student', 'branch'],
-      });
+      const current = await this.enrollmentRepo
+        .createQueryBuilder('enrollment')
+        .innerJoinAndSelect('enrollment.student', 'student')
+        .leftJoinAndSelect('enrollment.branch', 'branch')
+        .where('enrollment.studentId = :studentId', { studentId: item.studentId })
+        .andWhere('enrollment.is_active = :isActive', { isActive: true })
+        .andWhere('student.is_deleted = :isDeleted', { isDeleted: false })
+        .getOne();
 
       if (!current) {
-        skipped.push({ studentId: item.studentId, name: 'Unknown', reason: 'No active enrollment found' });
+        skipped.push({ studentId: item.studentId, name: 'Unknown', reason: 'No active enrollment found or student is deleted' });
         continue;
       }
 

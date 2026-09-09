@@ -263,7 +263,7 @@ export class StudentsService {
   // ─── Enroll Student ───────────────────────────────────────────────────
   async enrollStudent(dto: CreateEnrollmentDto): Promise<Enrollment> {
     const student = await this.studentRepo.findOne({
-      where: { id: dto.studentId },
+      where: { id: dto.studentId, is_deleted: false },
     });
 
     if (!student) throw new NotFoundException('Student not found');
@@ -542,6 +542,10 @@ export class StudentsService {
     student.is_deleted = true;
     student.is_active = false;
     await this.studentRepo.save(student);
+
+    // Remove all enrollment records for this student so no data of deleted student remains in enrollments
+    await this.enrollmentRepo.delete({ studentId: id });
+
     return { message: `Student ${id} deleted successfully` };
   }
 }
