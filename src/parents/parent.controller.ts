@@ -89,9 +89,46 @@ export class ParentController {
     return this.service.findAll(branchId ?? branchIdAlias);
   }
 
+  @Public()
+  @Get(':id/status')
+  findStatus(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.findStatus(id);
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.service.findOne(id);
+  }
+
+  @Public()
+  @Put(':id/resubmit')
+  @UseInterceptors(FileFieldsInterceptor(fileFields, fileInterceptorOptions))
+  resubmit(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateParentDto,
+    @UploadedFiles()
+    files: {
+      profile_pic?: Express.Multer.File[];
+      id_card?: Express.Multer.File[];
+      home_picture?: Express.Multer.File[];
+      family_book?: Express.Multer.File[];
+      passport_image?: Express.Multer.File[];
+    },
+  ) {
+    if (files?.profile_pic?.[0]) dto.profile_pic = files.profile_pic[0].path;
+    if (files?.id_card?.[0]) dto.id_card = files.id_card[0].path;
+    if (files?.home_picture?.[0])
+      dto.home_picture_url = files.home_picture[0].path;
+    if (files?.family_book?.[0])
+      dto.family_book_url = files.family_book[0].path;
+    if (files?.passport_image?.[0])
+      dto.passport_image_url = files.passport_image[0].path;
+
+    dto.is_active = false;
+    dto.approval_status = 'pending';
+    dto.reject_reason = '';
+
+    return this.service.update(id, dto);
   }
 
   @Put(':id')

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Parent } from './parent.entity';
@@ -8,8 +12,9 @@ import { CreateParentDto } from './dto/CreateParentDto';
 import { UpdateParentDto } from './dto/UpdateParentDto';
 import { CacheService } from '../common/cache.service';
 
-const resolveBranchId = (dto: Pick<CreateParentDto, 'branch_id' | 'branchId'>) =>
-  (dto.branch_id ?? dto.branchId ?? '').toString().trim() || null;
+const resolveBranchId = (
+  dto: Pick<CreateParentDto, 'branch_id' | 'branchId'>,
+) => (dto.branch_id ?? dto.branchId ?? '').toString().trim() || null;
 
 @Injectable()
 export class ParentService {
@@ -91,7 +96,7 @@ export class ParentService {
       rejectedAt: null,
     });
 
-    const saved = await this.parentRepository.save(parent);
+    const saved = await this.saveParent(parent);
     await this.clearParentCache(saved.id);
     return saved;
   }
@@ -107,12 +112,18 @@ export class ParentService {
       parent.branchId = resolveBranchId(dto);
     }
 
-    if (dto.first_name_lao !== undefined) parent.firstName_lao = dto.first_name_lao;
-    if (dto.first_name_eng !== undefined) parent.firstName_eng = dto.first_name_eng;
-    if (dto.midle_name_lao !== undefined) parent.midleName_lao = dto.midle_name_lao;
-    if (dto.midle_name_eng !== undefined) parent.midleName_eng = dto.midle_name_eng;
-    if (dto.last_name_lao !== undefined) parent.lastName_lao = dto.last_name_lao;
-    if (dto.last_name_eng !== undefined) parent.lastName_eng = dto.last_name_eng;
+    if (dto.first_name_lao !== undefined)
+      parent.firstName_lao = dto.first_name_lao;
+    if (dto.first_name_eng !== undefined)
+      parent.firstName_eng = dto.first_name_eng;
+    if (dto.midle_name_lao !== undefined)
+      parent.midleName_lao = dto.midle_name_lao;
+    if (dto.midle_name_eng !== undefined)
+      parent.midleName_eng = dto.midle_name_eng;
+    if (dto.last_name_lao !== undefined)
+      parent.lastName_lao = dto.last_name_lao;
+    if (dto.last_name_eng !== undefined)
+      parent.lastName_eng = dto.last_name_eng;
     if (dto.dob !== undefined) parent.dateOfBirth = dto.dob;
     if (dto.gender !== undefined) parent.gender = dto.gender;
     if (dto.nationality !== undefined) parent.nationality = dto.nationality;
@@ -147,9 +158,10 @@ export class ParentService {
       parent.relation_type = dto.relation_type;
 
     if (dto.is_active !== undefined) {
-      const activeBool = typeof dto.is_active === 'boolean'
-        ? dto.is_active
-        : String(dto.is_active).trim().toLowerCase() === 'true';
+      const activeBool =
+        typeof dto.is_active === 'boolean'
+          ? dto.is_active
+          : String(dto.is_active).trim().toLowerCase() === 'true';
       parent.isActive = activeBool;
       if (dto.approval_status === undefined) {
         parent.approvalStatus = activeBool ? 'approved' : 'pending';
@@ -160,7 +172,8 @@ export class ParentService {
     if (dto.approval_status !== undefined) {
       parent.approvalStatus = dto.approval_status;
       parent.isActive = dto.approval_status === 'approved';
-      parent.rejectedAt = dto.approval_status === 'rejected' ? new Date() : null;
+      parent.rejectedAt =
+        dto.approval_status === 'rejected' ? new Date() : null;
       if (dto.approval_status === 'rejected') {
         parent.rejectReason = (dto.reject_reason ?? '').trim() || null;
       } else {
@@ -200,12 +213,13 @@ export class ParentService {
       parent.rejectReason = null;
     }
 
-    const saved = await this.parentRepository.save(parent);
+    const saved = await this.saveParent(parent);
 
     if (dto.is_active !== undefined) {
-      const activeBool = typeof dto.is_active === 'boolean'
-        ? dto.is_active
-        : String(dto.is_active).trim().toLowerCase() === 'true';
+      const activeBool =
+        typeof dto.is_active === 'boolean'
+          ? dto.is_active
+          : String(dto.is_active).trim().toLowerCase() === 'true';
       await this.studentRepository
         .createQueryBuilder()
         .update(Student)
@@ -240,6 +254,21 @@ export class ParentService {
         return parents;
       },
     );
+  }
+
+  async findStatus(id: string) {
+    const parent = await this.findOneUncached(id);
+    return {
+      id: parent.id,
+      isActive: parent.isActive,
+      is_active: parent.isActive,
+      approvalStatus: parent.approvalStatus,
+      approval_status: parent.approvalStatus,
+      rejectReason: parent.rejectReason,
+      reject_reason: parent.rejectReason,
+      rejectedAt: parent.rejectedAt,
+      rejected_at: parent.rejectedAt,
+    };
   }
 
   async findOne(id: string): Promise<Parent> {
@@ -301,5 +330,25 @@ export class ParentService {
 
   private async clearStudentCache(): Promise<void> {
     await this.cache.delPattern('students:*');
+  }
+
+  private async saveParent(parent: Parent): Promise<Parent> {
+    try {
+      return await this.parentRepository.save(parent);
+    } catch (error) {
+      if (this.isUniqueConstraintError(error)) {
+        throw new ConflictException(
+          'This email or username is already registered. Please sign in instead.',
+        );
+      }
+      throw error;
+    }
+  }
+
+  private isUniqueConstraintError(error: unknown): boolean {
+    const driverError = (error as { driverError?: { code?: string } })
+      .driverError;
+    const code = driverError?.code ?? (error as { code?: string }).code;
+    return code === '23505';
   }
 }
