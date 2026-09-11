@@ -36,6 +36,15 @@ export class ParentService {
       passwordHash = await bcrypt.hash(dto.password, 10);
     }
 
+    const approvalStatus = dto.approval_status ?? 'pending';
+    const explicitActive = dto.is_active ?? dto.isActive;
+    const isActive =
+      explicitActive !== undefined
+        ? typeof explicitActive === 'boolean'
+          ? explicitActive
+          : String(explicitActive).trim().toLowerCase() === 'true'
+        : approvalStatus === 'approved';
+
     const parent = this.parentRepository.create({
       branchId: resolveBranchId(dto),
       email: dto.email,
@@ -91,13 +100,8 @@ export class ParentService {
 
       profilePictureUrl: dto.profile_pic,
 
-      isActive:
-        dto.is_active !== undefined
-          ? dto.is_active
-          : dto.isActive !== undefined
-            ? dto.isActive
-            : true,
-      approvalStatus: dto.approval_status ?? 'approved',
+      isActive,
+      approvalStatus,
       rejectedAt: null,
     });
 
