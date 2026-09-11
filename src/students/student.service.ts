@@ -124,10 +124,15 @@ export class StudentsService {
     const disabilityReasons = this.normalizeHealthReviewReasons(
       (dto as any).physical_disability ?? fallbackStudent?.physical_disability,
     );
-    const reasons = explicitReasons.length ? explicitReasons : disabilityReasons;
+    const reasons = explicitReasons.length
+      ? explicitReasons
+      : disabilityReasons;
 
     if (explicitRequired !== undefined) {
-      return { required: explicitRequired, reasons: explicitRequired ? reasons : [] };
+      return {
+        required: explicitRequired,
+        reasons: explicitRequired ? reasons : [],
+      };
     }
 
     if (
@@ -211,8 +216,12 @@ export class StudentsService {
       branch: dto.branchId ? ({ id: dto.branchId } as Branch) : null,
       province: dto.provinceId ? ({ id: dto.provinceId } as Province) : null,
       district: dto.districtId ? ({ id: dto.districtId } as District) : null,
-      province_db: dto.provinceDbId ? ({ id: dto.provinceDbId } as Province) : null,
-      district_db: dto.districtDbId ? ({ id: dto.districtDbId } as District) : null,
+      province_db: dto.provinceDbId
+        ? ({ id: dto.provinceDbId } as Province)
+        : null,
+      district_db: dto.districtDbId
+        ? ({ id: dto.districtDbId } as District)
+        : null,
 
       student_id: dto.student_id,
       profile_image_path: dto.profile_image_path,
@@ -295,7 +304,7 @@ export class StudentsService {
   // ─── Enroll Student ───────────────────────────────────────────────────
   async enrollStudent(dto: CreateEnrollmentDto): Promise<Enrollment> {
     const student = await this.studentRepo.findOne({
-      where: { id: dto.studentId },
+      where: { id: dto.studentId, is_deleted: false },
     });
 
     if (!student) throw new NotFoundException('Student not found');
@@ -375,9 +384,7 @@ export class StudentsService {
     const healthReview = this.buildHealthReviewState(dto, student);
 
     Object.assign(student, {
-      branch: dto.branchId
-        ? ({ id: dto.branchId } as Branch)
-        : student.branch,
+      branch: dto.branchId ? ({ id: dto.branchId } as Branch) : student.branch,
       province: dto.provinceId
         ? ({ id: dto.provinceId } as Province)
         : student.province,
@@ -567,7 +574,9 @@ export class StudentsService {
             last_name_eng: 'ASC',
           },
         });
-        await this.attachListRelations(students, { includeEnrollmentClass: true });
+        await this.attachListRelations(students, {
+          includeEnrollmentClass: true,
+        });
         return students;
       },
     );
@@ -617,6 +626,9 @@ export class StudentsService {
     student.is_deleted = true;
     student.is_active = false;
     await this.studentRepo.save(student);
+
+    // Remove all enrollment records for this student so no data of deleted student remains in enrollments
+    await this.enrollmentRepo.delete({ studentId: id });
     await this.clearStudentCache(id);
     return { message: `Student ${id} deleted successfully` };
   }

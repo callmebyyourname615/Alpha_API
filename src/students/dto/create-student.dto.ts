@@ -8,17 +8,79 @@ import {
   IsEmail,
   IsBoolean,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type, plainToInstance } from 'class-transformer';
+
+// =========================
+// TRANSFORM HELPERS
+// =========================
+
+export const TransformJsonArray = (cls?: new (...args: any[]) => any) =>
+  Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') return undefined;
+    let list = value;
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (!trimmed || trimmed === 'null' || trimmed === 'undefined') return undefined;
+      if (trimmed === '[]') return [];
+      try {
+        const parsed = JSON.parse(trimmed);
+        list = Array.isArray(parsed) ? parsed : [parsed];
+      } catch {
+        return [];
+      }
+    }
+    if (!Array.isArray(list)) list = [list];
+    if (cls) {
+      return list.map((item: any) => plainToInstance(cls, item));
+    }
+    return list;
+  });
+
+export const TransformBoolean = () =>
+  Transform(({ value }) => {
+    if (value === true || value === 'true' || value === 1 || value === '1') return true;
+    if (value === false || value === 'false' || value === 0 || value === '0') return false;
+    if (value === '' || value === undefined || value === null) return undefined;
+    return value;
+  });
+
+export const TransformParentIds = () =>
+  Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') return undefined;
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (!trimmed || trimmed === '[]' || trimmed === 'null' || trimmed === 'undefined') return [];
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((id) => typeof id === 'string' && id.trim().length > 0);
+        }
+        if (typeof parsed === 'string' && parsed.trim().length > 0) {
+          return [parsed.trim()];
+        }
+      } catch {
+        if (trimmed.includes(',')) {
+          return trimmed.split(',').map((s) => s.trim()).filter(Boolean);
+        }
+        return [trimmed];
+      }
+    }
+    if (Array.isArray(value)) {
+      return value.filter((id) => typeof id === 'string' && id.trim().length > 0);
+    }
+    return [];
+  });
 
 // =========================
 // NESTED DTOs
 // =========================
 
 export class LiveWithDto {
-  @IsString()                fullname:            string;
-  @IsString()                nickname:            string;
-  @IsString()                dob:                 string;
-  @IsString()                id_card:             string;
+  @IsOptional() @IsString()  fullname?:           string;
+  @IsOptional() @IsString()  nickname?:           string;
+  @IsOptional() @IsString()  dob?:                string;
+  @IsOptional() @IsString()  id_card?:            string;
+  @IsOptional() @IsString()  relation_type?:      string;
   @IsOptional() @IsString()  id_card_image_url?:  string;
   @IsOptional() @IsString()  passport_no?:        string;
   @IsOptional() @IsString()  passport_image_url?: string;
@@ -43,7 +105,7 @@ export class LiveWithDto {
 }
 
 export class EmergencyContactDto {
-  @IsString()                fullname:       string;
+  @IsOptional() @IsString()  fullname?:       string;
   @IsOptional() @IsString()  relationship_to_student?: string;
   @IsOptional() @IsString()  job?:           string;
   @IsOptional() @IsString()  working_place?: string;
@@ -55,7 +117,7 @@ export class EmergencyContactDto {
 }
 
 export class BosInfoDto {
-  @IsString()                fullname:         string;
+  @IsOptional() @IsString()  fullname?:        string;
   @IsOptional() @IsString()  nickname?:        string;
   @IsOptional() @IsString()  dob?:             string;
   @IsOptional() @IsString()  current_school?:  string;
@@ -66,7 +128,7 @@ export class BosInfoDto {
 }
 
 export class SiblingsInfoDto {
-  @IsString()                fullname:         string;
+  @IsOptional() @IsString()  fullname?:        string;
   @IsOptional() @IsString()  nickname?:        string;
   @IsOptional() @IsString()  dob?:             string;
   @IsOptional() @IsString()  current_school?:  string;
@@ -79,9 +141,9 @@ export class SiblingsInfoDto {
 }
 
 export class SchoolHistoryDto {
-  @IsString() academic_year: string;
-  @IsString() year_level:    string;
-  @IsString() school:        string;
+  @IsOptional() @IsString() academic_year?: string;
+  @IsOptional() @IsString() year_level?:    string;
+  @IsOptional() @IsString() school?:        string;
 }
 
 // ─── Health / disability / protective nested DTOs ──────────────────────
@@ -89,8 +151,8 @@ export class SchoolHistoryDto {
 // from student.entity.ts
 
 export class StudentHealthInfoDto {
-  @IsString()                birth_type:           string;
-  @IsString()                blood_type:           string;
+  @IsOptional() @IsString()  birth_type?:          string;
+  @IsOptional() @IsString()  blood_type?:          string;
   @IsOptional() @IsArray() @IsString({ each: true }) congenital_diseases?: string[];
   @IsOptional() @IsArray() @IsString({ each: true }) allergies?:           string[];
   @IsOptional() @IsArray() @IsString({ each: true }) teeth_condition?:     string[];
@@ -118,6 +180,11 @@ export class StudentprotectiveInfoDto {
 
 export class CreateStudentDto {
   // ─── Relations ───────────────────────────────────────────────────────
+  @IsOptional()
+  @IsUUID()
+  branch_id?: string;
+
+  @Transform(({ value, obj }) => value || obj?.branch_id)
   @IsUUID()
   branchId: string;
 
@@ -212,18 +279,21 @@ export class CreateStudentDto {
 
   // ─── JSONB array fields ──────────────────────────────────────────────
   @IsOptional()
+  @TransformJsonArray(LiveWithDto)
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => LiveWithDto)
   live_with?: LiveWithDto[];
 
   @IsOptional()
+  @TransformJsonArray(EmergencyContactDto)
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => EmergencyContactDto)
   emergency_contacts?: EmergencyContactDto[];
 
   @IsOptional()
+  @TransformJsonArray(BosInfoDto)
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => BosInfoDto)
@@ -234,60 +304,71 @@ export class CreateStudentDto {
   Siblings_number?: string;
 
   @IsOptional()
+  @TransformJsonArray(SiblingsInfoDto)
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => SiblingsInfoDto)
   Siblings_info?: SiblingsInfoDto[];
 
   @IsOptional()
+  @TransformJsonArray(SchoolHistoryDto)
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => SchoolHistoryDto)
   his_school_nursery?: SchoolHistoryDto[];
 
   @IsOptional()
+  @TransformJsonArray(SchoolHistoryDto)
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => SchoolHistoryDto)
   his_school_kindergarten?: SchoolHistoryDto[];
 
   @IsOptional()
+  @TransformJsonArray(SchoolHistoryDto)
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => SchoolHistoryDto)
   his_school_primary?: SchoolHistoryDto[];
 
   @IsOptional()
+  @TransformJsonArray(StudentHealthInfoDto)
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => StudentHealthInfoDto)
   health_history?: StudentHealthInfoDto[];
 
   @IsOptional()
+  @TransformJsonArray(StudentPhysicaldisabilityDto)
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => StudentPhysicaldisabilityDto)
   physical_disability?: StudentPhysicaldisabilityDto[];
 
   @IsOptional()
+  @TransformBoolean()
   @IsBoolean()
   health_review_required?: boolean;
 
   @IsOptional()
+  @TransformJsonArray()
   @IsArray()
   @IsString({ each: true })
   health_review_reasons?: string[];
 
   @IsOptional()
+  @TransformBoolean()
   @IsBoolean()
   healthReviewRequired?: boolean;
 
   @IsOptional()
+  @TransformJsonArray()
   @IsArray()
   @IsString({ each: true })
   healthReviewReasons?: string[];
 
   @IsOptional()
+  @TransformJsonArray(StudentprotectiveInfoDto)
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => StudentprotectiveInfoDto)
@@ -295,6 +376,7 @@ export class CreateStudentDto {
 
   // ─── Parents ─────────────────────────────────────────────────────────
   @IsOptional()
+  @TransformParentIds()
   @IsArray()
   @IsUUID('all', { each: true })
   parentIds?: string[];
@@ -302,6 +384,7 @@ export class CreateStudentDto {
   // ─── Approval flag ───────────────────────────────────────────────────
   // Admin's Approve button uses PUT with { is_active: true }.
   @IsOptional()
+  @TransformBoolean()
   @IsBoolean()
   is_active?: boolean;
 
@@ -321,6 +404,7 @@ export class CreateStudentDto {
   // parent, createStudent() rejects with a 409 unless this is true (the
   // parent confirmed via the app that it's intentional, e.g. twins).
   @IsOptional()
+  @TransformBoolean()
   @IsBoolean()
   confirmDuplicate?: boolean;
 }

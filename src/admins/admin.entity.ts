@@ -39,25 +39,64 @@ export interface EducationLevel {
 
 export interface EmergencyWith {
   first_name: string;
-  last_name: string;
-  job?: string | null;
-  work_place?: string | null;
-  doctor_contract?: string | null;
-  social_security_no?: string | null;
-  ss_image?: string | null;
-  hospital?: string | null;
-}
-
-export interface BosInfo {
-  first_name: string;
-  last_name: string;
   middle_name?: string | null;
-  dob?: string | null;
+  last_name: string;
+  nick_name?: string | null;
+  first_name_La?: string | null;
+  middle_name_La?: string | null;
+  last_name_La?: string | null;
+  nick_name_La?: string | null;
+
+  // Contacts & Work
+  phone1?: string | null;
+  phone2?: string | null;
   work_place?: string | null;
-  phone?: string | null;
+  position?: string | null;
+  job?: string | null;
+
+  // Social Security
+  social_security_no?: string | null;
+  ss_number?: string | null;
+  ss_image?: string | null;
+  ss_file?: string | null;
+  ss_country?: string | null;
+
+  // Health Insurance
+  health_insurance_no?: string | null;
+  health_insurance_file?: string | null;
+  health_insurance_country?: string | null;
+
+  // Accident Insurance
+  accident_insurance_no?: string | null;
+  accident_insurance_file?: string | null;
+  accident_insurance_country?: string | null;
+
+  // Doctor 1
+  doctor_name1?: string | null;
+  doctor_phone1?: string | null;
+  hospital1?: string | null;
+  doctor_contract?: string | null;
+  hospital?: string | null;
+
+  // Doctor 2
+  doctor_name2?: string | null;
+  doctor_phone2?: string | null;
+  hospital2?: string | null;
 }
 
-export interface FamilyInfo {
+export interface FamilyBookBasicInfo {
+  family_book_no?: string | null;
+  family_book_image?: string | null;
+  home_no?: string | null;
+  unit?: string | null;
+  village?: string | null;
+  sub_district?: string | null;
+  district?: string | null;
+  province?: string | null;
+  home_map?: string | null;
+}
+
+export interface FamilyPersonInfo {
   first_name: string;
   last_name: string;
   middle_name?: string | null;
@@ -71,19 +110,18 @@ export interface FamilyInfo {
   ethnicity?: string | null;
   religion?: string | null;
   education_level?: string | null;
-  village?: string | null;
-  district?: string | null;
-  province?: string | null;
-  home_no?: string | null;
-  unit?: string | null;
-  home_map?: string | null;
-  family_book_no?: string | null;
   phone1?: string | null;
   phone2?: string | null;
   job?: string | null;
   work_place?: string | null;
   email?: string | null;
   profile?: string | null;
+  relationship?: string | null;
+}
+
+export interface FamilyInfo {
+  basic_info?: FamilyBookBasicInfo | null;
+  members?: FamilyPersonInfo[];
 }
 
 export interface RestrictionItem {
@@ -208,11 +246,8 @@ export class Admin {
   @Column({ type: 'jsonb', nullable: true, default: () => "'[]'" })
   emergency_with: EmergencyWith[];
 
-  @Column({ type: 'jsonb', nullable: true, default: () => "'[]'" })
-  bos_info: BosInfo[];
-
-  @Column({ type: 'jsonb', nullable: true, default: () => "'[]'" })
-  family_info: FamilyInfo[];
+  @Column({ type: 'jsonb', nullable: true, default: () => "'{}'" })
+  family_info: FamilyInfo;
 
   @Column({ type: 'jsonb', nullable: true, default: () => "'{}'" })
   other_restriction: OtherRestriction;
@@ -221,7 +256,16 @@ export class Admin {
   notes: string | null;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
+  home_no: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  unit: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
   village: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  sub_district: string | null;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
   district: string | null;
@@ -231,6 +275,9 @@ export class Admin {
 
   @Column({ type: 'varchar', length: 100, nullable: true })
   birth_village: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  birth_sub_district: string | null;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
   birth_district: string | null;
