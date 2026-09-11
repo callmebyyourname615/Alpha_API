@@ -16,7 +16,6 @@ import {
   HistoryWork,
   EducationLevel,
   EmergencyWith,
-  BosInfo,
   FamilyInfo,
   OtherRestriction,
 } from './admin.entity';
@@ -57,10 +56,14 @@ export class AdminResponseDto {
 
   // Address
   notes?: string | null;
+  home_no?: string | null;
+  unit?: string | null;
   village?: string | null;
+  sub_district?: string | null;
   district?: string | null;
   province?: string | null;
   birth_village?: string | null;
+  birth_sub_district?: string | null;
   birth_district?: string | null;
   birth_province?: string | null;
   home_address?: string | null;
@@ -72,8 +75,7 @@ export class AdminResponseDto {
   history_work: HistoryWork[];
   education_level: EducationLevel[];
   emergency_with: EmergencyWith[];
-  bos_info: BosInfo[];
-  family_info: FamilyInfo[];
+  family_info: FamilyInfo;
   other_restriction: OtherRestriction;
 
   // Status
@@ -149,10 +151,14 @@ export class AdminsService {
 
       // ── address ──
       notes: dto.notes ?? null,
+      home_no: dto.home_no ?? null,
+      unit: dto.unit ?? null,
       village: dto.village ?? null,
+      sub_district: dto.sub_district ?? null,
       district: dto.district ?? null,
       province: dto.province ?? null,
       birth_village: dto.birth_village ?? null,
+      birth_sub_district: dto.birth_sub_district ?? null,
       birth_district: dto.birth_district ?? null,
       birth_province: dto.birth_province ?? null,
       home_address: dto.home_address ?? null,
@@ -173,8 +179,7 @@ current_status: dto.current_status ?? null,
       history_work: dto.history_work ?? [],
       education_level: dto.education_level ?? [],
       emergency_with: dto.emergency_with ?? [],
-      bos_info: dto.bos_info ?? [],
-      family_info: dto.family_info ?? [],
+      family_info: (dto.family_info as any) ?? { basic_info: null, members: [] },
       other_restriction: dto.other_restriction ?? {},
 
       // ── flags ──
@@ -302,10 +307,14 @@ current_status: dto.current_status ?? null,
 
       // ── address ──
       notes: dto.notes ?? admin.notes,
+      home_no: dto.home_no ?? admin.home_no,
+      unit: dto.unit ?? admin.unit,
       village: dto.village ?? admin.village,
+      sub_district: dto.sub_district ?? admin.sub_district,
       district: dto.district ?? admin.district,
       province: dto.province ?? admin.province,
       birth_village: dto.birth_village ?? admin.birth_village,
+      birth_sub_district: dto.birth_sub_district ?? admin.birth_sub_district,
       birth_district: dto.birth_district ?? admin.birth_district,
       birth_province: dto.birth_province ?? admin.birth_province,
       home_address: dto.home_address ?? admin.home_address,
@@ -318,8 +327,7 @@ current_status: dto.current_status ?? null,
       history_work: dto.history_work ?? admin.history_work,
       education_level: dto.education_level ?? admin.education_level,
       emergency_with: dto.emergency_with ?? admin.emergency_with,
-      bos_info: dto.bos_info ?? admin.bos_info,
-      family_info: dto.family_info ?? admin.family_info,
+      family_info: (dto.family_info as any) ?? admin.family_info,
       other_restriction: dto.other_restriction ?? admin.other_restriction,
 
       // ── flags ──
@@ -367,6 +375,15 @@ current_status: dto.current_status ?? null,
     return { message: 'Password updated' };
   }
 
+    private normalizeFamilyInfo(raw: any): FamilyInfo {
+    if (!raw) return { basic_info: null, members: [] };
+    if (Array.isArray(raw)) return { basic_info: null, members: raw };
+    return {
+      basic_info: raw.basic_info ?? null,
+      members: Array.isArray(raw.members) ? raw.members : [],
+    };
+  }
+
   // ─── HELPERS ──────────────────────────────────────────────────────────────
   private toResponseDto(admin: Admin): AdminResponseDto {
     const toIso = (v?: string | Date | null) =>
@@ -404,10 +421,14 @@ current_status: dto.current_status ?? null,
 
       // address
       notes: str(admin.notes),
+      home_no: str(admin.home_no),
+      unit: str(admin.unit),
       village: str(admin.village),
+      sub_district: str(admin.sub_district),
       district: str(admin.district),
       province: str(admin.province),
       birth_village: str(admin.birth_village),
+      birth_sub_district: str(admin.birth_sub_district),
       birth_district: str(admin.birth_district),
       birth_province: str(admin.birth_province),
       home_address: str(admin.home_address),
@@ -419,8 +440,7 @@ current_status: dto.current_status ?? null,
       history_work: admin.history_work ?? [],
       education_level: admin.education_level ?? [],
       emergency_with: admin.emergency_with ?? [],
-      bos_info: admin.bos_info ?? [],
-      family_info: admin.family_info ?? [],
+      family_info: this.normalizeFamilyInfo(admin.family_info),
       other_restriction: admin.other_restriction ?? {},
 
       // flags
