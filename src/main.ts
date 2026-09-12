@@ -22,6 +22,7 @@ async function bootstrap() {
 
   // Security: Remove X-Powered-By header
   app.disable('x-powered-by');
+  app.set('trust proxy', true);
 
   // Security: Apply HTTP response headers to protect against common web vulnerabilities
   app.use((_req: express.Request, res: express.Response, next: express.NextFunction) => {

@@ -13,16 +13,12 @@ export class AuthController {
   @UseGuards(LoginRateLimitGuard)
   @Post('login')
   async login(@Body() body: { email: string; password: string }, @Req() req: Request) {
-    const clientIp =
-      ((req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()) ||
-      req.ip ||
-      'unknown';
     try {
       const result = await this.authService.login(body.email, body.password);
-      LoginRateLimitGuard.recordSuccess(clientIp);
+      LoginRateLimitGuard.recordSuccess(req, body.email);
       return result;
     } catch (err) {
-      LoginRateLimitGuard.recordFailure(clientIp);
+      LoginRateLimitGuard.recordFailure(req, body.email);
       throw err;
     }
   }
@@ -32,16 +28,12 @@ export class AuthController {
   @Post('parent/login')
   @HttpCode(HttpStatus.OK)
   async loginParent(@Body() dto: LoginParentDto, @Req() req: Request) {
-    const clientIp =
-      ((req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()) ||
-      req.ip ||
-      'unknown';
     try {
       const result = await this.authService.loginParent(dto.email, dto.password);
-      LoginRateLimitGuard.recordSuccess(clientIp);
+      LoginRateLimitGuard.recordSuccess(req, dto.email);
       return result;
     } catch (err) {
-      LoginRateLimitGuard.recordFailure(clientIp);
+      LoginRateLimitGuard.recordFailure(req, dto.email);
       throw err;
     }
   }

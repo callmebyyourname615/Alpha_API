@@ -13,21 +13,25 @@ interface AttemptRecord {
   firstAttemptAt: number;
 }
 
-// In-memory store for rate limiting login attempts by IP
+// In-memory store for rate limiting login attempts
 const loginAttempts = new Map<string, AttemptRecord>();
 
-const MAX_ATTEMPTS = 5; // Max 5 attempts
-const WINDOW_MS = 5 * 60 * 1000; // Within 5 minutes
-const BLOCK_DURATION_MS = 15 * 60 * 1000; // Block for 15 minutes if exceeded
+const MAX_ATTEMPTS = 15; // 15 attempts allowed before temporary block
+const WINDOW_MS = 5 * 60 * 1000; // 5 minutes window
+const BLOCK_DURATION_MS = 3 * 60 * 1000; // 3 minutes temporary block
 
 @Injectable()
 export class LoginRateLimitGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
+    if (process.env.ENABLE_LOGIN_RATE_LIMIT === 'false') {
+      return true;
+    }
+
     const req = context.switchToHttp().getRequest<Request>();
-    const clientIp = this.getClientIp(req);
+    const key = LoginRateLimitGuard.buildKey(req);
     const now = Date.now();
 
-    const record = loginAttempts.get(clientIp);
+    const record = loginAttempts.get(key);
 
     if (record) {
       // Check if currently blocked
@@ -36,7 +40,7 @@ export class LoginRateLimitGuard implements CanActivate {
         throw new HttpException(
           {
             statusCode: HttpStatus.TOO_MANY_REQUESTS,
-            message: `Too many failed login attempts. Please try again in ${remainingMinutes} minutes.`,
+            message: `Too many failed login attempts. Please try again in ${remainingMinutes} minute${remainingMinutes > 1 ? 's' : ''}.`,
             error: 'Too Many Requests',
           },
           HttpStatus.TOO_MANY_REQUESTS,
@@ -45,17 +49,46 @@ export class LoginRateLimitGuard implements CanActivate {
 
       // If block expired or window passed, reset
       if (now - record.firstAttemptAt > WINDOW_MS && !record.blockedUntil) {
-        loginAttempts.delete(clientIp);
+        loginAttempts.delete(key);
       }
     }
 
     return true;
   }
 
+  static buildKey(req: Request, fallbackEmail?: string): string {
+    const forwarded = req.headers['x-forwarded-for'];
+    let clientIp = 'unknown';
+    if (typeof forwarded === 'string') {
+      clientIp = forwarded.split(',')[0].trim();
+    } else if (req.ip) {
+      clientIp = req.ip;
+    } else if (req.socket?.remoteAddress) {
+      clientIp = req.socket.remoteAddress;
+    }
+
+    const email = (
+      req.body?.email ||
+      fallbackEmail ||
+      ''
+    ).toLowerCase().trim();
+
+    // If client IP is localhost/internal, distinguish primarily by email to prevent blocking all users on proxy
+    if (['127.0.0.1', '::1', 'localhost', 'unknown'].includes(clientIp)) {
+      return email ? `acct_${email}` : clientIp;
+    }
+
+    // Otherwise combine IP and email so other accounts on the same school IP are not locked out
+    return email ? `${clientIp}_${email}` : clientIp;
+  }
+
   // Call this helper when a login fails
-  static recordFailure(clientIp: string): void {
+  static recordFailure(req: Request, email?: string): void {
+    if (process.env.ENABLE_LOGIN_RATE_LIMIT === 'false') return;
+
+    const key = LoginRateLimitGuard.buildKey(req, email);
     const now = Date.now();
-    let record = loginAttempts.get(clientIp);
+    let record = loginAttempts.get(key);
 
     if (!record || now - record.firstAttemptAt > WINDOW_MS) {
       record = { count: 1, blockedUntil: null, firstAttemptAt: now };
@@ -66,20 +99,18 @@ export class LoginRateLimitGuard implements CanActivate {
       }
     }
 
-    loginAttempts.set(clientIp, record);
+    loginAttempts.set(key, record);
   }
 
   // Call this helper when a login succeeds
-  static recordSuccess(clientIp: string): void {
-    loginAttempts.delete(clientIp);
+  static recordSuccess(req: Request, email?: string): void {
+    const key = LoginRateLimitGuard.buildKey(req, email);
+    loginAttempts.delete(key);
   }
 
-  private getClientIp(req: Request): string {
-    const forwarded = req.headers['x-forwarded-for'];
-    if (typeof forwarded === 'string') {
-      return forwarded.split(',')[0].trim();
-    }
-    return req.ip || req.socket.remoteAddress || 'unknown';
+  // Helper to clear all attempts
+  static resetAll(): void {
+    loginAttempts.clear();
   }
 }
 
