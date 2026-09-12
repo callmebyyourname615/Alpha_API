@@ -629,7 +629,15 @@ export class StudentsService {
 
     // Remove all enrollment records for this student so no data of deleted student remains in enrollments
     await this.enrollmentRepo.delete({ studentId: id });
+
+    // Remove all attendance records for this student so no data of deleted student remains in attendances
+    await this.studentRepo.query(
+      'DELETE FROM "attendances" WHERE "student_id" = $1',
+      [id],
+    );
+
     await this.clearStudentCache(id);
+    await this.cache.delPattern('attendances:*');
     return { message: `Student ${id} deleted successfully` };
   }
 

@@ -182,6 +182,13 @@ export class AttendanceService {
   // 🔵 AUTO ABSENT (CRON SUPPORT)
   // =====================================================
   async markAbsent(date: string, clearCache = true) {
+    await this.repo.query(`
+      DELETE FROM "attendances"
+      WHERE "student_id" IN (
+        SELECT "id" FROM "students" WHERE "is_deleted" = true
+      )
+    `);
+
     await this.repo.query(
       `
         INSERT INTO "attendances" (
@@ -202,7 +209,9 @@ export class AttendanceService {
           NOW(),
           NOW()
         FROM "students"
-        WHERE NOT EXISTS (
+        WHERE ("students"."is_deleted" = false OR "students"."is_deleted" IS NULL)
+          AND ("students"."is_active" = true OR "students"."is_active" IS NULL)
+          AND NOT EXISTS (
           SELECT 1
           FROM "attendances"
           WHERE "attendances"."student_id" = "students"."id"
@@ -222,7 +231,14 @@ export class AttendanceService {
     const raw = String(input || '').trim();
     const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (uuidRe.test(raw)) {
-      return raw;
+      const student = await this.studentRepo.findOne({
+        where: { id: raw, is_deleted: false },
+        select: ['id'],
+      });
+      if (student?.id) {
+        return student.id;
+      }
+      throw new BadRequestException('Invalid student QR code. Student not found or deleted.');
     }
     const student = await this.studentRepo.findOne({
       where: { student_id: raw, is_deleted: false },
@@ -309,7 +325,11 @@ export class AttendanceService {
       async () => {
         const qb = this.repo
           .createQueryBuilder('attendance')
-          .leftJoinAndSelect('attendance.student', 'student')
+          .innerJoinAndSelect(
+            'attendance.student',
+            'student',
+            '(student.is_deleted = false OR student.is_deleted IS NULL)',
+          )
           .leftJoinAndSelect('student.enrollments', 'enrollment')
           .leftJoinAndSelect('enrollment.class', 'class')
           .leftJoinAndSelect('class.yearLevel', 'yearLevel')
@@ -331,6 +351,8 @@ export class AttendanceService {
             endDate: filters.endDate,
           });
         }
+
+        qb.andWhere('(student.is_deleted = false OR student.is_deleted IS NULL)');
 
         const normalizedClassId = filters?.classId?.trim();
         if (normalizedClassId) {
