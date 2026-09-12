@@ -40,11 +40,8 @@ export class AttendanceService {
     attendanceDate: string;
     deviceTime?: string;
   }) {
-    // Validate UUID format before hitting the DB
-    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!dto.studentId || !uuidRe.test(dto.studentId)) {
-      throw new BadRequestException('Invalid student QR code. Please scan a valid student card.');
-    }
+    dto.studentId = await this.resolveStudentId(dto.studentId);
+
     if (!dto.attendanceDate || !/^\d{4}-\d{2}-\d{2}$/.test(dto.attendanceDate)) {
       throw new BadRequestException('Invalid attendance date format. Expected YYYY-MM-DD.');
     }
@@ -120,6 +117,8 @@ export class AttendanceService {
     attendanceDate: string;
     deviceTime?: string;
   }) {
+    dto.studentId = await this.resolveStudentId(dto.studentId);
+
     // ── 1. Load only the level needed by the rule engine ──────────────────
     const levelId = await this.getStudentLevelId(dto.studentId, 'Student not found');
     if (!levelId) throw new BadRequestException('Student level not found');
@@ -219,6 +218,22 @@ export class AttendanceService {
   // =====================================================
   // HELPERS
   // =====================================================
+  private async resolveStudentId(input: string): Promise<string> {
+    const raw = String(input || '').trim();
+    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (uuidRe.test(raw)) {
+      return raw;
+    }
+    const student = await this.studentRepo.findOne({
+      where: { student_id: raw, is_deleted: false },
+      select: ['id'],
+    });
+    if (student?.id) {
+      return student.id;
+    }
+    throw new BadRequestException('Invalid student QR code. Please scan a valid student card.');
+  }
+
   private async getStudentLevelId(
     studentId: string,
     notFoundMessage: string,

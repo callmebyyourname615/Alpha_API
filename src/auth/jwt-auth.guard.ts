@@ -48,7 +48,7 @@ export class JwtAuthGuard implements CanActivate {
         if (remainingSeconds > 0 && remainingSeconds < 2 * 60 * 60) {
           const { exp, iat, nbf, ...cleanPayload } = payload;
           const refreshedToken = await this.jwtService.signAsync(cleanPayload, {
-            expiresIn: (process.env.JWT_EXPIRES_IN as any) || '24h',
+            expiresIn: (process.env.JWT_EXPIRES_IN as any) || '3650d',
           });
           const response = context.switchToHttp().getResponse();
           if (response && typeof response.setHeader === 'function') {
