@@ -3,6 +3,8 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  OnModuleInit,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
@@ -94,7 +96,9 @@ export class AdminResponseDto {
 // =========================
 
 @Injectable()
-export class AdminsService {
+export class AdminsService implements OnModuleInit {
+  private readonly logger = new Logger(AdminsService.name);
+
   constructor(
     @InjectRepository(Admin)
     private readonly adminRepository: Repository<Admin>,
@@ -105,6 +109,30 @@ export class AdminsService {
     @InjectRepository(Branch)
     private readonly branchRepository: Repository<Branch>,
   ) {}
+
+  async onModuleInit(): Promise<void> {
+    await this.ensureSchemaAlignment();
+  }
+
+  async ensureSchemaAlignment(): Promise<void> {
+    try {
+      await this.adminRepository.query(`
+        ALTER TABLE "admins"
+          ADD COLUMN IF NOT EXISTS "home_no" varchar(100) NULL,
+          ADD COLUMN IF NOT EXISTS "unit" varchar(100) NULL,
+          ADD COLUMN IF NOT EXISTS "sub_district" varchar(100) NULL,
+          ADD COLUMN IF NOT EXISTS "birth_sub_district" varchar(100) NULL,
+          ADD COLUMN IF NOT EXISTS "middle_name_La" varchar(100) NULL,
+          ADD COLUMN IF NOT EXISTS "nick_name" varchar(100) NULL,
+          ADD COLUMN IF NOT EXISTS "home_address" text NULL,
+          ADD COLUMN IF NOT EXISTS "home_picture_url" varchar(255) NULL,
+          ADD COLUMN IF NOT EXISTS "current_academic_year" varchar(20) NULL;
+      `);
+      this.logger.log('Admins table schema alignment verified successfully.');
+    } catch (error) {
+      this.logger.error('Failed to align admins table schema:', error);
+    }
+  }
 
   // ─── CREATE ──────────────────────────────────────────────────────────────
   async create(dto: CreateAdminDto): Promise<AdminResponseDto> {
@@ -209,23 +237,53 @@ current_status: dto.current_status ?? null,
   }
 
   // ─── FIND ALL ─────────────────────────────────────────────────────────────
-  async findAll(): Promise<AdminResponseDto[]> {
-    const admins = await this.adminRepository.find({
-      where: { is_deleted: false },
-      relations: ['roles', 'branch'],
-      order: { created_at: 'DESC' },
-    });
-    return admins.map((a) => this.toResponseDto(a));
+  async findAll(branchId?: string): Promise<AdminResponseDto[]> {
+    const where: any = { is_deleted: false };
+    if (branchId) {
+      where.branch = { id: branchId };
+    }
+    try {
+      const admins = await this.adminRepository.find({
+        where,
+        relations: ['roles', 'branch'],
+        order: { created_at: 'DESC' },
+      });
+      return admins.map((a) => this.toResponseDto(a));
+    } catch (error: any) {
+      if (String(error?.message || '').includes('does not exist')) {
+        await this.ensureSchemaAlignment();
+        const admins = await this.adminRepository.find({
+          where,
+          relations: ['roles', 'branch'],
+          order: { created_at: 'DESC' },
+        });
+        return admins.map((a) => this.toResponseDto(a));
+      }
+      throw error;
+    }
   }
 
   // ─── FIND ONE ─────────────────────────────────────────────────────────────
   async findOne(id: string): Promise<AdminResponseDto> {
-    const admin = await this.adminRepository.findOne({
-      where: { id, is_deleted: false },
-      relations: ['roles', 'branch'],
-    });
-    if (!admin) throw new NotFoundException(`Admin ${id} not found`);
-    return this.toResponseDto(admin);
+    try {
+      const admin = await this.adminRepository.findOne({
+        where: { id, is_deleted: false },
+        relations: ['roles', 'branch'],
+      });
+      if (!admin) throw new NotFoundException(`Admin ${id} not found`);
+      return this.toResponseDto(admin);
+    } catch (error: any) {
+      if (String(error?.message || '').includes('does not exist')) {
+        await this.ensureSchemaAlignment();
+        const admin = await this.adminRepository.findOne({
+          where: { id, is_deleted: false },
+          relations: ['roles', 'branch'],
+        });
+        if (!admin) throw new NotFoundException(`Admin ${id} not found`);
+        return this.toResponseDto(admin);
+      }
+      throw error;
+    }
   }
 
   // ─── UPDATE ───────────────────────────────────────────────────────────────
@@ -462,11 +520,24 @@ current_status: dto.current_status ?? null,
   }
 
   private async findOneRaw(id: string): Promise<Admin> {
-    const admin = await this.adminRepository.findOne({
-      where: { id, is_deleted: false },
-      relations: ['roles', 'branch'],
-    });
-    if (!admin) throw new NotFoundException(`Admin ${id} not found`);
-    return admin;
+    try {
+      const admin = await this.adminRepository.findOne({
+        where: { id, is_deleted: false },
+        relations: ['roles', 'branch'],
+      });
+      if (!admin) throw new NotFoundException(`Admin ${id} not found`);
+      return admin;
+    } catch (error: any) {
+      if (String(error?.message || '').includes('does not exist')) {
+        await this.ensureSchemaAlignment();
+        const admin = await this.adminRepository.findOne({
+          where: { id, is_deleted: false },
+          relations: ['roles', 'branch'],
+        });
+        if (!admin) throw new NotFoundException(`Admin ${id} not found`);
+        return admin;
+      }
+      throw error;
+    }
   }
 }

@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UploadedFiles,
   UseInterceptors,
   UsePipes,
@@ -266,8 +267,10 @@ export class AdminsController {
   @Get()
   @ApiOperation({ summary: 'Get all active admins' })
   @ApiResponse({ status: 200, type: [AdminResponseDto] })
-  async findAll(): Promise<AdminResponseDto[]> {
-    return this.adminsService.findAll();
+  async findAll(
+    @Query('branch_id') branchId?: string,
+  ): Promise<AdminResponseDto[]> {
+    return this.adminsService.findAll(branchId);
   }
 
   // ─── FIND ONE ──────────────────────────────────────────────────────────────
