@@ -1,20 +1,65 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { FindManyOptions, FindOneOptions, Repository } from 'typeorm';
 import { Notification } from './notification.entity';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { UpdateNotificationDto } from './dto/update-notification.dto';
 import { TaskAccessService } from '../task-access/task-access.service';
 import { CacheService } from '../common/cache.service';
+import { SchemaAlignmentService } from '../database/schema-alignment.service';
 
 @Injectable()
-export class NotificationsService {
+export class NotificationsService implements OnModuleInit {
+  private readonly logger = new Logger(NotificationsService.name);
+
   constructor(
     @InjectRepository(Notification)
     private repo: Repository<Notification>,
     private readonly taskAccess: TaskAccessService,
     private readonly cache: CacheService,
+    private readonly schemaAlignment: SchemaAlignmentService,
   ) {}
+
+  async onModuleInit(): Promise<void> {
+    await this.schemaAlignment.alignAllSchemas();
+  }
+
+  private isMissingColumnError(error: any): boolean {
+    return (
+      error?.code === '42703' ||
+      String(error?.message || '').includes('does not exist')
+    );
+  }
+
+  private async findWithRetry(options: FindManyOptions<Notification>): Promise<Notification[]> {
+    try {
+      return await this.repo.find(options);
+    } catch (error: any) {
+      if (this.isMissingColumnError(error)) {
+        this.logger.warn(
+          'Missing column detected during notifications query. Running schema alignment and retrying...',
+        );
+        await this.schemaAlignment.alignAllSchemas();
+        return await this.repo.find(options);
+      }
+      throw error;
+    }
+  }
+
+  private async findOneWithRetry(options: FindOneOptions<Notification>): Promise<Notification | null> {
+    try {
+      return await this.repo.findOne(options);
+    } catch (error: any) {
+      if (this.isMissingColumnError(error)) {
+        this.logger.warn(
+          'Missing column detected during notification query. Running schema alignment and retrying...',
+        );
+        await this.schemaAlignment.alignAllSchemas();
+        return await this.repo.findOne(options);
+      }
+      throw error;
+    }
+  }
 
   private readonly notificationRelations = [
     'branch',
@@ -38,7 +83,7 @@ export class NotificationsService {
   // ================= GET ALL =================
   async findAll() {
     return this.cache.getOrSet('notifications:all', this.notificationListTtlSeconds, () =>
-      this.repo.find({
+      this.findWithRetry({
         where: { is_deleted: false },
         relations: [...this.notificationRelations],
         order: { created_at: 'DESC' },
@@ -54,7 +99,7 @@ export class NotificationsService {
   }
 
   private async findOneUncached(id: string) {
-    const data = await this.repo.findOne({
+    const data = await this.findOneWithRetry({
       where: { id, is_deleted: false },
       relations: [...this.notificationRelations],
     });
@@ -93,7 +138,7 @@ export class NotificationsService {
       `notifications:branch:${body.branch_id}`,
       this.notificationListTtlSeconds,
       () =>
-      this.repo.find({
+      this.findWithRetry({
         where: { branch_id: body.branch_id, is_deleted: false },
         relations: [...this.notificationRelations],
         order: { created_at: 'DESC' },
@@ -107,7 +152,7 @@ export class NotificationsService {
       `notifications:parent:${parentId}`,
       this.notificationListTtlSeconds,
       () =>
-      this.repo.find({
+      this.findWithRetry({
         where: { parent_id: parentId, is_deleted: false },
         relations: [...this.notificationRelations],
         order: { created_at: 'DESC' },
@@ -121,7 +166,7 @@ export class NotificationsService {
       `notifications:student:${studentId}`,
       this.notificationListTtlSeconds,
       () =>
-      this.repo.find({
+      this.findWithRetry({
         where: { student_id: studentId, is_deleted: false },
         relations: [...this.notificationRelations],
         order: { created_at: 'DESC' },

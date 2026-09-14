@@ -3,6 +3,8 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  Logger,
+  OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
@@ -16,9 +18,12 @@ import { Branch } from '../branches/branch.entity';
 import { Province } from '../location/province.entity';
 import { District } from '../location/district.entity';
 import { CacheService } from '../common/cache.service';
+import { SchemaAlignmentService } from '../database/schema-alignment.service';
 
 @Injectable()
-export class StudentsService {
+export class StudentsService implements OnModuleInit {
+  private readonly logger = new Logger(StudentsService.name);
+
   constructor(
     @InjectRepository(Student)
     private readonly studentRepo: Repository<Student>,
@@ -30,7 +35,12 @@ export class StudentsService {
     private readonly enrollmentRepo: Repository<Enrollment>,
 
     private readonly cache: CacheService,
+    private readonly schemaAlignment: SchemaAlignmentService,
   ) {}
+
+  async onModuleInit(): Promise<void> {
+    await this.schemaAlignment.alignAllSchemas();
+  }
 
   private readonly studentListTtlSeconds = 60;
   private readonly studentDetailTtlSeconds = 120;
@@ -345,13 +355,27 @@ export class StudentsService {
   }
 
   private async findByIdUncached(id: string): Promise<Student> {
-    const student = await this.studentRepo.findOne({
-      where: { id },
-      relations: [...this.studentDetailRelations],
-    });
+    try {
+      const student = await this.studentRepo.findOne({
+        where: { id },
+        relations: [...this.studentDetailRelations],
+      });
 
-    if (!student) throw new NotFoundException('Student not found');
-    return student;
+      if (!student) throw new NotFoundException('Student not found');
+      return student;
+    } catch (error: any) {
+      if (error?.code === '42703' || String(error?.message || '').includes('does not exist')) {
+        this.logger.warn('Missing column detected on findByIdUncached. Running schema alignment and retrying...');
+        await this.schemaAlignment.alignAllSchemas();
+        const student = await this.studentRepo.findOne({
+          where: { id },
+          relations: [...this.studentDetailRelations],
+        });
+        if (!student) throw new NotFoundException('Student not found');
+        return student;
+      }
+      throw error;
+    }
   }
 
   // ─── Find All ─────────────────────────────────────────────────────────
@@ -361,13 +385,30 @@ export class StudentsService {
       `students:all:branch:${normalizedBranchId || 'all'}`,
       this.studentListTtlSeconds,
       async () => {
-        const students = await this.studentRepo.find({
-          where: {
-            is_deleted: false,
-            ...(normalizedBranchId ? { branchId: normalizedBranchId } : {}),
-          },
-          relations: [...this.studentListRelations],
-        });
+        let students: Student[];
+        try {
+          students = await this.studentRepo.find({
+            where: {
+              is_deleted: false,
+              ...(normalizedBranchId ? { branchId: normalizedBranchId } : {}),
+            },
+            relations: [...this.studentListRelations],
+          });
+        } catch (error: any) {
+          if (error?.code === '42703' || String(error?.message || '').includes('does not exist')) {
+            this.logger.warn('Missing column detected on findAll students. Running schema alignment and retrying...');
+            await this.schemaAlignment.alignAllSchemas();
+            students = await this.studentRepo.find({
+              where: {
+                is_deleted: false,
+                ...(normalizedBranchId ? { branchId: normalizedBranchId } : {}),
+              },
+              relations: [...this.studentListRelations],
+            });
+          } else {
+            throw error;
+          }
+        }
         await this.attachListRelations(students);
         return students;
       },

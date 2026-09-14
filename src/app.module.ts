@@ -74,6 +74,7 @@ import { RubricSettingsModule } from './rubric_settings/rubric-settings.module';
 import { RubricReportMonthSettingModule } from './rubric_report_month_settings/rubric-report-month-setting.module';
 import { RubricEvaluationFinalScoreModule } from './rubric_evaluation_final_scores/rubric-evaluation-final-score.module';
 import { CacheModule } from './common/cache.module';
+import { SchemaAlignmentModule } from './database/schema-alignment.module';
 
 @Module({
   imports: [
@@ -108,6 +109,7 @@ import { CacheModule } from './common/cache.module';
     }),
 
     LoggerModule,
+    SchemaAlignmentModule,
     CacheModule,
     HealthModule,
     AuthModule,
