@@ -81,6 +81,11 @@ export class EmergencyWithDto {
   @IsOptional() @IsString() doctor_name2?: string;
   @IsOptional() @IsString() doctor_phone2?: string;
   @IsOptional() @IsString() hospital2?: string;
+
+  // Doctor 3
+  @IsOptional() @IsString() doctor_name3?: string;
+  @IsOptional() @IsString() doctor_phone3?: string;
+  @IsOptional() @IsString() hospital3?: string;
 }
 
 export class FamilyBookBasicInfoDto {

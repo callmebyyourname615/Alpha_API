@@ -82,6 +82,11 @@ export interface EmergencyWith {
   doctor_name2?: string | null;
   doctor_phone2?: string | null;
   hospital2?: string | null;
+
+  // Doctor 3
+  doctor_name3?: string | null;
+  doctor_phone3?: string | null;
+  hospital3?: string | null;
 }
 
 export interface FamilyBookBasicInfo {
