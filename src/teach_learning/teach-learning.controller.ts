@@ -18,6 +18,19 @@ import { GetTeachLearningByDateRangeDto } from './dto/get-teach-learning-by-date
 export class TeachLearningController {
   constructor(private readonly teachLearningService: TeachLearningService) {}
 
+  private parseSubjectIds(subjectIds?: string | string[]): string[] {
+    const values = Array.isArray(subjectIds) ? subjectIds : [subjectIds || ''];
+
+    return [
+      ...new Set(
+        values
+          .flatMap((value) => String(value || '').split(','))
+          .map((value) => value.trim())
+          .filter(Boolean),
+      ),
+    ];
+  }
+
   @Post()
   create(@Body() createDto: CreateTeachLearningDto) {
     return this.teachLearningService.create(createDto);
@@ -35,6 +48,18 @@ export class TeachLearningController {
       query.endDate,
     );
   }
+
+  @Get('latest-by-subjects')
+  findLatestBySubjects(
+    @Query('subjectIds') subjectIds?: string | string[],
+    @Query('branchId') branchId?: string,
+  ) {
+    return this.teachLearningService.findLatestBySubjects(
+      this.parseSubjectIds(subjectIds),
+      branchId,
+    );
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.teachLearningService.findOne(id);

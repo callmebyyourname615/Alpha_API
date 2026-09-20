@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { HealthModule } from './health/health.module';
 import { HealthController } from './health/health.controller';
 import { BranchModule } from './branches/branch.module';
@@ -70,6 +72,9 @@ import { FoodRestrictionModule } from './food_restriction/food-restriction.modul
 import { GalleryModule } from './gallery/gallery.module';
 import { RubricSettingsModule } from './rubric_settings/rubric-settings.module';
 import { RubricReportMonthSettingModule } from './rubric_report_month_settings/rubric-report-month-setting.module';
+import { RubricEvaluationFinalScoreModule } from './rubric_evaluation_final_scores/rubric-evaluation-final-score.module';
+import { CacheModule } from './common/cache.module';
+import { SchemaAlignmentModule } from './database/schema-alignment.module';
 
 @Module({
   imports: [
@@ -90,14 +95,13 @@ import { RubricReportMonthSettingModule } from './rubric_report_month_settings/r
         password: config.get<string>('DB_PASS'),
         database: config.get<string>('DB_NAME'),
         autoLoadEntities: true,
-        // Schema synchronization against the shared PostgreSQL database can
-        // wait on DDL locks during startup, leaving the API process alive but
-        // never listening on its HTTP port. Keep it opt-in for local schema
-        // development only.
-       // synchronize: config.get<string>('TYPEORM_SYNCHRONIZE') === 'true',
-       synchronize: true, 
-       connectTimeoutMS: 5000,
+        // Keep schema synchronization opt-in only. In shared/staging/production
+        // databases it can block startup on DDL locks and should be replaced by
+        // migrations.
+        synchronize: config.get<string>('TYPEORM_SYNCHRONIZE') === 'true',
+        connectTimeoutMS: 5000,
         extra: {
+          max: Number(config.get<string>('DB_POOL_MAX') ?? '10'),
           connectionTimeoutMillis: 5000,
           query_timeout: 30000,
         },
@@ -105,6 +109,8 @@ import { RubricReportMonthSettingModule } from './rubric_report_month_settings/r
     }),
 
     LoggerModule,
+    SchemaAlignmentModule,
+    CacheModule,
     HealthModule,
     AuthModule,
     BranchModule,
@@ -165,12 +171,19 @@ import { RubricReportMonthSettingModule } from './rubric_report_month_settings/r
     GalleryModule,
     RubricSettingsModule,
     RubricReportMonthSettingModule,
+    RubricEvaluationFinalScoreModule,
     TaskSubmissionModule,
     TaskNoteModule,
     ChatReadModule,
     TaskActivityModule,
   ],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+  ],
 
   controllers: [AppController, HealthController],
 })

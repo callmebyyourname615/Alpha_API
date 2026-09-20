@@ -1,7 +1,9 @@
 import { Controller, Get } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { LoggerService } from '../common/logger.service'; // adjust path
+import { Public } from '../auth/public.decorator';
 
+@Public()
 @Controller('health')
 export class HealthController {
   constructor(

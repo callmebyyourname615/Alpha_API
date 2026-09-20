@@ -24,6 +24,7 @@ import { CreatorRescheduleDto }  from './dto/creator-reschedule.dto';
 
 import { AppointmentStatus, ParticipantStatus, PersonType } from './appointment.enum';
 import { AppointmentParticipant } from './dto/appointment-participant.entity';
+import { CacheService } from '../common/cache.service';
 
 @Injectable()
 export class AppointmentService {
@@ -41,7 +42,17 @@ export class AppointmentService {
     private yearRepo: Repository<AcademicYear>,
 
     private dataSource: DataSource,
+    private readonly cache: CacheService,
   ) {}
+
+  private readonly appointmentRelations = [
+    'branch',
+    'academicYear',
+    'participants',
+  ] as const;
+
+  private readonly appointmentListTtlSeconds = 60;
+  private readonly appointmentDetailTtlSeconds = 120;
 
   // ── Private helpers ────────────────────────────────────────
   private async assertBranch(id: string) {
@@ -157,6 +168,7 @@ export class AppointmentService {
       );
       await manager.save(AppointmentParticipant, rows);
 
+      await this.clearAppointmentCache(appointment.id);
       return { appointment, participants: rows };
     });
   }
@@ -201,7 +213,11 @@ export class AppointmentService {
         throw new BadRequestException('Invalid status value');
     }
 
-    return this.participantRepo.save(participant);
+    const saved = await this.participantRepo.save(participant);
+    if (participant.appointment_id) {
+      await this.clearAppointmentCache(participant.appointment_id);
+    }
+    return saved;
   }
 
   // ── CREATOR SETS NEW OFFICIAL TIME ────────────────────────
@@ -252,25 +268,32 @@ export class AppointmentService {
       if (toReset.length) {
         await manager.save(AppointmentParticipant, toReset);
       }
+      await this.clearAppointmentCache(appointment.id);
       return appointment;
     });
   }
 
   // ── FIND ALL (paginated) ───────────────────────────────────
   async findAll(page = 1, limit = 20) {
-    const [data, total] = await this.repo.findAndCount({
-      where: { is_deleted: false },
-      relations: ['branch', 'academicYear', 'participants'],
-      order: { date: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
-    return {
-      data: data.map((appointment) => this.withActiveParticipants(appointment)),
-      total,
-      page,
-      limit,
-    };
+    return this.cache.getOrSet(
+      `appointments:all:page:${page}:limit:${limit}`,
+      this.appointmentListTtlSeconds,
+      async () => {
+        const [data, total] = await this.repo.findAndCount({
+          where: { is_deleted: false },
+          relations: [...this.appointmentRelations],
+          order: { date: 'DESC' },
+          skip: (page - 1) * limit,
+          take: limit,
+        });
+        return {
+          data: data.map((appointment) => this.withActiveParticipants(appointment)),
+          total,
+          page,
+          limit,
+        };
+      },
+    );
   }
 
   // ── FIND BY DATE RANGE ─────────────────────────────────────
@@ -281,19 +304,35 @@ export class AppointmentService {
         throw new BadRequestException('dateFrom must be before or equal to dateTo');
       where.date = Between(new Date(dateFrom), new Date(dateTo));
     }
-    const appointments = await this.repo.find({
-      where,
-      relations: ['branch', 'academicYear', 'participants'],
-      order: { date: 'ASC' },
-    });
-    return appointments.map((appointment) => this.withActiveParticipants(appointment));
+    return this.cache.getOrSet(
+      `appointments:date:${dateFrom || 'all'}:${dateTo || 'all'}`,
+      this.appointmentListTtlSeconds,
+      async () => {
+        const appointments = await this.repo.find({
+          where,
+          relations: [...this.appointmentRelations],
+          order: { date: 'ASC' },
+        });
+        return appointments.map((appointment) =>
+          this.withActiveParticipants(appointment),
+        );
+      },
+    );
   }
 
   // ── FIND ONE ───────────────────────────────────────────────
   async findOne(id: string) {
+    return this.cache.getOrSet(
+      `appointments:${id}`,
+      this.appointmentDetailTtlSeconds,
+      () => this.findOneUncached(id),
+    );
+  }
+
+  private async findOneUncached(id: string) {
     const a = await this.repo.findOne({
       where: { id, is_deleted: false },
-      relations: ['branch', 'academicYear', 'participants'],
+      relations: [...this.appointmentRelations],
     });
     if (!a) throw new NotFoundException('Appointment not found');
     return this.withActiveParticipants(a);
@@ -302,52 +341,70 @@ export class AppointmentService {
   // ── FIND BY BRANCH ─────────────────────────────────────────
   async findByBranch(branch_id: string, page = 1, limit = 20) {
     await this.assertBranch(branch_id);
-    const [data, total] = await this.repo.findAndCount({
-      where: { branch_id, is_deleted: false },
-      relations: ['branch', 'academicYear', 'participants'],
-      order: { date: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
-    return {
-      data: data.map((appointment) => this.withActiveParticipants(appointment)),
-      total,
-      page,
-      limit,
-    };
+    return this.cache.getOrSet(
+      `appointments:branch:${branch_id}:page:${page}:limit:${limit}`,
+      this.appointmentListTtlSeconds,
+      async () => {
+        const [data, total] = await this.repo.findAndCount({
+          where: { branch_id, is_deleted: false },
+          relations: [...this.appointmentRelations],
+          order: { date: 'DESC' },
+          skip: (page - 1) * limit,
+          take: limit,
+        });
+        return {
+          data: data.map((appointment) => this.withActiveParticipants(appointment)),
+          total,
+          page,
+          limit,
+        };
+      },
+    );
   }
 
   // ── FIND BY PERSON (my appointments) ──────────────────────
   async findByPerson(personId: string, page = 1, limit = 20) {
-    const [rows, total] = await this.participantRepo.findAndCount({
-      where: { person_id: personId, is_deleted: false },
-      relations: [
-        'appointment',
-        'appointment.branch',
-        'appointment.academicYear',
-      ],
-      order: { created_at: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
-    return { data: rows, total, page, limit };
+    return this.cache.getOrSet(
+      `appointments:person:${personId}:page:${page}:limit:${limit}`,
+      this.appointmentListTtlSeconds,
+      async () => {
+        const [rows, total] = await this.participantRepo.findAndCount({
+          where: { person_id: personId, is_deleted: false },
+          relations: [
+            'appointment',
+            'appointment.branch',
+            'appointment.academicYear',
+          ],
+          order: { created_at: 'DESC' },
+          skip: (page - 1) * limit,
+          take: limit,
+        });
+        return { data: rows, total, page, limit };
+      },
+    );
   }
 
   // ── FIND BY CREATOR ────────────────────────────────────────
   async findByCreator(creatorId: string, page = 1, limit = 20) {
-    const [data, total] = await this.repo.findAndCount({
-      where: { created_by: creatorId, is_deleted: false },
-      relations: ['branch', 'academicYear', 'participants'],
-      order: { date: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
-    return {
-      data: data.map((appointment) => this.withActiveParticipants(appointment)),
-      total,
-      page,
-      limit,
-    };
+    return this.cache.getOrSet(
+      `appointments:creator:${creatorId}:page:${page}:limit:${limit}`,
+      this.appointmentListTtlSeconds,
+      async () => {
+        const [data, total] = await this.repo.findAndCount({
+          where: { created_by: creatorId, is_deleted: false },
+          relations: [...this.appointmentRelations],
+          order: { date: 'DESC' },
+          skip: (page - 1) * limit,
+          take: limit,
+        });
+        return {
+          data: data.map((appointment) => this.withActiveParticipants(appointment)),
+          total,
+          page,
+          limit,
+        };
+      },
+    );
   }
 
   // ── FIND RESCHEDULE REQUESTS (for creator to review) ──────
@@ -382,7 +439,9 @@ export class AppointmentService {
     }
 
     Object.assign(existing, dto);
-    return this.repo.save(existing);
+    const saved = await this.repo.save(existing);
+    await this.clearAppointmentCache(id);
+    return saved;
   }
 
   // ── SOFT DELETE ────────────────────────────────────────────
@@ -403,7 +462,14 @@ export class AppointmentService {
         { is_deleted: true, is_active: false },
       );
 
-      return manager.save(Appointment, a);
+      const saved = await manager.save(Appointment, a);
+      await this.clearAppointmentCache(id);
+      return saved;
     });
+  }
+
+  private async clearAppointmentCache(id?: string): Promise<void> {
+    await this.cache.delPattern('appointments:*');
+    if (id) await this.cache.del(`appointments:${id}`);
   }
 }

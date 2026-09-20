@@ -7,12 +7,14 @@ import { Repository } from 'typeorm';
 import { YearLevel } from './year-level.entity';
 import { CreateYearLevelDto } from './dto/create-year-level.dto';
 import { UpdateYearLevelDto } from './dto/update-year-level.dto';
+import { CacheService } from '../common/cache.service';
 
 @Injectable()
 export class YearLevelsService {
   constructor(
     @InjectRepository(YearLevel)
     private readonly repo: Repository<YearLevel>,
+    private readonly cache: CacheService,
   ) {}
 
 async create(dto: CreateYearLevelDto): Promise<YearLevel> {
@@ -21,14 +23,18 @@ async create(dto: CreateYearLevelDto): Promise<YearLevel> {
     level_id: dto.levelId, // explicitly map levelId → level_id
   });
 
-  return this.repo.save(entity);
+  const saved = await this.repo.save(entity);
+  await this.cache.del('year-levels:all');
+  return saved;
 }
 
   async findAll(): Promise<YearLevel[]> {
-    return this.repo.find({
-      where: { is_deleted: false },
-      relations: ['level'],
-    });
+    return this.cache.getOrSet('year-levels:all', 900, () =>
+      this.repo.find({
+        where: { is_deleted: false },
+        relations: ['level'],
+      }),
+    );
   }
 
   async findOne(id: string): Promise<YearLevel | null> {
@@ -59,6 +65,7 @@ async create(dto: CreateYearLevelDto): Promise<YearLevel> {
     .where("id = :id", { id })
     .execute();
 
+  await this.cache.del('year-levels:all');
   return (await this.findOne(id))!;
 }
 
@@ -73,5 +80,6 @@ async create(dto: CreateYearLevelDto): Promise<YearLevel> {
       is_deleted: true,
       is_active: false,
     });
+    await this.cache.del('year-levels:all');
   }
 }

@@ -22,28 +22,22 @@ export class RolesService {
   }
 
   async findAll(): Promise<Role[]> {
-    return this.repo.find({ relations: ['admins'] });
+    return this.repo.find();
   }
 
   async findOne(id: string): Promise<Role | null> {
-    return this.repo.findOne({ where: { id }, relations: ['admins'] });
+    return this.repo.findOne({ where: { id } });
   }
 
   async update(id: string, dto: UpdateRoleDto): Promise<Role | null> {
-  // 1️⃣ Load the role with current admins
-  const role = await this.repo.findOne({ where: { id }, relations: ['admins'] });
-  if (!role) throw new NotFoundException('Role not found');
+    const role = await this.repo.findOne({ where: { id } });
+    if (!role) throw new NotFoundException('Role not found');
 
-  // 2️⃣ Update role fields
-  if (dto.name !== undefined) role.name = dto.name;
-  if (dto.level !== undefined) role.level = Number(dto.level);
+    if (dto.name !== undefined) role.name = dto.name;
+    if (dto.level !== undefined) role.level = Number(dto.level);
 
-  // 4️⃣ Save the role (updates join table)
-  await this.repo.save(role);
-
-  // 5️⃣ Return updated role with admins
-  return this.repo.findOne({ where: { id }, relations: ['admins'] });
-}
+    return this.repo.save(role);
+  }
 
 
   async remove(id: string): Promise<void> {

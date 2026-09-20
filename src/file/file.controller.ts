@@ -7,6 +7,7 @@ import type { Response } from 'express';
 import { FileService } from './file.service';
 import { File } from './files.entity';
 import { TaskSubmissionService } from '../task-submission/task-submission.service';
+import { Public } from '../auth/public.decorator';
 
 const ALLOWED_MIME_TYPES = [
   'image/jpeg', 'image/png', 'image/webp', 'image/gif',
@@ -16,7 +17,7 @@ const ALLOWED_MIME_TYPES = [
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/webm', 'audio/ogg', 'audio/x-m4a', 'audio/aac',
 ];
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+const MAX_FILE_SIZE = 150 * 1024 * 1024; // 150MB
 
 @Controller('files')
 export class FileController {
@@ -35,6 +36,7 @@ export class FileController {
     return this.fileService.findAll();
   }
 
+  @Public()
   @Get('serve/:module/:filename')
   serveFile(
     @Param('module') module: string,
@@ -49,11 +51,16 @@ export class FileController {
       const safeModule = module.replace(/[^a-zA-Z0-9_-]/g, '');
       const safeFilename = filename.replace(/[^a-zA-Z0-9_.\-]/g, '');
 
-      // Construct the full file path
-      const fullPath = join(process.cwd(), 'uploads', safeModule, safeFilename);
+      // Construct the full file path and verify it remains within uploads
+      const uploadsDir = join(process.cwd(), 'uploads');
+      const fullPath = join(uploadsDir, safeModule, safeFilename);
 
-      // Check if file exists
-      if (!fs.existsSync(fullPath)) {
+      if (!fullPath.startsWith(uploadsDir)) {
+        throw new BadRequestException('Invalid file path');
+      }
+
+      // Check if file exists and is a regular file
+      if (!fs.existsSync(fullPath) || !fs.statSync(fullPath).isFile()) {
         throw new NotFoundException('File not found');
       }
 

@@ -14,6 +14,7 @@ import { CreateStudentsSavingSessionDto } from './dto/create-students-saving-ses
 import { UpdateSavingDto } from './dto/update-saving.dto';
 import { Student } from '../students/student.entity';
 import { Class } from '../classes/class.entity';
+import { AcademicYear } from '../academic_years/academic-year.entity';
 import {
   Saving,
   SavingOwnerType,
@@ -40,6 +41,9 @@ export class SavingsService {
     @InjectRepository(Class)
     private readonly classRepository: Repository<Class>,
 
+    @InjectRepository(AcademicYear)
+    private readonly academicYearRepository: Repository<AcademicYear>,
+
     @InjectRepository(PayReceive)
     private readonly payReceiveRepository: Repository<PayReceive>,
 
@@ -64,6 +68,41 @@ export class SavingsService {
     if (transactionType === SavingTransactionType.WITHDRAW)
       return balance - amount;
     return balance;
+  }
+
+  private async resolveActiveAcademicYearId(
+    branchId?: string | null,
+    providedId?: string | null,
+  ): Promise<string | null> {
+    if (providedId && String(providedId).trim()) {
+      return String(providedId).trim();
+    }
+
+    if (branchId) {
+      const activeForBranch = await this.academicYearRepository.findOne({
+        where: { branch_id: branchId, is_active: true, is_deleted: false },
+        order: { start_date: 'DESC' },
+      });
+      if (activeForBranch) return activeForBranch.id;
+
+      const anyForBranch = await this.academicYearRepository.findOne({
+        where: { branch_id: branchId, is_deleted: false },
+        order: { start_date: 'DESC' },
+      });
+      if (anyForBranch) return anyForBranch.id;
+    }
+
+    const anyActive = await this.academicYearRepository.findOne({
+      where: { is_active: true, is_deleted: false },
+      order: { start_date: 'DESC' },
+    });
+    if (anyActive) return anyActive.id;
+
+    const anyYear = await this.academicYearRepository.findOne({
+      where: { is_deleted: false },
+      order: { start_date: 'DESC' },
+    });
+    return anyYear?.id ?? null;
   }
 
   private guardWithdrawReason(
@@ -289,13 +328,18 @@ export class SavingsService {
         null,
       );
 
+      const resolvedStudentYearId = await this.resolveActiveAcademicYearId(
+        studentData.branch?.id ?? branch_id,
+        academic_year_id ?? studentData.academicYear?.id,
+      );
+
       const saving = this.savingRepository.create({
         owner_type: SavingOwnerType.STUDENT,
         created_by,
         student_id: student.id,
         class_id: null,
         branch_id: studentData.branch?.id ?? null,
-        academic_year_id: null,
+        academic_year_id: resolvedStudentYearId,
         transaction_type,
         opening_balance: currentBalance,
         amount: Number(amount),
@@ -317,7 +361,11 @@ export class SavingsService {
     if (owner_type === SavingOwnerType.CLASS) {
       if (!class_id) throw new BadRequestException('class_id is required');
       if (!branch_id) throw new BadRequestException('branch_id is required');
-      if (!academic_year_id)
+      const resolvedClassYearId = await this.resolveActiveAcademicYearId(
+        branch_id,
+        academic_year_id,
+      );
+      if (!resolvedClassYearId)
         throw new BadRequestException('academic_year_id is required');
 
       const classInfo = await this.classRepository.findOne({
@@ -355,7 +403,7 @@ export class SavingsService {
         student_id: null,
         class_id,
         branch_id,
-        academic_year_id,
+        academic_year_id: resolvedClassYearId,
         transaction_type,
         opening_balance: currentBalance,
         amount: Number(amount),
@@ -425,13 +473,17 @@ export class SavingsService {
       class_id,
     );
 
+    const resolvedYearId = await this.resolveActiveAcademicYearId(branch_id, academic_year_id);
+    if (!resolvedYearId)
+      throw new BadRequestException('academic_year_id is required');
+
     const saving = this.savingRepository.create({
       owner_type: SavingOwnerType.CLASS,
       created_by,
       student_id: null,
       class_id,
       branch_id,
-      academic_year_id,
+      academic_year_id: resolvedYearId,
       transaction_type,
       opening_balance: currentBalance,
       amount: Number(amount),
@@ -474,12 +526,17 @@ export class SavingsService {
 
     this.guardWithdrawReason(transaction_type, withdraw_reason_id);
 
+    const resolvedSessionYearId = await this.resolveActiveAcademicYearId(
+      branch_id,
+      academic_year_id,
+    );
+
     const session = await this.savingSessionRepository.save(
       this.savingSessionRepository.create({
         created_by,
         class_id: class_id ?? null,
         branch_id: branch_id ?? null,
-        academic_year_id: academic_year_id ?? null,
+        academic_year_id: resolvedSessionYearId ?? null,
         transaction_type,
         note: shared_note ?? null,
         withdraw_reason_id: withdraw_reason_id ?? null,
@@ -525,7 +582,7 @@ export class SavingsService {
           student_id: student.id,
           class_id: studentData.classId?.id ?? null,
           branch_id: studentData.branch?.id ?? null,
-          academic_year_id: studentData.academicYear?.id ?? null,
+          academic_year_id: studentData.academicYear?.id ?? resolvedSessionYearId ?? null,
           transaction_type,
           opening_balance: currentBalance,
           amount: Number(entry.amount),

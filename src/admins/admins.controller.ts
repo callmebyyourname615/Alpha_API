@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UploadedFiles,
   UseInterceptors,
   UsePipes,
@@ -77,6 +78,7 @@ const adminFileFields = [
   { name: 'home_picture',  maxCount: 1 },
   { name: 'id_card_image', maxCount: 1 },
   { name: 'passport_image', maxCount: 1 },
+  { name: 'family_book_image', maxCount: 5 },
 
   // ── education_level[].certificate_image ───────────────────────────
   ...Array.from({ length: MAX_ARRAY_ITEMS }, (_, i) => ({
@@ -84,9 +86,25 @@ const adminFileFields = [
     maxCount: 1,
   })),
 
-  // ── emergency_with[].ss_image ─────────────────────────────────────
+  // ── emergency_with[].ss_image / ss_file ───────────────────────────
   ...Array.from({ length: MAX_ARRAY_ITEMS }, (_, i) => ({
     name: `emergency_with_ss_image_${i}`,
+    maxCount: 1,
+  })),
+  ...Array.from({ length: MAX_ARRAY_ITEMS }, (_, i) => ({
+    name: `emergency_with_ss_file_${i}`,
+    maxCount: 1,
+  })),
+
+  // ── emergency_with[].health_insurance_file ────────────────────────
+  ...Array.from({ length: MAX_ARRAY_ITEMS }, (_, i) => ({
+    name: `emergency_with_health_insurance_file_${i}`,
+    maxCount: 1,
+  })),
+
+  // ── emergency_with[].accident_insurance_file ──────────────────────
+  ...Array.from({ length: MAX_ARRAY_ITEMS }, (_, i) => ({
+    name: `emergency_with_accident_insurance_file_${i}`,
     maxCount: 1,
   })),
 
@@ -112,6 +130,7 @@ type AdminUploadedFiles = {
   home_picture?: Express.Multer.File[];
   id_card_image?: Express.Multer.File[];
   passport_image?: Express.Multer.File[];
+  family_book_image?: Express.Multer.File[];
   [key: string]: Express.Multer.File[] | undefined;
   // keys: education_level_certificate_image_0..N
   //       emergency_with_ss_image_0..N
@@ -136,19 +155,32 @@ function injectArrayFilePaths(
     });
   }
 
-  // emergency_with[i].ss_image
+  // emergency_with[i] files
   if (dto.emergency_with?.length) {
     dto.emergency_with.forEach((item, i) => {
-      const file = files[`emergency_with_ss_image_${i}`]?.[0];
-      if (file) {
-        item.ss_image = `uploads/admin/${file.filename}`;
+      const ssFile =
+        files[`emergency_with_ss_image_${i}`]?.[0] ||
+        files[`emergency_with_ss_file_${i}`]?.[0];
+      if (ssFile) {
+        item.ss_image = `uploads/admin/${ssFile.filename}`;
+        item.ss_file = `uploads/admin/${ssFile.filename}`;
+      }
+
+      const hiFile = files[`emergency_with_health_insurance_file_${i}`]?.[0];
+      if (hiFile) {
+        item.health_insurance_file = `uploads/admin/${hiFile.filename}`;
+      }
+
+      const aiFile = files[`emergency_with_accident_insurance_file_${i}`]?.[0];
+      if (aiFile) {
+        item.accident_insurance_file = `uploads/admin/${aiFile.filename}`;
       }
     });
   }
 
-  // family_info[i].profile
-  if (dto.family_info?.length) {
-    dto.family_info.forEach((item, i) => {
+  // family_info.members[i].profile
+  if (dto.family_info?.members?.length) {
+    dto.family_info.members.forEach((item, i) => {
       const file = files[`family_info_profile_${i}`]?.[0];
       if (file) {
         item.profile = `uploads/admin/${file.filename}`;
@@ -206,13 +238,23 @@ export class AdminsController {
     if (files?.home_picture?.[0]) {
       dto.home_picture_url = `uploads/admin/${files.home_picture[0].filename}`;
     }
-
     if (files?.id_card_image?.[0]) {
-  dto.id_card_image = `uploads/admin/${files.id_card_image[0].filename}`;
-}
-if (files?.passport_image?.[0]) {
-  dto.passport_image = `uploads/admin/${files.passport_image[0].filename}`;
-}
+      dto.id_card_image = `uploads/admin/${files.id_card_image[0].filename}`;
+    }
+    if (files?.passport_image?.[0]) {
+      dto.passport_image = `uploads/admin/${files.passport_image[0].filename}`;
+    }
+    if (files?.family_book_image?.[0]) {
+      const familyInfo = dto.family_info ?? (dto.family_info = {});
+      const basicInfo = familyInfo.basic_info ?? (familyInfo.basic_info = {});
+      basicInfo.family_book_image = `uploads/admin/${files.family_book_image[0].filename}`;
+    } else if (dto.family_book_image && typeof dto.family_book_image === 'string') {
+      const familyInfo = dto.family_info ?? (dto.family_info = {});
+      const basicInfo = familyInfo.basic_info ?? (familyInfo.basic_info = {});
+      if (!basicInfo.family_book_image) {
+        basicInfo.family_book_image = dto.family_book_image;
+      }
+    }
 
     // Array item files
     injectArrayFilePaths(dto, files);
@@ -225,8 +267,10 @@ if (files?.passport_image?.[0]) {
   @Get()
   @ApiOperation({ summary: 'Get all active admins' })
   @ApiResponse({ status: 200, type: [AdminResponseDto] })
-  async findAll(): Promise<AdminResponseDto[]> {
-    return this.adminsService.findAll();
+  async findAll(
+    @Query('branch_id') branchId?: string,
+  ): Promise<AdminResponseDto[]> {
+    return this.adminsService.findAll(branchId);
   }
 
   // ─── FIND ONE ──────────────────────────────────────────────────────────────
@@ -260,6 +304,23 @@ if (files?.passport_image?.[0]) {
     }
     if (files?.home_picture?.[0]) {
       dto.home_picture_url = `uploads/admin/${files.home_picture[0].filename}`;
+    }
+    if (files?.id_card_image?.[0]) {
+      dto.id_card_image = `uploads/admin/${files.id_card_image[0].filename}`;
+    }
+    if (files?.passport_image?.[0]) {
+      dto.passport_image = `uploads/admin/${files.passport_image[0].filename}`;
+    }
+    if (files?.family_book_image?.[0]) {
+      const familyInfo = dto.family_info ?? (dto.family_info = {});
+      const basicInfo = familyInfo.basic_info ?? (familyInfo.basic_info = {});
+      basicInfo.family_book_image = `uploads/admin/${files.family_book_image[0].filename}`;
+    } else if (dto.family_book_image && typeof dto.family_book_image === 'string') {
+      const familyInfo = dto.family_info ?? (dto.family_info = {});
+      const basicInfo = familyInfo.basic_info ?? (familyInfo.basic_info = {});
+      if (!basicInfo.family_book_image) {
+        basicInfo.family_book_image = dto.family_book_image;
+      }
     }
 
     // Array item files

@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { TeacherHomework } from './teacher-homework.entity';
 import { TeacherHomeworkItem } from './teacher-homework-item.entity';
 import { CreateTeacherHomeworkDto } from './dto/create-teacher-homework.dto';
@@ -111,9 +111,7 @@ export class TeacherHomeworkService {
       .createQueryBuilder('teacherHomework')
       .leftJoinAndSelect('teacherHomework.teaching', 'teaching')
       .leftJoinAndSelect('teacherHomework.branch', 'branch')
-      .leftJoinAndSelect('teacherHomework.class', 'class') // ✅ new
-      .leftJoinAndSelect('teacherHomework.items', 'items')
-      .leftJoinAndSelect('items.class', 'itemClass'); // ✅ new
+      .leftJoinAndSelect('teacherHomework.class', 'class'); // ✅ new
 
     if (teachingId) {
       query.andWhere('teacherHomework.teachingId = :teachingId', {
@@ -128,10 +126,11 @@ export class TeacherHomeworkService {
       query.andWhere('teacherHomework.classId = :classId', { classId });
     }
 
-    return query
+    const homeworks = await query
       .orderBy('teacherHomework.createdAt', 'DESC')
-      .addOrderBy('items.sortOrder', 'ASC')
       .getMany();
+    await this.attachItems(homeworks);
+    return homeworks;
   }
 
   async findOne(id: string): Promise<TeacherHomework> {
@@ -146,6 +145,29 @@ export class TeacherHomeworkService {
     }
 
     return homework;
+  }
+
+  private async attachItems(homeworks: TeacherHomework[]) {
+    if (!homeworks.length) return;
+
+    const homeworkIds = homeworks.map((homework) => homework.id);
+    const items = await this.teacherHomeworkItemRepo.find({
+      where: { teacherHomeworkId: In(homeworkIds) },
+      relations: ['class'],
+      order: { sortOrder: 'ASC', createdAt: 'ASC' },
+    });
+
+    const itemsByHomeworkId = new Map<string, TeacherHomeworkItem[]>();
+
+    for (const item of items) {
+      const list = itemsByHomeworkId.get(item.teacherHomeworkId) ?? [];
+      list.push(item);
+      itemsByHomeworkId.set(item.teacherHomeworkId, list);
+    }
+
+    for (const homework of homeworks) {
+      homework.items = itemsByHomeworkId.get(homework.id) ?? [];
+    }
   }
 
   async update(

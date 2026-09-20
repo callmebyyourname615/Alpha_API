@@ -31,6 +31,9 @@ export class RubricReportMonthSetting {
   @Column({ name: 'lesson_to', type: 'int' })
   lessonTo: number;
 
+  @Column({ type: 'text', default: '' })
+  comment: string;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

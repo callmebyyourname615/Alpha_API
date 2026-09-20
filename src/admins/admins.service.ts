@@ -3,6 +3,8 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  OnModuleInit,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
@@ -16,7 +18,6 @@ import {
   HistoryWork,
   EducationLevel,
   EmergencyWith,
-  BosInfo,
   FamilyInfo,
   OtherRestriction,
 } from './admin.entity';
@@ -57,10 +58,14 @@ export class AdminResponseDto {
 
   // Address
   notes?: string | null;
+  home_no?: string | null;
+  unit?: string | null;
   village?: string | null;
+  sub_district?: string | null;
   district?: string | null;
   province?: string | null;
   birth_village?: string | null;
+  birth_sub_district?: string | null;
   birth_district?: string | null;
   birth_province?: string | null;
   home_address?: string | null;
@@ -72,8 +77,7 @@ export class AdminResponseDto {
   history_work: HistoryWork[];
   education_level: EducationLevel[];
   emergency_with: EmergencyWith[];
-  bos_info: BosInfo[];
-  family_info: FamilyInfo[];
+  family_info: FamilyInfo;
   other_restriction: OtherRestriction;
 
   // Status
@@ -92,7 +96,9 @@ export class AdminResponseDto {
 // =========================
 
 @Injectable()
-export class AdminsService {
+export class AdminsService implements OnModuleInit {
+  private readonly logger = new Logger(AdminsService.name);
+
   constructor(
     @InjectRepository(Admin)
     private readonly adminRepository: Repository<Admin>,
@@ -103,6 +109,30 @@ export class AdminsService {
     @InjectRepository(Branch)
     private readonly branchRepository: Repository<Branch>,
   ) {}
+
+  async onModuleInit(): Promise<void> {
+    await this.ensureSchemaAlignment();
+  }
+
+  async ensureSchemaAlignment(): Promise<void> {
+    try {
+      await this.adminRepository.query(`
+        ALTER TABLE "admins"
+          ADD COLUMN IF NOT EXISTS "home_no" varchar(100) NULL,
+          ADD COLUMN IF NOT EXISTS "unit" varchar(100) NULL,
+          ADD COLUMN IF NOT EXISTS "sub_district" varchar(100) NULL,
+          ADD COLUMN IF NOT EXISTS "birth_sub_district" varchar(100) NULL,
+          ADD COLUMN IF NOT EXISTS "middle_name_La" varchar(100) NULL,
+          ADD COLUMN IF NOT EXISTS "nick_name" varchar(100) NULL,
+          ADD COLUMN IF NOT EXISTS "home_address" text NULL,
+          ADD COLUMN IF NOT EXISTS "home_picture_url" varchar(255) NULL,
+          ADD COLUMN IF NOT EXISTS "current_academic_year" varchar(20) NULL;
+      `);
+      this.logger.log('Admins table schema alignment verified successfully.');
+    } catch (error) {
+      this.logger.error('Failed to align admins table schema:', error);
+    }
+  }
 
   // ─── CREATE ──────────────────────────────────────────────────────────────
   async create(dto: CreateAdminDto): Promise<AdminResponseDto> {
@@ -149,10 +179,14 @@ export class AdminsService {
 
       // ── address ──
       notes: dto.notes ?? null,
+      home_no: dto.home_no ?? null,
+      unit: dto.unit ?? null,
       village: dto.village ?? null,
+      sub_district: dto.sub_district ?? null,
       district: dto.district ?? null,
       province: dto.province ?? null,
       birth_village: dto.birth_village ?? null,
+      birth_sub_district: dto.birth_sub_district ?? null,
       birth_district: dto.birth_district ?? null,
       birth_province: dto.birth_province ?? null,
       home_address: dto.home_address ?? null,
@@ -173,8 +207,7 @@ current_status: dto.current_status ?? null,
       history_work: dto.history_work ?? [],
       education_level: dto.education_level ?? [],
       emergency_with: dto.emergency_with ?? [],
-      bos_info: dto.bos_info ?? [],
-      family_info: dto.family_info ?? [],
+      family_info: (dto.family_info as any) ?? { basic_info: null, members: [] },
       other_restriction: dto.other_restriction ?? {},
 
       // ── flags ──
@@ -204,23 +237,53 @@ current_status: dto.current_status ?? null,
   }
 
   // ─── FIND ALL ─────────────────────────────────────────────────────────────
-  async findAll(): Promise<AdminResponseDto[]> {
-    const admins = await this.adminRepository.find({
-      where: { is_deleted: false },
-      relations: ['roles', 'branch'],
-      order: { created_at: 'DESC' },
-    });
-    return admins.map((a) => this.toResponseDto(a));
+  async findAll(branchId?: string): Promise<AdminResponseDto[]> {
+    const where: any = { is_deleted: false };
+    if (branchId) {
+      where.branch = { id: branchId };
+    }
+    try {
+      const admins = await this.adminRepository.find({
+        where,
+        relations: ['roles', 'branch'],
+        order: { created_at: 'DESC' },
+      });
+      return admins.map((a) => this.toResponseDto(a));
+    } catch (error: any) {
+      if (String(error?.message || '').includes('does not exist')) {
+        await this.ensureSchemaAlignment();
+        const admins = await this.adminRepository.find({
+          where,
+          relations: ['roles', 'branch'],
+          order: { created_at: 'DESC' },
+        });
+        return admins.map((a) => this.toResponseDto(a));
+      }
+      throw error;
+    }
   }
 
   // ─── FIND ONE ─────────────────────────────────────────────────────────────
   async findOne(id: string): Promise<AdminResponseDto> {
-    const admin = await this.adminRepository.findOne({
-      where: { id, is_deleted: false },
-      relations: ['roles', 'branch'],
-    });
-    if (!admin) throw new NotFoundException(`Admin ${id} not found`);
-    return this.toResponseDto(admin);
+    try {
+      const admin = await this.adminRepository.findOne({
+        where: { id, is_deleted: false },
+        relations: ['roles', 'branch'],
+      });
+      if (!admin) throw new NotFoundException(`Admin ${id} not found`);
+      return this.toResponseDto(admin);
+    } catch (error: any) {
+      if (String(error?.message || '').includes('does not exist')) {
+        await this.ensureSchemaAlignment();
+        const admin = await this.adminRepository.findOne({
+          where: { id, is_deleted: false },
+          relations: ['roles', 'branch'],
+        });
+        if (!admin) throw new NotFoundException(`Admin ${id} not found`);
+        return this.toResponseDto(admin);
+      }
+      throw error;
+    }
   }
 
   // ─── UPDATE ───────────────────────────────────────────────────────────────
@@ -302,10 +365,14 @@ current_status: dto.current_status ?? null,
 
       // ── address ──
       notes: dto.notes ?? admin.notes,
+      home_no: dto.home_no ?? admin.home_no,
+      unit: dto.unit ?? admin.unit,
       village: dto.village ?? admin.village,
+      sub_district: dto.sub_district ?? admin.sub_district,
       district: dto.district ?? admin.district,
       province: dto.province ?? admin.province,
       birth_village: dto.birth_village ?? admin.birth_village,
+      birth_sub_district: dto.birth_sub_district ?? admin.birth_sub_district,
       birth_district: dto.birth_district ?? admin.birth_district,
       birth_province: dto.birth_province ?? admin.birth_province,
       home_address: dto.home_address ?? admin.home_address,
@@ -318,8 +385,7 @@ current_status: dto.current_status ?? null,
       history_work: dto.history_work ?? admin.history_work,
       education_level: dto.education_level ?? admin.education_level,
       emergency_with: dto.emergency_with ?? admin.emergency_with,
-      bos_info: dto.bos_info ?? admin.bos_info,
-      family_info: dto.family_info ?? admin.family_info,
+      family_info: (dto.family_info as any) ?? admin.family_info,
       other_restriction: dto.other_restriction ?? admin.other_restriction,
 
       // ── flags ──
@@ -353,7 +419,8 @@ current_status: dto.current_status ?? null,
     currentPassword: string,
     newPassword: string,
   ): Promise<{ message: string }> {
-    const admin = await this.findOneRaw(id);
+    const admin = await this.adminRepository.createQueryBuilder('admin').addSelect('admin.password').where('admin.id = :id AND admin.is_deleted = false', { id }).getOne();
+    if (!admin) throw new NotFoundException(`Admin ${id} not found`);
     if (!admin.password) throw new BadRequestException('No password set');
 
     const match = await bcrypt.compare(currentPassword, admin.password);
@@ -364,6 +431,15 @@ current_status: dto.current_status ?? null,
     admin.password = await bcrypt.hash(newPassword, 10);
     await this.adminRepository.save(admin);
     return { message: 'Password updated' };
+  }
+
+    private normalizeFamilyInfo(raw: any): FamilyInfo {
+    if (!raw) return { basic_info: null, members: [] };
+    if (Array.isArray(raw)) return { basic_info: null, members: raw };
+    return {
+      basic_info: raw.basic_info ?? null,
+      members: Array.isArray(raw.members) ? raw.members : [],
+    };
   }
 
   // ─── HELPERS ──────────────────────────────────────────────────────────────
@@ -403,10 +479,14 @@ current_status: dto.current_status ?? null,
 
       // address
       notes: str(admin.notes),
+      home_no: str(admin.home_no),
+      unit: str(admin.unit),
       village: str(admin.village),
+      sub_district: str(admin.sub_district),
       district: str(admin.district),
       province: str(admin.province),
       birth_village: str(admin.birth_village),
+      birth_sub_district: str(admin.birth_sub_district),
       birth_district: str(admin.birth_district),
       birth_province: str(admin.birth_province),
       home_address: str(admin.home_address),
@@ -418,8 +498,7 @@ current_status: dto.current_status ?? null,
       history_work: admin.history_work ?? [],
       education_level: admin.education_level ?? [],
       emergency_with: admin.emergency_with ?? [],
-      bos_info: admin.bos_info ?? [],
-      family_info: admin.family_info ?? [],
+      family_info: this.normalizeFamilyInfo(admin.family_info),
       other_restriction: admin.other_restriction ?? {},
 
       // flags
@@ -441,11 +520,24 @@ current_status: dto.current_status ?? null,
   }
 
   private async findOneRaw(id: string): Promise<Admin> {
-    const admin = await this.adminRepository.findOne({
-      where: { id, is_deleted: false },
-      relations: ['roles', 'branch'],
-    });
-    if (!admin) throw new NotFoundException(`Admin ${id} not found`);
-    return admin;
+    try {
+      const admin = await this.adminRepository.findOne({
+        where: { id, is_deleted: false },
+        relations: ['roles', 'branch'],
+      });
+      if (!admin) throw new NotFoundException(`Admin ${id} not found`);
+      return admin;
+    } catch (error: any) {
+      if (String(error?.message || '').includes('does not exist')) {
+        await this.ensureSchemaAlignment();
+        const admin = await this.adminRepository.findOne({
+          where: { id, is_deleted: false },
+          relations: ['roles', 'branch'],
+        });
+        if (!admin) throw new NotFoundException(`Admin ${id} not found`);
+        return admin;
+      }
+      throw error;
+    }
   }
 }

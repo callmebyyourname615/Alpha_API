@@ -2,12 +2,14 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AttendanceRule } from './attendance_rules';
+import { CacheService } from '../common/cache.service';
 
 @Injectable()
 export class AttendanceRuleService {
   constructor(
     @InjectRepository(AttendanceRule)
     private repo: Repository<AttendanceRule>,
+    private readonly cache: CacheService,
   ) {}
 
   private strip(rule: AttendanceRule): Omit<AttendanceRule, 'level'> {
@@ -16,8 +18,11 @@ export class AttendanceRuleService {
     return obj;
   }
 
-  create(dto: any) {
-    return this.repo.save(this.repo.create(dto));
+  async create(dto: any) {
+    const entity = this.repo.create(dto as Partial<AttendanceRule>);
+    const saved = await this.repo.save(entity);
+    if (saved.levelId) await this.clearRuleCache(saved.levelId);
+    return saved;
   }
 
   findAll() {
@@ -57,6 +62,7 @@ export class AttendanceRuleService {
         );
       }
     }
+    await this.clearRuleCache(levelId);
     return this.findByLevel(levelId);
   }
 
@@ -68,12 +74,24 @@ export class AttendanceRuleService {
 
   async update(id: string, dto: any) {
     const rule = await this.findOne(id);
+    const previousLevelId = rule.levelId;
     Object.assign(rule, dto);
-    return this.repo.save(rule);
+    const saved = await this.repo.save(rule);
+    if (previousLevelId) await this.clearRuleCache(previousLevelId);
+    if (saved.levelId && saved.levelId !== previousLevelId) {
+      await this.clearRuleCache(saved.levelId);
+    }
+    return saved;
   }
 
   async remove(id: string) {
     const rule = await this.findOne(id);
-    return this.repo.remove(rule);
+    const removed = await this.repo.remove(rule);
+    if (rule.levelId) await this.clearRuleCache(rule.levelId);
+    return removed;
+  }
+
+  private async clearRuleCache(levelId: string) {
+    await this.cache.delPattern(`attendance-rule:${levelId}:*`);
   }
 }

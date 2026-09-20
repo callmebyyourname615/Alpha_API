@@ -102,6 +102,36 @@ export class DayBeforeReminderDto {
 
   @IsDateString()
   datetime: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(52)
+  round?: number;
+
+  @IsOptional()
+  @IsDateString()
+  due_date?: string;
+}
+
+export class DueDayReminderDto {
+  @IsInt()
+  @Min(1)
+  @Max(52)
+  round: number;
+
+  @IsDateString()
+  due_date: string;
+
+  @IsDateString()
+  date: string;
+
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
+  time: string;
+
+  @IsDateString()
+  datetime: string;
 }
 
 export class TaskRemindersDto {
@@ -111,6 +141,7 @@ export class TaskRemindersDto {
   @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => DayBeforeReminderDto) day_before_schedule?: DayBeforeReminderDto[];
   @IsOptional() @Transform(parseBool) @IsBoolean() due_day?: boolean;
   @IsOptional() @IsString() @Matches(/^([01]\d|2[0-3]):[0-5]\d$/) due_day_time?: string;
+  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => DueDayReminderDto) due_day_schedule?: DueDayReminderDto[];
   @IsOptional() @Transform(parseBool) @IsBoolean() overdue?: boolean;
   @IsOptional() @IsString() @Matches(/^([01]\d|2[0-3]):[0-5]\d$/) overdue_time?: string;
 }
@@ -237,6 +268,7 @@ export class CreateTaskDto {
 
   @IsOptional()
   @Transform(parseJson)
+  @ValidateNested()
   @Type(() => TaskRemindersDto)
   reminders?: TaskRemindersDto;
 

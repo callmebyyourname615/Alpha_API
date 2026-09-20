@@ -12,7 +12,10 @@ export default new DataSource({
   username: process.env.DB_USER,
   password: process.env.DB_PASS,
   database: process.env.DB_NAME,
-  entities: [join(__dirname, '..', `**/*.entity.${sourceExtension}`)],
+  entities: [
+    join(__dirname, '..', `**/*.entity.${sourceExtension}`),
+    join(__dirname, '..', 'attendance', `attendance_rules.${sourceExtension}`),
+  ],
   migrations: [join(__dirname, 'migrations', `*.${sourceExtension}`)],
   migrationsTableName: 'typeorm_migrations',
   synchronize: false,

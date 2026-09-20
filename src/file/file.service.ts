@@ -16,6 +16,13 @@ export class FileService {
     return this.fileRepo.save(newFile);
   }
 
+  async createMany(records: Partial<File>[]): Promise<File[]> {
+    if (!records.length) return [];
+    return this.fileRepo.save(
+      records.map((record) => this.fileRepo.create(record)),
+    );
+  }
+
   // Get all files
   async findAll(): Promise<File[]> {
     return this.fileRepo.find();

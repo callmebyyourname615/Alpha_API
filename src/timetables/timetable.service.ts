@@ -1,10 +1,11 @@
 // src/timetables/timetable.service.ts
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Timetable } from './timetable.entity';
 import { CreateTimetableDto } from './dto/create-timetable.dto';
 import { UpdateTimetableDto } from './dto/update-timetable.dto';
+import { Subject } from '../subjects/subject.entity';
 
 const RELATIONS = [
   'branch',
@@ -12,10 +13,6 @@ const RELATIONS = [
   'class',
   'subject',
   'subject.subjectType',
-  'subject.lessons',
-  'subject.lessons.subjectType',
-  'subject.lessons.yearLevel',
-  'subject.lessons.curriculums',
   'teacher',
 ];
 
@@ -24,6 +21,8 @@ export class TimetableService {
   constructor(
     @InjectRepository(Timetable)
     private readonly timetableRepo: Repository<Timetable>,
+    @InjectRepository(Subject)
+    private readonly subjectRepo: Repository<Subject>,
   ) {}
 
   private async assertNoClassTimeConflict(
@@ -57,11 +56,13 @@ export class TimetableService {
 
   // Get all timetables
   async findAll(): Promise<Timetable[]> {
-    return this.timetableRepo.find({
+    const timetables = await this.timetableRepo.find({
       where: { isDeleted: false },
       relations: RELATIONS,
       order: { dayOfWeek: 'ASC', startTime: 'ASC' },
     });
+    await this.attachSubjectLessons(timetables);
+    return timetables;
   }
 
   // Get one
@@ -71,34 +72,76 @@ export class TimetableService {
       relations: RELATIONS,
     });
     if (!timetable) throw new NotFoundException(`Timetable ${id} not found`);
+    await this.attachSubjectLessons([timetable]);
     return timetable;
   }
 
   // Get timetable by class
   async findByClass(classId: string): Promise<Timetable[]> {
-    return this.timetableRepo.find({
+    const timetables = await this.timetableRepo.find({
       where: { classId, isDeleted: false },
       relations: RELATIONS,
       order: { dayOfWeek: 'ASC', startTime: 'ASC' },
     });
+    await this.attachSubjectLessons(timetables);
+    return timetables;
   }
 
   // Get timetable by teacher
   async findByTeacher(teacherId: string): Promise<Timetable[]> {
-    return this.timetableRepo.find({
+    const timetables = await this.timetableRepo.find({
       where: { teacherId, isDeleted: false },
       relations: RELATIONS,
       order: { dayOfWeek: 'ASC', startTime: 'ASC' },
     });
+    await this.attachSubjectLessons(timetables);
+    return timetables;
   }
 
   // Get timetable by branch
   async findByBranch(branchId: string): Promise<Timetable[]> {
-    return this.timetableRepo.find({
+    const timetables = await this.timetableRepo.find({
       where: { branchId, isDeleted: false },
       relations: RELATIONS,
       order: { dayOfWeek: 'ASC', startTime: 'ASC' },
     });
+    await this.attachSubjectLessons(timetables);
+    return timetables;
+  }
+
+  private async attachSubjectLessons(timetables: Timetable[]) {
+    const subjectIds = [
+      ...new Set(
+        timetables
+          .map((timetable) => timetable.subject?.id)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+
+    if (!subjectIds.length) return;
+
+    const subjectsWithLessons = await this.subjectRepo
+      .createQueryBuilder('subject')
+      .leftJoinAndSelect('subject.lessons', 'lesson')
+      .leftJoinAndSelect('lesson.subjectType', 'lessonSubjectType')
+      .leftJoinAndSelect('lesson.yearLevel', 'lessonYearLevel')
+      .leftJoinAndSelect('lesson.curriculums', 'curriculum')
+      .select('subject.id')
+      .addSelect('lesson')
+      .addSelect('lessonSubjectType')
+      .addSelect('lessonYearLevel')
+      .addSelect('curriculum')
+      .where('subject.id IN (:...subjectIds)', { subjectIds })
+      .getMany();
+
+    const lessonsBySubjectId = new Map(
+      subjectsWithLessons.map((subject) => [subject.id, subject.lessons ?? []]),
+    );
+
+    for (const timetable of timetables) {
+      if (!timetable.subject?.id) continue;
+      timetable.subject.lessons = lessonsBySubjectId.get(timetable.subject.id) ?? [];
+    }
   }
 
   async update(id: string, dto: UpdateTimetableDto): Promise<Timetable> {
