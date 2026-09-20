@@ -20,6 +20,7 @@ import { BranchResponseDto } from './dto/branch-response.dto';
 
 import { ApiConsumes, ApiOperation } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Public } from '../auth/public.decorator';
 
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -88,6 +89,7 @@ export class BranchController {
   }
 
   // GET ALL BRANCHES
+  @Public()
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get all branches' })
@@ -96,6 +98,7 @@ export class BranchController {
   }
 
   // GET ONE BRANCH
+  @Public()
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get branch by id' })
