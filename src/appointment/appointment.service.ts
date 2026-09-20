@@ -7,22 +7,24 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
-import { InjectRepository }      from '@nestjs/typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 import { Between, DataSource, Repository } from 'typeorm';
-import { randomUUID }            from 'crypto';
+import { randomUUID } from 'crypto';
 
-import { Appointment }           from './appointment.entity';
-import { Branch }                from '../branches/branch.entity';
-import { AcademicYear }          from '../academic_years/academic-year.entity';
+import { Appointment } from './appointment.entity';
+import { Branch } from '../branches/branch.entity';
+import { AcademicYear } from '../academic_years/academic-year.entity';
 
-import { CreateAppointmentDto }  from './dto/create-appointment.dto';
-import { UpdateAppointmentDto }  from './dto/update-appointment.dto';
+import { CreateAppointmentDto } from './dto/create-appointment.dto';
+import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { RespondAppointmentDto } from './dto/respond-appointment.dto';
-import { CreatorRescheduleDto }  from './dto/creator-reschedule.dto';
+import { CreatorRescheduleDto } from './dto/creator-reschedule.dto';
 
-
-
-import { AppointmentStatus, ParticipantStatus, PersonType } from './appointment.enum';
+import {
+  AppointmentStatus,
+  ParticipantStatus,
+  PersonType,
+} from './appointment.enum';
 import { AppointmentParticipant } from './dto/appointment-participant.entity';
 import { CacheService } from '../common/cache.service';
 
@@ -83,9 +85,9 @@ export class AppointmentService {
     return randomUUID().replace(/-/g, '').slice(0, 24);
   }
 
-  private withActiveParticipants<T extends { participants?: AppointmentParticipant[] }>(
-    appointment: T,
-  ): T {
+  private withActiveParticipants<
+    T extends { participants?: AppointmentParticipant[] },
+  >(appointment: T): T {
     if (Array.isArray(appointment.participants)) {
       appointment.participants = appointment.participants.filter(
         (p) => !p.is_deleted && p.is_active !== false,
@@ -130,40 +132,40 @@ export class AppointmentService {
     return this.dataSource.transaction(async (manager) => {
       const now = new Date();
       const appointment = manager.create(Appointment, {
-        id:                randomUUID(),
-        created_by:        dto.created_by,
-        creator_role:      dto.creator_role,
-        branch_id:         dto.branch_id,
-        academic_year_id:  dto.academic_year_id,
-        title:             dto.title,
-        description:       dto.description,
+        id: randomUUID(),
+        created_by: dto.created_by,
+        creator_role: dto.creator_role,
+        branch_id: dto.branch_id,
+        academic_year_id: dto.academic_year_id,
+        title: dto.title,
+        description: dto.description,
         appointment_place: dto.appointment_place,
-        date:              new Date(dto.date),
-        from_time:         dto.from_time,
-        to_time:           dto.to_time,
-        status:            AppointmentStatus.SCHEDULED,
-        is_active:         true,
-        is_deleted:        false,
-        created_at:        now,
-        updated_at:        now,
+        date: new Date(dto.date),
+        from_time: dto.from_time,
+        to_time: dto.to_time,
+        status: AppointmentStatus.SCHEDULED,
+        is_active: true,
+        is_deleted: false,
+        created_at: now,
+        updated_at: now,
       });
       await manager.save(Appointment, appointment);
 
       const rows = dto.participants.map((p) =>
         manager.create(AppointmentParticipant, {
-          id:               this.makeParticipantId(),
-          appointment_id:   appointment.id,
-          branch_id:        dto.branch_id,
+          id: this.makeParticipantId(),
+          appointment_id: appointment.id,
+          branch_id: dto.branch_id,
           academic_year_id: dto.academic_year_id,
-          person_id:        p.person_id,
-          person_type: p.person_type as PersonType,
-          status:           ParticipantStatus.PENDING,
+          person_id: p.person_id,
+          person_type: p.person_type,
+          status: ParticipantStatus.PENDING,
           reschedule_count: 0,
-          declined_count:   0,
-          is_active:        true,
-          is_deleted:       false,
-          created_at:       now,
-          updated_at:       now,
+          declined_count: 0,
+          is_active: true,
+          is_deleted: false,
+          created_at: now,
+          updated_at: now,
         }),
       );
       await manager.save(AppointmentParticipant, rows);
@@ -182,30 +184,39 @@ export class AppointmentService {
     if (!participant) throw new NotFoundException('Participant not found');
 
     const appt = participant.appointment!;
-    if (appt.is_deleted)
-      throw new NotFoundException('Appointment not found');
+    if (appt.is_deleted) throw new NotFoundException('Appointment not found');
     if (appt.status === AppointmentStatus.CANCELLED)
       throw new ForbiddenException('Cannot respond to a cancelled appointment');
     if (participant.status === ParticipantStatus.DECLINED)
-      throw new ForbiddenException('You have already declined this appointment');
+      throw new ForbiddenException(
+        'You have already declined this appointment',
+      );
 
     switch (dto.status) {
       case ParticipantStatus.ACCEPTED: {
         const now = new Date();
-        participant.status        = ParticipantStatus.ACCEPTED;
+        participant.status = ParticipantStatus.ACCEPTED;
         participant.response_note = dto.response_note ?? undefined;
-        participant.responded_at  = now;
-        this.appendParticipantHistory(participant, ParticipantStatus.ACCEPTED, now);
+        participant.responded_at = now;
+        this.appendParticipantHistory(
+          participant,
+          ParticipantStatus.ACCEPTED,
+          now,
+        );
         break;
       }
 
       case ParticipantStatus.DECLINED: {
         const now = new Date();
         participant.declined_count += 1;
-        participant.status         = ParticipantStatus.DECLINED;
-        participant.response_note  = dto.response_note ?? undefined;
-        participant.responded_at   = now;
-        this.appendParticipantHistory(participant, ParticipantStatus.DECLINED, now);
+        participant.status = ParticipantStatus.DECLINED;
+        participant.response_note = dto.response_note ?? undefined;
+        participant.responded_at = now;
+        this.appendParticipantHistory(
+          participant,
+          ParticipantStatus.DECLINED,
+          now,
+        );
         break;
       }
 
@@ -248,19 +259,19 @@ export class AppointmentService {
     appointment.previous_rescheduled_to_time =
       appointment.rescheduled_to_time ?? appointment.to_time ?? null;
 
-    appointment.rescheduled_date      = new Date(dto.rescheduled_date);
+    appointment.rescheduled_date = new Date(dto.rescheduled_date);
     appointment.rescheduled_from_time = dto.rescheduled_from_time;
-    appointment.rescheduled_to_time   = dto.rescheduled_to_time;
-    appointment.rescheduled_at        = new Date();
-    appointment.status                = AppointmentStatus.RESCHEDULED;
+    appointment.rescheduled_to_time = dto.rescheduled_to_time;
+    appointment.rescheduled_at = new Date();
+    appointment.status = AppointmentStatus.RESCHEDULED;
 
     const toReset = (appointment.participants ?? []).filter(
       (p) => !p.is_deleted && p.is_active !== false,
     );
     for (const p of toReset) {
-      p.status             = ParticipantStatus.PENDING;
-      p.response_note      = undefined;
-      p.responded_at       = null;
+      p.status = ParticipantStatus.PENDING;
+      p.response_note = undefined;
+      p.responded_at = null;
     }
 
     return this.dataSource.transaction(async (manager) => {
@@ -287,7 +298,9 @@ export class AppointmentService {
           take: limit,
         });
         return {
-          data: data.map((appointment) => this.withActiveParticipants(appointment)),
+          data: data.map((appointment) =>
+            this.withActiveParticipants(appointment),
+          ),
           total,
           page,
           limit,
@@ -301,7 +314,9 @@ export class AppointmentService {
     const where: any = { is_deleted: false };
     if (dateFrom && dateTo) {
       if (dateFrom > dateTo)
-        throw new BadRequestException('dateFrom must be before or equal to dateTo');
+        throw new BadRequestException(
+          'dateFrom must be before or equal to dateTo',
+        );
       where.date = Between(new Date(dateFrom), new Date(dateTo));
     }
     return this.cache.getOrSet(
@@ -353,7 +368,9 @@ export class AppointmentService {
           take: limit,
         });
         return {
-          data: data.map((appointment) => this.withActiveParticipants(appointment)),
+          data: data.map((appointment) =>
+            this.withActiveParticipants(appointment),
+          ),
           total,
           page,
           limit,
@@ -398,7 +415,9 @@ export class AppointmentService {
           take: limit,
         });
         return {
-          data: data.map((appointment) => this.withActiveParticipants(appointment)),
+          data: data.map((appointment) =>
+            this.withActiveParticipants(appointment),
+          ),
           total,
           page,
           limit,
@@ -414,7 +433,7 @@ export class AppointmentService {
       (p) => p.status === ParticipantStatus.RESCHEDULED,
     );
     return {
-      appointment_id:      appointmentId,
+      appointment_id: appointmentId,
       reschedule_requests: requests,
     };
   }
@@ -429,11 +448,11 @@ export class AppointmentService {
     });
     if (!existing) throw new NotFoundException('Appointment not found');
 
-    if (dto.branch_id)        await this.assertBranch(dto.branch_id);
+    if (dto.branch_id) await this.assertBranch(dto.branch_id);
     if (dto.academic_year_id) await this.assertYear(dto.academic_year_id);
 
     const from = dto.from_time ?? existing.from_time;
-    const to   = dto.to_time   ?? existing.to_time;
+    const to = dto.to_time ?? existing.to_time;
     if (from && to) {
       this.assertTimeRange(from, to);
     }
@@ -453,8 +472,8 @@ export class AppointmentService {
       if (!a) throw new NotFoundException('Appointment not found');
 
       a.is_deleted = true;
-      a.is_active  = false;
-      a.status     = AppointmentStatus.CANCELLED;
+      a.is_active = false;
+      a.status = AppointmentStatus.CANCELLED;
 
       await manager.update(
         AppointmentParticipant,

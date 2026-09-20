@@ -21,7 +21,9 @@ export class AddTaskFeedPerformanceIndexes1780000000020
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_files_task_deleted_created"');
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_files_task_deleted_created"',
+    );
     await queryRunner.query('DROP INDEX IF EXISTS "idx_tasks_student_created"');
     await queryRunner.query('DROP INDEX IF EXISTS "idx_tasks_created_desc"');
   }

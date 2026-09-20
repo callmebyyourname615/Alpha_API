@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  OnModuleInit,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindManyOptions, FindOneOptions, Repository } from 'typeorm';
 import { Notification } from './notification.entity';
@@ -31,7 +36,9 @@ export class NotificationsService implements OnModuleInit {
     );
   }
 
-  private async findWithRetry(options: FindManyOptions<Notification>): Promise<Notification[]> {
+  private async findWithRetry(
+    options: FindManyOptions<Notification>,
+  ): Promise<Notification[]> {
     try {
       return await this.repo.find(options);
     } catch (error: any) {
@@ -46,7 +53,9 @@ export class NotificationsService implements OnModuleInit {
     }
   }
 
-  private async findOneWithRetry(options: FindOneOptions<Notification>): Promise<Notification | null> {
+  private async findOneWithRetry(
+    options: FindOneOptions<Notification>,
+  ): Promise<Notification | null> {
     try {
       return await this.repo.findOne(options);
     } catch (error: any) {
@@ -72,7 +81,10 @@ export class NotificationsService implements OnModuleInit {
   // ================= CREATE =================
   async create(dto: CreateNotificationDto) {
     if (dto.module_type === 'TASK') {
-      await this.taskAccess.assertAdminCanMutateTask(dto.module_id, dto.admin_id);
+      await this.taskAccess.assertAdminCanMutateTask(
+        dto.module_id,
+        dto.admin_id,
+      );
     }
     const data = this.repo.create(dto);
     const saved = await this.repo.save(data);
@@ -82,12 +94,15 @@ export class NotificationsService implements OnModuleInit {
 
   // ================= GET ALL =================
   async findAll() {
-    return this.cache.getOrSet('notifications:all', this.notificationListTtlSeconds, () =>
-      this.findWithRetry({
-        where: { is_deleted: false },
-        relations: [...this.notificationRelations],
-        order: { created_at: 'DESC' },
-      }),
+    return this.cache.getOrSet(
+      'notifications:all',
+      this.notificationListTtlSeconds,
+      () =>
+        this.findWithRetry({
+          where: { is_deleted: false },
+          relations: [...this.notificationRelations],
+          order: { created_at: 'DESC' },
+        }),
     );
   }
 
@@ -112,7 +127,10 @@ export class NotificationsService implements OnModuleInit {
   async update(id: string, dto: UpdateNotificationDto) {
     const data = await this.findOneUncached(id);
     if ((dto as any).module_type === 'TASK' || data.module_type === 'TASK') {
-      await this.taskAccess.assertAdminCanMutateTask((dto as any).module_id || data.module_id, (dto as any).admin_id || data.admin_id);
+      await this.taskAccess.assertAdminCanMutateTask(
+        (dto as any).module_id || data.module_id,
+        (dto as any).admin_id || data.admin_id,
+      );
     }
     Object.assign(data, dto);
     const saved = await this.repo.save(data);
@@ -124,7 +142,10 @@ export class NotificationsService implements OnModuleInit {
   async remove(id: string) {
     const data = await this.findOneUncached(id);
     if (data.module_type === 'TASK') {
-      await this.taskAccess.assertAdminCanMutateTask(data.module_id, data.admin_id);
+      await this.taskAccess.assertAdminCanMutateTask(
+        data.module_id,
+        data.admin_id,
+      );
     }
     data.is_deleted = true;
     const saved = await this.repo.save(data);
@@ -138,11 +159,11 @@ export class NotificationsService implements OnModuleInit {
       `notifications:branch:${body.branch_id}`,
       this.notificationListTtlSeconds,
       () =>
-      this.findWithRetry({
-        where: { branch_id: body.branch_id, is_deleted: false },
-        relations: [...this.notificationRelations],
-        order: { created_at: 'DESC' },
-      }),
+        this.findWithRetry({
+          where: { branch_id: body.branch_id, is_deleted: false },
+          relations: [...this.notificationRelations],
+          order: { created_at: 'DESC' },
+        }),
     );
   }
 
@@ -152,11 +173,11 @@ export class NotificationsService implements OnModuleInit {
       `notifications:parent:${parentId}`,
       this.notificationListTtlSeconds,
       () =>
-      this.findWithRetry({
-        where: { parent_id: parentId, is_deleted: false },
-        relations: [...this.notificationRelations],
-        order: { created_at: 'DESC' },
-      }),
+        this.findWithRetry({
+          where: { parent_id: parentId, is_deleted: false },
+          relations: [...this.notificationRelations],
+          order: { created_at: 'DESC' },
+        }),
     );
   }
 
@@ -166,11 +187,11 @@ export class NotificationsService implements OnModuleInit {
       `notifications:student:${studentId}`,
       this.notificationListTtlSeconds,
       () =>
-      this.findWithRetry({
-        where: { student_id: studentId, is_deleted: false },
-        relations: [...this.notificationRelations],
-        order: { created_at: 'DESC' },
-      }),
+        this.findWithRetry({
+          where: { student_id: studentId, is_deleted: false },
+          relations: [...this.notificationRelations],
+          order: { created_at: 'DESC' },
+        }),
     );
   }
 
@@ -193,7 +214,9 @@ export class NotificationsService implements OnModuleInit {
     return saved;
   }
 
-  private async clearNotificationCache(notification?: Notification): Promise<void> {
+  private async clearNotificationCache(
+    notification?: Notification,
+  ): Promise<void> {
     await this.cache.del('notifications:all');
     await this.cache.delPattern('notifications:branch:*');
     await this.cache.delPattern('notifications:parent:*');

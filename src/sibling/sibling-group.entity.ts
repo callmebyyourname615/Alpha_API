@@ -16,12 +16,12 @@ import { Student } from '../students/student.entity';
 // =========================
 
 export enum SiblingRelationType {
-  FULL     = 'full',
-  HALF     = 'half',
-  STEP     = 'step',
-  TWIN     = 'twin',
-  ADOPTED  = 'adopted',
-  OTHER    = 'other',
+  FULL = 'full',
+  HALF = 'half',
+  STEP = 'step',
+  TWIN = 'twin',
+  ADOPTED = 'adopted',
+  OTHER = 'other',
 }
 
 // =========================
@@ -77,7 +77,7 @@ export class SiblingGroup {
   @ManyToMany(() => Student)
   @JoinTable({
     name: 'sibling_group_students',
-    joinColumn:        { name: 'group_id',   referencedColumnName: 'id' },
+    joinColumn: { name: 'group_id', referencedColumnName: 'id' },
     inverseJoinColumn: { name: 'student_id', referencedColumnName: 'id' },
   })
   students: Student[];

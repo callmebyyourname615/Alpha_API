@@ -30,12 +30,21 @@ export class AnnouncementsService {
   // ================= GET ACTIVE =================
   async findActive() {
     const today = new Date().toISOString().split('T')[0];
-    return await this.repo.createQueryBuilder('announcement')
+    return await this.repo
+      .createQueryBuilder('announcement')
       .leftJoinAndSelect('announcement.branch', 'branch')
       .where('announcement.is_deleted = false')
-      .andWhere('announcement.status = :status', { status: AnnouncementStatus.ACTIVE })
-      .andWhere('(announcement.start_date IS NULL OR announcement.start_date <= :today)', { today })
-      .andWhere('(announcement.end_date IS NULL OR announcement.end_date >= :today)', { today })
+      .andWhere('announcement.status = :status', {
+        status: AnnouncementStatus.ACTIVE,
+      })
+      .andWhere(
+        '(announcement.start_date IS NULL OR announcement.start_date <= :today)',
+        { today },
+      )
+      .andWhere(
+        '(announcement.end_date IS NULL OR announcement.end_date >= :today)',
+        { today },
+      )
       .orderBy('announcement.created_at', 'DESC')
       .getMany();
   }

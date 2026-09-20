@@ -49,7 +49,7 @@ export class SiblingGroupMember {
   @ManyToOne(() => Admin, { nullable: true })
   @JoinColumn({ name: 'added_by' })
   addedBy: Admin;
-  
+
   @CreateDateColumn({ type: 'timestamptz', name: 'joined_at' })
   joinedAt: Date;
 }

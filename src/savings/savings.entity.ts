@@ -86,7 +86,7 @@ export class Saving {
     enum: SavingTransactionType,
   })
   transaction_type: SavingTransactionType;
-  
+
   @Column({ type: 'numeric', precision: 18, scale: 2, default: 0 })
   opening_balance: number;
 

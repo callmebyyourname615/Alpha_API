@@ -1,4 +1,12 @@
-import { Controller, Post, Get, Put, Delete, Body, Param } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Put,
+  Delete,
+  Body,
+  Param,
+} from '@nestjs/common';
 import { LevelsService } from './levels.service';
 import { CreateLevelDto } from './dto/create-level.dto';
 import { UpdateLevelDto } from './dto/update-level.dto';
@@ -24,7 +32,10 @@ export class LevelsController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateLevelDto): Promise<Level | null> {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateLevelDto,
+  ): Promise<Level | null> {
     return this.service.update(id, dto);
   }
 

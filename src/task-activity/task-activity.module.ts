@@ -10,7 +10,16 @@ import { TaskActivityService } from './task-activity.service';
 import { TaskActivityController } from './task-activity.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Task, TaskSubmission, TaskSubmissionAttempt, TaskSubmissionSlot, Comment, Notification])],
+  imports: [
+    TypeOrmModule.forFeature([
+      Task,
+      TaskSubmission,
+      TaskSubmissionAttempt,
+      TaskSubmissionSlot,
+      Comment,
+      Notification,
+    ]),
+  ],
   providers: [TaskActivityService],
   controllers: [TaskActivityController],
 })

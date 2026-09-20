@@ -1,5 +1,15 @@
 import { Transform } from 'class-transformer';
-import { ArrayUnique, IsArray, IsDateString, IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
+import {
+  ArrayUnique,
+  IsArray,
+  IsDateString,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  Min,
+} from 'class-validator';
 
 const parseInt10 = ({ value }: { value: unknown }) => {
   if (typeof value === 'number') return value;

@@ -27,15 +27,15 @@ export class ParasiteInjectionService {
 
   // ─── Relations helper ──────────────────────────────────────────────────────
 
-private withRelations() {
-  return {
-    student: true,
-    class: true,
-    branch: true,
-    academicYear: true,
-    administeredBy: true,
-  } as const;
-}
+  private withRelations() {
+    return {
+      student: true,
+      class: true,
+      branch: true,
+      academicYear: true,
+      administeredBy: true,
+    } as const;
+  }
 
   // ─── Guard helpers ─────────────────────────────────────────────────────────
 
@@ -43,7 +43,8 @@ private withRelations() {
     const student = await this.studentRepo.findOne({
       where: { id: studentId, is_deleted: false },
     });
-    if (!student) throw new NotFoundException(`Student "${studentId}" not found`);
+    if (!student)
+      throw new NotFoundException(`Student "${studentId}" not found`);
     return student;
   }
 
@@ -58,32 +59,32 @@ private withRelations() {
     await this.guardStudent(dto.studentId);
 
     const record = this.repo.create({
-  ...dto,
+      ...dto,
 
-  classId: dto.classId ?? null,
+      classId: dto.classId ?? null,
 
-  branchId: dto.branchId ?? null,
-  academicYearId: dto.academicYearId ?? null,
-  administeredById: dto.administeredById ?? null,
+      branchId: dto.branchId ?? null,
+      academicYearId: dto.academicYearId ?? null,
+      administeredById: dto.administeredById ?? null,
 
-  drug_form: dto.drug_form ?? null,
-  batch_number: dto.batch_number ?? null,
-  expiry_date: dto.expiry_date ?? null,
+      drug_form: dto.drug_form ?? null,
+      batch_number: dto.batch_number ?? null,
+      expiry_date: dto.expiry_date ?? null,
 
-  next_due_date: dto.next_due_date ?? null,
-  treatment_program: dto.treatment_program ?? null,
+      next_due_date: dto.next_due_date ?? null,
+      treatment_program: dto.treatment_program ?? null,
 
-  reaction: dto.reaction ?? null,
-  reaction_detail: dto.reaction_detail ?? null,
+      reaction: dto.reaction ?? null,
+      reaction_detail: dto.reaction_detail ?? null,
 
-  weight_kg: dto.weight_kg ?? null,
-  note: dto.note ?? null,
+      weight_kg: dto.weight_kg ?? null,
+      note: dto.note ?? null,
 
-  status: dto.status ?? InjectionStatus.COMPLETED,
+      status: dto.status ?? InjectionStatus.COMPLETED,
 
-  is_active: true,
-  is_deleted: false,
-}) as ParasiteInjection;
+      is_active: true,
+      is_deleted: false,
+    });
 
     return this.repo.save(record);
   }
@@ -92,9 +93,9 @@ private withRelations() {
 
   async findAll(): Promise<ParasiteInjection[]> {
     return this.repo.find({
-      where:   { is_deleted: false },
+      where: { is_deleted: false },
       relations: this.withRelations(),
-      order:   { administered_date: 'DESC' },
+      order: { administered_date: 'DESC' },
     });
   }
 
@@ -104,9 +105,9 @@ private withRelations() {
   async findByStudent(studentId: string): Promise<ParasiteInjection[]> {
     await this.guardStudent(studentId);
     return this.repo.find({
-      where:     { studentId, is_deleted: false },
+      where: { studentId, is_deleted: false },
       relations: this.withRelations(),
-      order:     { administered_date: 'DESC', round_number: 'DESC' },
+      order: { administered_date: 'DESC', round_number: 'DESC' },
     });
   }
 
@@ -114,7 +115,7 @@ private withRelations() {
 
   async findOne(id: string): Promise<ParasiteInjection> {
     const record = await this.repo.findOne({
-      where:     { id, is_deleted: false },
+      where: { id, is_deleted: false },
       relations: this.withRelations(),
     });
     if (!record) throw new NotFoundException(`Record "${id}" not found`);
@@ -122,7 +123,7 @@ private withRelations() {
   }
 
   // ─── READ BY CLASS ───────────────────────────────────────────────────────
-// Returns all parasite injection history for students in a class
+  // Returns all parasite injection history for students in a class
 
   // ─── UPDATE ────────────────────────────────────────────────────────────────
 
@@ -133,34 +134,34 @@ private withRelations() {
     const record = await this.findOne(id);
     this.guardNotDeleted(record);
 
-   Object.assign(record, {
-  classId: dto.classId ?? record.classId,
+    Object.assign(record, {
+      classId: dto.classId ?? record.classId,
 
-  branchId: dto.branchId ?? record.branchId,
-  academicYearId: dto.academicYearId ?? record.academicYearId,
-  administeredById: dto.administeredById ?? record.administeredById,
+      branchId: dto.branchId ?? record.branchId,
+      academicYearId: dto.academicYearId ?? record.academicYearId,
+      administeredById: dto.administeredById ?? record.administeredById,
 
-  parasite_type: dto.parasite_type ?? record.parasite_type,
-  drug_name: dto.drug_name ?? record.drug_name,
-  dosage: dto.dosage ?? record.dosage,
-  drug_form: dto.drug_form ?? record.drug_form,
-  batch_number: dto.batch_number ?? record.batch_number,
-  expiry_date: dto.expiry_date ?? record.expiry_date,
+      parasite_type: dto.parasite_type ?? record.parasite_type,
+      drug_name: dto.drug_name ?? record.drug_name,
+      dosage: dto.dosage ?? record.dosage,
+      drug_form: dto.drug_form ?? record.drug_form,
+      batch_number: dto.batch_number ?? record.batch_number,
+      expiry_date: dto.expiry_date ?? record.expiry_date,
 
-  administered_date: dto.administered_date ?? record.administered_date,
-  round_number: dto.round_number ?? record.round_number,
-  next_due_date: dto.next_due_date ?? record.next_due_date,
+      administered_date: dto.administered_date ?? record.administered_date,
+      round_number: dto.round_number ?? record.round_number,
+      next_due_date: dto.next_due_date ?? record.next_due_date,
 
-  treatment_program: dto.treatment_program ?? record.treatment_program,
+      treatment_program: dto.treatment_program ?? record.treatment_program,
 
-  reaction: dto.reaction ?? record.reaction,
-  reaction_detail: dto.reaction_detail ?? record.reaction_detail,
+      reaction: dto.reaction ?? record.reaction,
+      reaction_detail: dto.reaction_detail ?? record.reaction_detail,
 
-  weight_kg: dto.weight_kg ?? record.weight_kg,
-  note: dto.note ?? record.note,
+      weight_kg: dto.weight_kg ?? record.weight_kg,
+      note: dto.note ?? record.note,
 
-  status: dto.status ?? record.status,
-});
+      status: dto.status ?? record.status,
+    });
 
     return this.repo.save(record);
   }
@@ -171,8 +172,10 @@ private withRelations() {
     const record = await this.findOne(id);
     this.guardNotDeleted(record);
     record.is_deleted = true;
-    record.is_active  = false;
+    record.is_active = false;
     await this.repo.save(record);
-    return { message: `Parasite injection record "${id}" deleted successfully` };
+    return {
+      message: `Parasite injection record "${id}" deleted successfully`,
+    };
   }
 }

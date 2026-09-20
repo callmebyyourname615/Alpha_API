@@ -47,7 +47,10 @@ export class ExaminationService {
 
   async create(
     dto: CreateExaminationDto,
-    files: { exam_file?: Express.Multer.File[]; answer_file?: Express.Multer.File[] },
+    files: {
+      exam_file?: Express.Multer.File[];
+      answer_file?: Express.Multer.File[];
+    },
   ): Promise<Examination> {
     const maxScore = Number(dto.maxScore ?? 100);
     const passScore = Number(dto.passScore ?? 50);
@@ -76,7 +79,9 @@ export class ExaminationService {
         where: { id: superAdminRoleId, isDeleted: false },
       });
       if (!superAdminRole) {
-        throw new NotFoundException(`Super admin role ${superAdminRoleId} not found`);
+        throw new NotFoundException(
+          `Super admin role ${superAdminRoleId} not found`,
+        );
       }
     }
 
@@ -100,7 +105,9 @@ export class ExaminationService {
     const saved = await this.examinationRepository.save(examination);
 
     // Send notifications asynchronously (don't block the response)
-    this.sendExamNotifications(saved).catch(() => {/* silent — notification failure shouldn't break exam creation */});
+    this.sendExamNotifications(saved).catch(() => {
+      /* silent — notification failure shouldn't break exam creation */
+    });
 
     return this.findOne(saved.id);
   }
@@ -108,8 +115,11 @@ export class ExaminationService {
   private async sendExamNotifications(exam: Examination): Promise<void> {
     const examDate = new Date(exam.examDate);
     const dateStr = examDate.toLocaleDateString('en-US', {
-      year: 'numeric', month: 'long', day: 'numeric',
-      hour: '2-digit', minute: '2-digit',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
     const title = `New examination: ${exam.title}`;
     const message = `You have been assigned to check "${exam.title}" on ${dateStr}.`;
@@ -126,10 +136,11 @@ export class ExaminationService {
         module_type: 'EXAMINATION',
       });
     }
-
   }
 
-  private async sendSuperAdminApprovalRequestNotifications(exam: Examination): Promise<void> {
+  private async sendSuperAdminApprovalRequestNotifications(
+    exam: Examination,
+  ): Promise<void> {
     const title = `Examination pending approval: ${exam.title}`;
     const message = `The checker has checked "${exam.title}". Please review and approve it.`;
 
@@ -210,7 +221,10 @@ export class ExaminationService {
   async update(
     id: string,
     dto: UpdateExaminationDto,
-    files: { exam_file?: Express.Multer.File[]; answer_file?: Express.Multer.File[] },
+    files: {
+      exam_file?: Express.Multer.File[];
+      answer_file?: Express.Multer.File[];
+    },
   ): Promise<Examination> {
     const examination = await this.findOne(id);
 
@@ -262,7 +276,9 @@ export class ExaminationService {
 
     await this.examinationRepository.save(examination);
     if (shouldResendToChecker) {
-      this.sendExamNotifications(examination).catch(() => {/* silent — notification failure shouldn't break update */});
+      this.sendExamNotifications(examination).catch(() => {
+        /* silent — notification failure shouldn't break update */
+      });
     }
     return this.findOne(id);
   }
@@ -273,7 +289,9 @@ export class ExaminationService {
     examination.superAdminStatus = 'PENDING';
     examination.checkerRejectComment = null;
     await this.examinationRepository.save(examination);
-    this.sendSuperAdminApprovalRequestNotifications(examination).catch(() => {/* silent — notification failure shouldn't break check */});
+    this.sendSuperAdminApprovalRequestNotifications(examination).catch(() => {
+      /* silent — notification failure shouldn't break check */
+    });
     return this.findOne(id);
   }
 
@@ -301,7 +319,9 @@ export class ExaminationService {
     examination.superAdminRejectComment = null;
     examination.lockedUntil = null;
     await this.examinationRepository.save(examination);
-    this.sendExamApprovedNotification(examination).catch(() => {/* silent — notification failure shouldn't break approve */});
+    this.sendExamApprovedNotification(examination).catch(() => {
+      /* silent — notification failure shouldn't break approve */
+    });
     return this.findOne(id);
   }
 

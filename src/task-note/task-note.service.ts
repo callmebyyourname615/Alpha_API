@@ -28,10 +28,17 @@ export class TaskNoteService {
     return this.repo.save(note);
   }
 
-  async update(id: string, dto: UpdateTaskNoteDto, adminId?: string): Promise<TaskNote> {
+  async update(
+    id: string,
+    dto: UpdateTaskNoteDto,
+    adminId?: string,
+  ): Promise<TaskNote> {
     const note = await this.repo.findOne({ where: { id } });
     if (!note) throw new NotFoundException('Task note not found');
-    await this.taskAccess.assertAdminCanMutateTask(note.task_id, adminId || note.admin_id);
+    await this.taskAccess.assertAdminCanMutateTask(
+      note.task_id,
+      adminId || note.admin_id,
+    );
     note.note = dto.note;
     return this.repo.save(note);
   }
@@ -39,7 +46,10 @@ export class TaskNoteService {
   async delete(id: string, adminId?: string): Promise<{ message: string }> {
     const note = await this.repo.findOne({ where: { id } });
     if (!note) throw new NotFoundException('Task note not found');
-    await this.taskAccess.assertAdminCanMutateTask(note.task_id, adminId || note.admin_id);
+    await this.taskAccess.assertAdminCanMutateTask(
+      note.task_id,
+      adminId || note.admin_id,
+    );
     await this.repo.remove(note);
     return { message: 'Task note deleted' };
   }

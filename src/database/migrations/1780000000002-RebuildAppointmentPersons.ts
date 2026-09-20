@@ -7,7 +7,9 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * entity. Rebuild it with only its live columns, while retaining the original
  * table as a rollback backup.
  */
-export class RebuildAppointmentPersons1780000000002 implements MigrationInterface {
+export class RebuildAppointmentPersons1780000000002
+  implements MigrationInterface
+{
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
       CREATE TABLE "appointment_persons__rebuild_1780000000002" (

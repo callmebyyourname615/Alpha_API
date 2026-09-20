@@ -5,7 +5,9 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * Official reschedules live on appointments.rescheduled_*, so remove the
  * unused, empty proposal columns from appointment_persons.
  */
-export class RemoveUnusedParticipantProposals1780000000003 implements MigrationInterface {
+export class RemoveUnusedParticipantProposals1780000000003
+  implements MigrationInterface
+{
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
       ALTER TABLE "appointment_persons"

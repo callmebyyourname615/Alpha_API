@@ -10,7 +10,16 @@ import {
 @Entity('rubric_evaluation_final_scores')
 @Index(
   'UQ_rubric_eval_final_scope',
-  ['classId', 'studentId', 'subjectKey', 'reportForm', 'reportMonth', 'reportYear', 'lessonFrom', 'lessonTo'],
+  [
+    'classId',
+    'studentId',
+    'subjectKey',
+    'reportForm',
+    'reportMonth',
+    'reportYear',
+    'lessonFrom',
+    'lessonTo',
+  ],
   { unique: true },
 )
 export class RubricEvaluationFinalScore {

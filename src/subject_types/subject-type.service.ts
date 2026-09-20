@@ -32,8 +32,10 @@ export class SubjectTypeService {
   }
 
   async findOne(id: string): Promise<SubjectType> {
-    const subjectType = await this.cache.getOrSet(`subject-types:${id}`, 900, () =>
-      this.findOneUncached(id),
+    const subjectType = await this.cache.getOrSet(
+      `subject-types:${id}`,
+      900,
+      () => this.findOneUncached(id),
     );
 
     return subjectType;

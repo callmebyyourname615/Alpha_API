@@ -451,17 +451,16 @@ export class GalleryService {
     const postIds = posts.map((post) => post.id);
     const validViewer =
       viewer?.actor_id && viewer?.actor_type && this.isUuid(viewer.actor_id);
-    const viewerLike =
-      validViewer
-        ? this.likes.find({
-            where: {
-              gallery_id: In(postIds),
-              actor_id: viewer.actor_id,
-              actor_type: viewer.actor_type,
-            },
-            select: ['gallery_id'],
-          })
-        : Promise.resolve([]);
+    const viewerLike = validViewer
+      ? this.likes.find({
+          where: {
+            gallery_id: In(postIds),
+            actor_id: viewer.actor_id,
+            actor_type: viewer.actor_type,
+          },
+          select: ['gallery_id'],
+        })
+      : Promise.resolve([]);
     const [
       photos,
       tags,
@@ -519,10 +518,7 @@ export class GalleryService {
     });
   }
 
-  private groupBy<T>(
-    items: T[],
-    keyOf: (item: T) => string,
-  ): Map<string, T[]> {
+  private groupBy<T>(items: T[], keyOf: (item: T) => string): Map<string, T[]> {
     const grouped = new Map<string, T[]>();
     for (const item of items) {
       const key = keyOf(item);
@@ -761,17 +757,19 @@ export class GalleryService {
   private isUuid(value?: string) {
     return Boolean(
       value &&
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-        value,
-      ),
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          value,
+        ),
     );
   }
 
   private stableCacheKey(value: Record<string, unknown>): string {
-    return Object.keys(value)
-      .sort()
-      .map((key) => `${key}=${String(value[key] ?? '').trim()}`)
-      .join('&') || 'default';
+    return (
+      Object.keys(value)
+        .sort()
+        .map((key) => `${key}=${String(value[key] ?? '').trim()}`)
+        .join('&') || 'default'
+    );
   }
 
   private async clearGalleryCache(id?: string): Promise<void> {

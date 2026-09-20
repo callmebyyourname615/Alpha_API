@@ -36,14 +36,18 @@ export class AddEnrollmentReadListIndexes1780000000028
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_enrollments_created_desc"');
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_enrollments_created_desc"',
+    );
     await queryRunner.query(
       'DROP INDEX IF EXISTS "idx_enrollments_branch_year_active_created"',
     );
     await queryRunner.query(
       'DROP INDEX IF EXISTS "idx_enrollments_student_active_created"',
     );
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_enrollments_student_created"');
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_enrollments_student_created"',
+    );
     await queryRunner.query(
       'DROP INDEX IF EXISTS "idx_enrollments_class_active_created"',
     );

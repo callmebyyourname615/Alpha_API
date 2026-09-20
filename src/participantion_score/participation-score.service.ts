@@ -40,7 +40,7 @@ export class ParticipationScoreService {
     const entity = this.repo.create({
       branchId: dto.branchId,
       academicYearId: dto.academicYearId,
-      levelId: dto.levelId,       // ← added
+      levelId: dto.levelId, // ← added
       classId: dto.classId,
       addedBy: dto.addedBy,
       date: dto.date ? this.normalizeDate(dto.date) : null,
@@ -72,12 +72,12 @@ export class ParticipationScoreService {
     const record = await this.repo.findOne({ where: { id } });
     if (!record) throw new NotFoundException('Participation score not found');
 
-    if (dto.branchId)       record.branchId = dto.branchId;
+    if (dto.branchId) record.branchId = dto.branchId;
     if (dto.academicYearId) record.academicYearId = dto.academicYearId;
-    if (dto.levelId)        record.levelId = dto.levelId;   // ← added
-    if (dto.classId)        record.classId = dto.classId;
-    if (dto.addedBy)        record.addedBy = dto.addedBy;
-    if (dto.date)           record.date = this.normalizeDate(dto.date);
+    if (dto.levelId) record.levelId = dto.levelId; // ← added
+    if (dto.classId) record.classId = dto.classId;
+    if (dto.addedBy) record.addedBy = dto.addedBy;
+    if (dto.date) record.date = this.normalizeDate(dto.date);
 
     if (dto.scores) {
       record.scores = dto.scores.map((s) => ({
@@ -107,7 +107,7 @@ export class ParticipationScoreService {
       where: {
         branchId: dto.branchId,
         academicYearId: dto.academicYearId,
-        levelId: dto.levelId,     // ← added to uniqueness check
+        levelId: dto.levelId, // ← added to uniqueness check
         classId: dto.classId,
         date: targetDate,
       },
@@ -115,7 +115,8 @@ export class ParticipationScoreService {
 
     // load participation names from DB
     const participationIds = dto.scores.map((s) => s.participationId);
-    const participations = await this.participationRepo.findByIds(participationIds);
+    const participations =
+      await this.participationRepo.findByIds(participationIds);
     const participationMap: Record<string, string> = {};
     participations.forEach((p) => (participationMap[p.id] = p.name));
 
@@ -127,7 +128,8 @@ export class ParticipationScoreService {
             sc.participationId === s.participationId,
         );
 
-        const nameFromDB = participationMap[s.participationId] || 'Unknown Activity';
+        const nameFromDB =
+          participationMap[s.participationId] || 'Unknown Activity';
 
         if (idx >= 0) {
           existing.scores[idx].score = s.score;
@@ -148,14 +150,15 @@ export class ParticipationScoreService {
     const entity = this.repo.create({
       branchId: dto.branchId,
       academicYearId: dto.academicYearId,
-      levelId: dto.levelId,       // ← added
+      levelId: dto.levelId, // ← added
       classId: dto.classId,
       addedBy: dto.addedBy,
       date: targetDate,
       scores: dto.scores.map((s) => ({
         studentId: s.studentId,
         participationId: s.participationId,
-        participationName: participationMap[s.participationId] || 'Unknown Activity',
+        participationName:
+          participationMap[s.participationId] || 'Unknown Activity',
         score: s.score,
       })),
     });
@@ -167,7 +170,7 @@ export class ParticipationScoreService {
   async getScoresByFilter(filter: {
     branchId: string;
     academicYearId: string;
-    levelId: string;              // ← added
+    levelId: string; // ← added
     classId: string;
     date: Date;
   }): Promise<ScoreResult[]> {
@@ -180,7 +183,7 @@ export class ParticipationScoreService {
       where: {
         branchId: filter.branchId,
         academicYearId: filter.academicYearId,
-        levelId: filter.levelId,  // ← added
+        levelId: filter.levelId, // ← added
         classId: filter.classId,
         date: Between(startOfDay, endOfDay),
       },
@@ -189,8 +192,19 @@ export class ParticipationScoreService {
     // students in the selected class
     const students = await this.studentRepo.find({
       where: { enrollments: { class: { id: filter.classId } } },
-      select: ['id', 'first_name_lao', 'last_name_lao', 'first_name_eng', 'last_name_eng'],
-      order: { first_name_lao: 'ASC', last_name_lao: 'ASC', first_name_eng: 'ASC', last_name_eng: 'ASC' },
+      select: [
+        'id',
+        'first_name_lao',
+        'last_name_lao',
+        'first_name_eng',
+        'last_name_eng',
+      ],
+      order: {
+        first_name_lao: 'ASC',
+        last_name_lao: 'ASC',
+        first_name_eng: 'ASC',
+        last_name_eng: 'ASC',
+      },
     });
 
     // participation lists that belong to the selected level only ← key fix
@@ -206,12 +220,14 @@ export class ParticipationScoreService {
     for (const student of students) {
       for (const activity of activities) {
         const existing = scoreRecord?.scores?.find(
-          (s) => s.studentId === student.id && s.participationId === activity.id,
+          (s) =>
+            s.studentId === student.id && s.participationId === activity.id,
         );
 
         result.push({
           studentId: student.id,
-          studentName: `${student.first_name_lao || ''} ${student.last_name_lao || ''} (${student.first_name_eng || ''} ${student.last_name_eng || ''})`.trim(),
+          studentName:
+            `${student.first_name_lao || ''} ${student.last_name_lao || ''} (${student.first_name_eng || ''} ${student.last_name_eng || ''})`.trim(),
           participationId: activity.id,
           participationName: activity.name || 'Unknown',
           score: existing?.score ?? 0,

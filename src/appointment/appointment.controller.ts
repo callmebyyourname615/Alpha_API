@@ -15,11 +15,11 @@ import {
   DefaultValuePipe,
   ParseIntPipe,
 } from '@nestjs/common';
-import { AppointmentService }    from './appointment.service';
-import { CreateAppointmentDto }  from './dto/create-appointment.dto';
-import { UpdateAppointmentDto }  from './dto/update-appointment.dto';
+import { AppointmentService } from './appointment.service';
+import { CreateAppointmentDto } from './dto/create-appointment.dto';
+import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { RespondAppointmentDto } from './dto/respond-appointment.dto';
-import { CreatorRescheduleDto }  from './dto/creator-reschedule.dto';
+import { CreatorRescheduleDto } from './dto/creator-reschedule.dto';
 
 @Controller('appointments')
 export class AppointmentController {
@@ -34,7 +34,7 @@ export class AppointmentController {
   // GET /appointments?page=1&limit=20
   @Get()
   findAll(
-    @Query('page',  new DefaultValuePipe(1),  ParseIntPipe) page:  number,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
   ) {
     return this.service.findAll(page, limit);
@@ -44,7 +44,7 @@ export class AppointmentController {
   @Get('search')
   findByDate(
     @Query('dateFrom') dateFrom?: string,
-    @Query('dateTo')   dateTo?:   string,
+    @Query('dateTo') dateTo?: string,
   ) {
     return this.service.findByDate(dateFrom, dateTo);
   }
@@ -53,7 +53,7 @@ export class AppointmentController {
   @Get('person/:personId')
   findByPerson(
     @Param('personId', ParseUUIDPipe) personId: string,
-    @Query('page',  new DefaultValuePipe(1),  ParseIntPipe) page:  number,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
   ) {
     return this.service.findByPerson(personId, page, limit);
@@ -63,7 +63,7 @@ export class AppointmentController {
   @Get('created-by/:creatorId')
   findByCreator(
     @Param('creatorId', ParseUUIDPipe) creatorId: string,
-    @Query('page',  new DefaultValuePipe(1),  ParseIntPipe) page:  number,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
   ) {
     return this.service.findByCreator(creatorId, page, limit);
@@ -73,7 +73,7 @@ export class AppointmentController {
   @Get('branch/:branch_id')
   findByBranch(
     @Param('branch_id', ParseUUIDPipe) branch_id: string,
-    @Query('page',  new DefaultValuePipe(1),  ParseIntPipe) page:  number,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
   ) {
     return this.service.findByBranch(branch_id, page, limit);

@@ -63,8 +63,12 @@ export class EvaluationService {
     const evaluation = this.evaluationRepo.create({
       admin: { id: dto.adminId } as Evaluation['admin'],
       student: { id: dto.studentId } as Evaluation['student'],
-      ...(dto.subjectId ? { subject: { id: dto.subjectId } as Evaluation['subject'] } : {}),
-      ...(dto.classId ? { class: { id: dto.classId } as Evaluation['class'] } : {}),
+      ...(dto.subjectId
+        ? { subject: { id: dto.subjectId } as Evaluation['subject'] }
+        : {}),
+      ...(dto.classId
+        ? { class: { id: dto.classId } as Evaluation['class'] }
+        : {}),
       subjectEvaluation: subjectEvaluation ?? undefined,
       score: dto.score,
       contentIndex,
@@ -92,10 +96,7 @@ export class EvaluationService {
     });
   }
 
-  async updateScore(
-    id: number,
-    dto: UpdateEvaluationDto,
-  ): Promise<Evaluation> {
+  async updateScore(id: number, dto: UpdateEvaluationDto): Promise<Evaluation> {
     const evaluation = await this.evaluationRepo.findOne({
       where: { id },
     });

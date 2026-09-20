@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, In, Repository } from 'typeorm';
 import { Task } from './task.entity';
@@ -59,15 +63,32 @@ export class TaskService {
     // Multipart bodies arrive as strings — normalize obvious ones.
     const normalizedReminders = this.parseJsonMaybe(reminders);
     const normalizedSettings = this.parseJsonMaybe(settings);
-    const normalizedStudentIds = this.parseJsonArrayMaybe(assignment_student_ids);
+    const normalizedStudentIds = this.parseJsonArrayMaybe(
+      assignment_student_ids,
+    );
     const normalizedClassIds = this.parseJsonArrayMaybe(assignment_class_ids);
 
     // Cross-field defaults derived from assignment_mode
-    const resolvedMode = assignment_mode
-      ?? this.inferAssignmentMode({ student_id, class_id, normalizedStudentIds, normalizedClassIds });
+    const resolvedMode =
+      assignment_mode ??
+      this.inferAssignmentMode({
+        student_id,
+        class_id,
+        normalizedStudentIds,
+        normalizedClassIds,
+      });
 
-    if (!this.hasAssignment({ student_id, class_id, normalizedStudentIds, normalizedClassIds })) {
-      throw new BadRequestException('Task must be assigned to at least one student or class.');
+    if (
+      !this.hasAssignment({
+        student_id,
+        class_id,
+        normalizedStudentIds,
+        normalizedClassIds,
+      })
+    ) {
+      throw new BadRequestException(
+        'Task must be assigned to at least one student or class.',
+      );
     }
     if (status === 'assigned') {
       this.assertReadyForAssignment({
@@ -143,7 +164,10 @@ export class TaskService {
         return Array.isArray(parsed) ? parsed : undefined;
       } catch {
         // fallback: comma-separated form field
-        return value.split(',').map((v) => v.trim()).filter(Boolean);
+        return value
+          .split(',')
+          .map((v) => v.trim())
+          .filter(Boolean);
       }
     }
     return undefined;
@@ -155,9 +179,18 @@ export class TaskService {
     normalizedStudentIds?: string[];
     normalizedClassIds?: string[];
   }) {
-    if (input.normalizedClassIds && input.normalizedClassIds.length > 1) return 'multiple';
-    if (input.class_id || (input.normalizedClassIds && input.normalizedClassIds.length === 1)) return 'class';
-    if (input.student_id || (input.normalizedStudentIds && input.normalizedStudentIds.length)) return 'individual';
+    if (input.normalizedClassIds && input.normalizedClassIds.length > 1)
+      return 'multiple';
+    if (
+      input.class_id ||
+      (input.normalizedClassIds && input.normalizedClassIds.length === 1)
+    )
+      return 'class';
+    if (
+      input.student_id ||
+      (input.normalizedStudentIds && input.normalizedStudentIds.length)
+    )
+      return 'individual';
     return undefined;
   }
 
@@ -168,10 +201,10 @@ export class TaskService {
     normalizedClassIds?: string[];
   }) {
     return Boolean(
-      input.student_id
-        || input.class_id
-        || (input.normalizedStudentIds && input.normalizedStudentIds.length > 0)
-        || (input.normalizedClassIds && input.normalizedClassIds.length > 0),
+      input.student_id ||
+        input.class_id ||
+        (input.normalizedStudentIds && input.normalizedStudentIds.length > 0) ||
+        (input.normalizedClassIds && input.normalizedClassIds.length > 0),
     );
   }
 
@@ -198,10 +231,19 @@ export class TaskService {
 
     const submissionSchedule = (input.settings as any)?.submission_schedule;
     const count = Number(submissionSchedule?.count);
-    const dates = Array.isArray(submissionSchedule?.dates) ? submissionSchedule.dates : [];
-    if (!Number.isInteger(count) || count < 1 || count > 52 || dates.length !== count)
+    const dates = Array.isArray(submissionSchedule?.dates)
+      ? submissionSchedule.dates
+      : [];
+    if (
+      !Number.isInteger(count) ||
+      count < 1 ||
+      count > 52 ||
+      dates.length !== count
+    )
       missing.push('submission plan');
-    else if (dates.some((date) => Number.isNaN(new Date(String(date)).getTime())))
+    else if (
+      dates.some((date) => Number.isNaN(new Date(String(date)).getTime()))
+    )
       missing.push('valid submission dates');
 
     if (missing.length)
@@ -212,14 +254,18 @@ export class TaskService {
   }
 
   async findAll(): Promise<Task[]> {
-    return this.cache.getOrSet('tasks:all', this.taskListTtlSeconds, async () => {
-      const tasks = await this.taskRepo.find({
-        relations: ['student'],
-        order: { created_at: 'DESC' },
-      });
-      await this.attachFiles(tasks);
-      return tasks;
-    });
+    return this.cache.getOrSet(
+      'tasks:all',
+      this.taskListTtlSeconds,
+      async () => {
+        const tasks = await this.taskRepo.find({
+          relations: ['student'],
+          order: { created_at: 'DESC' },
+        });
+        await this.attachFiles(tasks);
+        return tasks;
+      },
+    );
   }
 
   /**
@@ -266,22 +312,28 @@ export class TaskService {
     const targetStudents = new Map<string, any>();
     if (!taskId) {
       for (const enrollment of activeEnrollments) {
-        if (enrollment.student?.id) targetStudents.set(enrollment.student.id, enrollment.student);
+        if (enrollment.student?.id)
+          targetStudents.set(enrollment.student.id, enrollment.student);
       }
     }
     for (const enrollment of activeEnrollments) {
-      if (!classIds.has(enrollment.classId) || !enrollment.student?.id) continue;
+      if (!classIds.has(enrollment.classId) || !enrollment.student?.id)
+        continue;
       targetStudents.set(enrollment.student.id, enrollment.student);
     }
     if (directStudentIds.size) {
       for (const enrollment of activeEnrollments) {
-        if (directStudentIds.has(enrollment.studentId) && enrollment.student?.id)
+        if (
+          directStudentIds.has(enrollment.studentId) &&
+          enrollment.student?.id
+        )
           targetStudents.set(enrollment.student.id, enrollment.student);
       }
       const directStudents = await this.studentRepo.find({
         where: { id: In([...directStudentIds]) },
       });
-      for (const student of directStudents) targetStudents.set(student.id, student);
+      for (const student of directStudents)
+        targetStudents.set(student.id, student);
     }
     if (selectedTask?.student?.id)
       targetStudents.set(selectedTask.student.id, selectedTask.student);
@@ -315,7 +367,10 @@ export class TaskService {
           })
         : [];
     const slotByTaskStudentRound = new Map(
-      submissionSlots.map((slot) => [`${slot.task_id}:${slot.student_id}:${slot.schedule_index}`, slot]),
+      submissionSlots.map((slot) => [
+        `${slot.task_id}:${slot.student_id}:${slot.schedule_index}`,
+        slot,
+      ]),
     );
     const roomsByStudentId = new Map<string, string[]>();
     const studentIdsByClassId = new Map<string, string[]>();
@@ -366,7 +421,9 @@ export class TaskService {
 
     const students = [...targetStudents.values()].map((student) => {
       const active = activeTasksByStudentId.get(student.id) ?? [];
-      const dueSoon = active.filter((task) => task.deadline >= now && task.deadline <= soon);
+      const dueSoon = active.filter(
+        (task) => task.deadline >= now && task.deadline <= soon,
+      );
       const rooms = roomsByStudentId.get(student.id) ?? [];
       return {
         id: student.id,
@@ -377,35 +434,55 @@ export class TaskService {
         last_name_lao: student.last_name_lao,
         active_task_count: active.length,
         due_soon_count: dueSoon.length,
-        estimated_minutes: active.reduce((sum, task) => sum + (Number(task.estimated_time_minutes) || 0), 0),
+        estimated_minutes: active.reduce(
+          (sum, task) => sum + (Number(task.estimated_time_minutes) || 0),
+          0,
+        ),
         class_name: rooms.join(', ') || 'No class',
         assigned_tasks: active.map((task) => ({
           id: task.id,
           title: task.name || 'Untitled task',
-          submission_plan: (Array.isArray((task.settings as any)?.submission_schedule?.dates)
+          submission_plan: (Array.isArray(
+            (task.settings as any)?.submission_schedule?.dates,
+          )
             ? (task.settings as any).submission_schedule.dates
             : task.deadline
               ? [task.deadline.toISOString().slice(0, 10)]
-              : []).map((date: string, index: number) => {
-                const slot = slotByTaskStudentRound.get(`${task.id}:${student.id}:${index + 1}`);
-                const dueAt = slot?.due_at ?? new Date(`${date}T${task.due_time || '23:59'}:00`);
-                const isPastDue = dueAt < now;
-                const lateAllowed = task.settings?.allow_late_submission === true;
-                const submittedAt = slot?.submitted_at ? new Date(slot.submitted_at) : null;
-                // Keep the workload chips aligned with Task Submission: a
-                // reviewed round is still late when its original upload was
-                // after the round deadline.
-                const status = slot?.status === 'missed'
-                  ? 'missed'
-                  : submittedAt
-                    ? submittedAt.getTime() < dueAt.getTime()
-                      ? 'early'
-                      : submittedAt.getTime() > dueAt.getTime()
-                        ? 'late'
-                        : 'on_time'
-                    : isPastDue && !lateAllowed ? 'missed' : 'pending';
-                return { date, due_at: dueAt, submitted_at: slot?.submitted_at ?? null, status };
-              }),
+              : []
+          ).map((date: string, index: number) => {
+            const slot = slotByTaskStudentRound.get(
+              `${task.id}:${student.id}:${index + 1}`,
+            );
+            const dueAt =
+              slot?.due_at ??
+              new Date(`${date}T${task.due_time || '23:59'}:00`);
+            const isPastDue = dueAt < now;
+            const lateAllowed = task.settings?.allow_late_submission === true;
+            const submittedAt = slot?.submitted_at
+              ? new Date(slot.submitted_at)
+              : null;
+            // Keep the workload chips aligned with Task Submission: a
+            // reviewed round is still late when its original upload was
+            // after the round deadline.
+            const status =
+              slot?.status === 'missed'
+                ? 'missed'
+                : submittedAt
+                  ? submittedAt.getTime() < dueAt.getTime()
+                    ? 'early'
+                    : submittedAt.getTime() > dueAt.getTime()
+                      ? 'late'
+                      : 'on_time'
+                  : isPastDue && !lateAllowed
+                    ? 'missed'
+                    : 'pending';
+            return {
+              date,
+              due_at: dueAt,
+              submitted_at: slot?.submitted_at ?? null,
+              status,
+            };
+          }),
         })),
         overload: active.length >= threshold,
       };
@@ -414,10 +491,8 @@ export class TaskService {
   }
 
   async findOne(id: string): Promise<Task> {
-    return this.cache.getOrSet(
-      `tasks:${id}`,
-      this.taskDetailTtlSeconds,
-      () => this.findOneUncached(id),
+    return this.cache.getOrSet(`tasks:${id}`, this.taskDetailTtlSeconds, () =>
+      this.findOneUncached(id),
     );
   }
 
@@ -503,21 +578,28 @@ export class TaskService {
     const normalizedSettings = this.parseJsonMaybe(settings);
     if (normalizedSettings !== undefined) task.settings = normalizedSettings;
 
-    const normalizedStudentIds = this.parseJsonArrayMaybe(assignment_student_ids);
-    if (normalizedStudentIds !== undefined) task.assignment_student_ids = normalizedStudentIds;
+    const normalizedStudentIds = this.parseJsonArrayMaybe(
+      assignment_student_ids,
+    );
+    if (normalizedStudentIds !== undefined)
+      task.assignment_student_ids = normalizedStudentIds;
 
     const normalizedClassIds = this.parseJsonArrayMaybe(assignment_class_ids);
-    if (normalizedClassIds !== undefined) task.assignment_class_ids = normalizedClassIds;
+    if (normalizedClassIds !== undefined)
+      task.assignment_class_ids = normalizedClassIds;
 
     if (data.status === 'assigned') {
       const hasNextAssignment = this.hasAssignment({
         student_id: student_id ?? task.student?.id,
         class_id: class_id ?? task.class_id,
-        normalizedStudentIds: normalizedStudentIds ?? task.assignment_student_ids,
+        normalizedStudentIds:
+          normalizedStudentIds ?? task.assignment_student_ids,
         normalizedClassIds: normalizedClassIds ?? task.assignment_class_ids,
       });
       if (!hasNextAssignment)
-        throw new BadRequestException('Task must be assigned to at least one student or class.');
+        throw new BadRequestException(
+          'Task must be assigned to at least one student or class.',
+        );
       this.assertReadyForAssignment({
         name: data.name ?? task.name,
         description: data.description ?? task.description,

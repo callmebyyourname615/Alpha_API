@@ -1,6 +1,18 @@
-import { IsString, IsOptional, IsUUID, IsEnum, IsDateString } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsUUID,
+  IsEnum,
+  IsDateString,
+} from 'class-validator';
 
-export const AddedByTypes = ['admin', 'teacher', 'staff', 'parent', 'superadmin'] as const;
+export const AddedByTypes = [
+  'admin',
+  'teacher',
+  'staff',
+  'parent',
+  'superadmin',
+] as const;
 export type AddedByType = (typeof AddedByTypes)[number];
 
 export class TaskDto {

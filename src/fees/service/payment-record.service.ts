@@ -33,7 +33,9 @@ export class PaymentRecordService {
     if (!record) throw new NotFoundException(`Payment record ${id} not found`);
 
     if (record.status === PaymentRecordStatus.PAID) {
-      throw new ConflictException('This payment record is already marked as paid.');
+      throw new ConflictException(
+        'This payment record is already marked as paid.',
+      );
     }
 
     record.status = PaymentRecordStatus.PAID;

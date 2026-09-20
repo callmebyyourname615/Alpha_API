@@ -6,13 +6,11 @@ import { RolesController } from './roles.controller';
 import { RolesService } from './roles.service';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Role, Admin]),
-  ],
+  imports: [TypeOrmModule.forFeature([Role, Admin])],
   controllers: [RolesController],
   providers: [RolesService],
   exports: [
-    TypeOrmModule,                      // ← this exports ALL repositories from forFeature()
+    TypeOrmModule, // ← this exports ALL repositories from forFeature()
   ],
 })
 export class RolesModule {}

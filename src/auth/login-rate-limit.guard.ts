@@ -67,11 +67,7 @@ export class LoginRateLimitGuard implements CanActivate {
       clientIp = req.socket.remoteAddress;
     }
 
-    const email = (
-      req.body?.email ||
-      fallbackEmail ||
-      ''
-    ).toLowerCase().trim();
+    const email = (req.body?.email || fallbackEmail || '').toLowerCase().trim();
 
     // If client IP is localhost/internal, distinguish primarily by email to prevent blocking all users on proxy
     if (['127.0.0.1', '::1', 'localhost', 'unknown'].includes(clientIp)) {
@@ -113,4 +109,3 @@ export class LoginRateLimitGuard implements CanActivate {
     loginAttempts.clear();
   }
 }
-

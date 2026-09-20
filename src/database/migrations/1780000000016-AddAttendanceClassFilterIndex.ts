@@ -11,6 +11,8 @@ export class AddAttendanceClassFilterIndex1780000000016
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_enrollments_class_student"');
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_enrollments_class_student"',
+    );
   }
 }

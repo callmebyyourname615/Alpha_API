@@ -62,7 +62,10 @@ export class SubjectEvaluationService {
     return this.findOne(saved.id);
   }
 
-  async update(id: string, dto: UpdateSubjectEvaluationDto): Promise<SubjectEvaluation> {
+  async update(
+    id: string,
+    dto: UpdateSubjectEvaluationDto,
+  ): Promise<SubjectEvaluation> {
     const evalEntity = await this.evalRepo.findOne({
       where: { id },
       relations: ['lesson'],
@@ -100,6 +103,7 @@ export class SubjectEvaluationService {
 
   async remove(id: string): Promise<void> {
     const result = await this.evalRepo.delete(id);
-    if (result.affected === 0) throw new NotFoundException(`Evaluation ${id} not found`);
+    if (result.affected === 0)
+      throw new NotFoundException(`Evaluation ${id} not found`);
   }
 }

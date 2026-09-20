@@ -268,10 +268,20 @@ export class Student {
   // =========================
   // SIBLINGS
   // =========================
-  @Column({ name: 'sibling_number', type: 'varchar', length: 10, nullable: true })
+  @Column({
+    name: 'sibling_number',
+    type: 'varchar',
+    length: 10,
+    nullable: true,
+  })
   Siblings_number: string;
 
-  @Column({ name: 'sibling_info', type: 'jsonb', nullable: true, default: () => "'[]'" })
+  @Column({
+    name: 'sibling_info',
+    type: 'jsonb',
+    nullable: true,
+    default: () => "'[]'",
+  })
   Siblings_info: SiblingsInfo[];
 
   // =========================
@@ -344,4 +354,3 @@ export class Student {
   @UpdateDateColumn({ type: 'timestamptz', name: 'updated_at' })
   updatedAt: Date;
 }
-

@@ -15,7 +15,10 @@ import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { EnrollmentService } from './enrollment.service';
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
 import { UpdateEnrollmentDto } from './dto/update-enrollment.dto';
-import { PromoteStudentsDto, PromoteByClassDto } from './dto/promote-students.dto';
+import {
+  PromoteStudentsDto,
+  PromoteByClassDto,
+} from './dto/promote-students.dto';
 
 @ApiTags('enrollments')
 @Controller('enrollments')
@@ -43,7 +46,9 @@ export class EnrollmentController {
   // Promotes selected students one by one (each to own class)
   @Post('promote/individual')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Promote selected students one by one to next year' })
+  @ApiOperation({
+    summary: 'Promote selected students one by one to next year',
+  })
   promoteIndividual(@Body() dto: PromoteStudentsDto) {
     return this.enrollmentService.promoteIndividual(dto);
   }
@@ -51,19 +56,24 @@ export class EnrollmentController {
   // ── GET /enrollments ──────────────────────────────────────────────
   @Get()
   @ApiOperation({ summary: 'Get all enrollments' })
-  @ApiQuery({ name: 'branchId',       required: false })
+  @ApiQuery({ name: 'branchId', required: false })
   @ApiQuery({ name: 'academicYearId', required: false })
-  @ApiQuery({ name: 'classId',        required: false })
-  @ApiQuery({ name: 'isActive',       required: false, type: Boolean })
+  @ApiQuery({ name: 'classId', required: false })
+  @ApiQuery({ name: 'isActive', required: false, type: Boolean })
   findAll(
-    @Query('branchId')       branchId?: string,
+    @Query('branchId') branchId?: string,
     @Query('academicYearId') academicYearId?: string,
-    @Query('classId')        classId?: string,
-    @Query('isActive')       isActive?: string,
+    @Query('classId') classId?: string,
+    @Query('isActive') isActive?: string,
   ) {
     const isActiveBool =
       isActive === 'true' ? true : isActive === 'false' ? false : undefined;
-    return this.enrollmentService.findAll(branchId, academicYearId, classId, isActiveBool);
+    return this.enrollmentService.findAll(
+      branchId,
+      academicYearId,
+      classId,
+      isActiveBool,
+    );
   }
 
   // ── GET /enrollments/student/:studentId ───────────────────────────

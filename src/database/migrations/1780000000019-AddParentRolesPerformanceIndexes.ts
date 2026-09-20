@@ -16,7 +16,11 @@ export class AddParentRolesPerformanceIndexes1780000000019
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_parent_roles_role_parent"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_parent_roles_parent_role"');
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_parent_roles_role_parent"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_parent_roles_parent_role"',
+    );
   }
 }

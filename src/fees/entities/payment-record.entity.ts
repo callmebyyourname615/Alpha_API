@@ -15,7 +15,9 @@ export class PaymentRecord {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => StudentFee, (sf) => sf.payment_records, { onDelete: 'CASCADE' })
+  @ManyToOne(() => StudentFee, (sf) => sf.payment_records, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'student_fee_id' })
   student_fee: StudentFee;
 
@@ -26,7 +28,7 @@ export class PaymentRecord {
   amount: number;
 
   @Column({ length: 50 })
-  period_label: string;       // e.g. "January 2025", "Q1 2025", "Full Year 2025"
+  period_label: string; // e.g. "January 2025", "Q1 2025", "Full Year 2025"
 
   @Column({ type: 'date' })
   due_date: Date;
@@ -42,7 +44,7 @@ export class PaymentRecord {
   status: PaymentRecordStatus;
 
   @Column({ nullable: true, length: 100 })
-  reference: string;          // receipt or transaction reference
+  reference: string; // receipt or transaction reference
 
   @CreateDateColumn()
   created_at: Date;

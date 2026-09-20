@@ -15,17 +15,10 @@ import { Student } from '../students/student.entity';
 @Module({
   imports: [
     ScheduleModule.forRoot(),
-    TypeOrmModule.forFeature([
-      Attendance,
-      AttendanceRule,
-      Student,
-    ]),
+    TypeOrmModule.forFeature([Attendance, AttendanceRule, Student]),
   ],
   controllers: [AttendanceController],
-  providers: [
-    AttendanceService,
-    AttendanceScheduler,
-  ],
+  providers: [AttendanceService, AttendanceScheduler],
   exports: [AttendanceService],
 })
 export class AttendanceModule {}

@@ -15,6 +15,7 @@ import { CreateStudentDto } from './dto/create-student.dto';
 import { CreateEnrollmentDto } from '../enrollments/dto/create-enrollment.dto';
 import { SearchStudentByClassDto } from './dto/search-students.dto';
 import { Branch } from '../branches/branch.entity';
+import { AcademicYear } from '../academic_years/academic-year.entity';
 import { Province } from '../location/province.entity';
 import { District } from '../location/district.entity';
 import { CacheService } from '../common/cache.service';
@@ -33,6 +34,12 @@ export class StudentsService implements OnModuleInit {
 
     @InjectRepository(Enrollment)
     private readonly enrollmentRepo: Repository<Enrollment>,
+
+    @InjectRepository(Branch)
+    private readonly branchRepo: Repository<Branch>,
+
+    @InjectRepository(AcademicYear)
+    private readonly academicYearRepo: Repository<AcademicYear>,
 
     private readonly cache: CacheService,
     private readonly schemaAlignment: SchemaAlignmentService,
@@ -201,6 +208,122 @@ export class StudentsService implements OnModuleInit {
     });
   }
 
+  private formatBranchCode(raw?: string | null): string {
+    if (!raw || !raw.trim()) return 'ALPH';
+    let code = raw.trim();
+
+    // If hyphenated (e.g. AIMS-001 or ALPHA-001), take the portion before hyphen
+    if (code.includes('-')) {
+      code = code.split('-')[0].trim();
+    }
+
+    // Strip trailing digits if attached to letters (e.g. Lao001 -> Lao)
+    code = code.replace(/([a-zA-Z]+)\d+$/, '$1');
+
+    // Keep only alphanumeric characters and convert to uppercase
+    code = code.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+
+    if (!code) return 'ALPH';
+
+    // Limit to max 4 characters
+    return code.slice(0, 4);
+  }
+
+  // ─── Student ID Generator (XXXX-YYYY-xxxxx) ───────────────────────────
+  /**
+   * Generates a student ID formatted as XXXX-YYYY-xxxxx
+   * - XXXX: First 4 characters of branch code (e.g. AIMS from AIMS-001)
+   * - YYYY: Academic year representation (e.g. 2026-2027 -> 2627)
+   * - xxxxx: Sequential counter starting from 1 (e.g. 00001)
+   */
+  async generateStudentId(
+    branchId?: string | null,
+    academicYearStr?: string | null,
+  ): Promise<string> {
+    // 1. Resolve Branch Code (XXXX)
+    let branchCode = 'ALPH';
+    const targetBranchId = branchId ? String(branchId).trim() : null;
+
+    if (targetBranchId) {
+      const branch = await this.branchRepo.findOne({
+        where: [{ id: targetBranchId }, { branch_id: targetBranchId }],
+      });
+      if (branch) {
+        if (branch.branch_no && branch.branch_no.trim()) {
+          branchCode = this.formatBranchCode(branch.branch_no);
+        } else if (branch.branch_id && branch.branch_id.trim()) {
+          branchCode = this.formatBranchCode(branch.branch_id);
+        } else if (branch.name && branch.name.trim()) {
+          branchCode = this.formatBranchCode(branch.name);
+        }
+      }
+    }
+
+    // 2. Resolve Academic Year Code (YYYY)
+    let yearCode = '';
+    let yearInput = academicYearStr ? academicYearStr.trim() : null;
+
+    if (!yearInput) {
+      const activeAy = await this.academicYearRepo.findOne({
+        where: targetBranchId
+          ? { branch_id: targetBranchId, is_active: true, is_deleted: false }
+          : { is_active: true, is_deleted: false },
+        order: { created_at: 'DESC' },
+      });
+      if (activeAy && activeAy.year_name) {
+        yearInput = activeAy.year_name;
+      }
+    }
+
+    if (yearInput) {
+      const matchRange = yearInput.match(/(\d{2,4})\s*[-/]\s*(\d{2,4})/);
+      if (matchRange) {
+        const start = matchRange[1].slice(-2);
+        const end = matchRange[2].slice(-2);
+        yearCode = `${start}${end}`;
+      } else {
+        const matchSingle = yearInput.match(/\d{4}/);
+        if (matchSingle) {
+          const yr = parseInt(matchSingle[0], 10);
+          const start = String(yr).slice(-2);
+          const end = String(yr + 1).slice(-2);
+          yearCode = `${start}${end}`;
+        }
+      }
+    }
+
+    if (!yearCode) {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const startYr = now.getMonth() >= 6 ? currentYear : currentYear - 1;
+      const endYr = startYr + 1;
+      yearCode = `${String(startYr).slice(-2)}${String(endYr).slice(-2)}`;
+    }
+
+    // 3. Resolve Sequential Counter (xxxxx)
+    const prefix = `${branchCode}-${yearCode}-`;
+
+    const latestStudent = await this.studentRepo
+      .createQueryBuilder('student')
+      .where('student.student_id LIKE :prefix', { prefix: `${prefix}%` })
+      .orderBy('student.student_id', 'DESC')
+      .select(['student.student_id'])
+      .getOne();
+
+    let nextNumber = 1;
+    if (latestStudent && latestStudent.student_id) {
+      const parts = latestStudent.student_id.split('-');
+      const lastPart = parts[parts.length - 1];
+      const parsedNum = parseInt(lastPart, 10);
+      if (!isNaN(parsedNum)) {
+        nextNumber = parsedNum + 1;
+      }
+    }
+
+    const counterStr = String(nextNumber).padStart(5, '0');
+    return `${prefix}${counterStr}`;
+  }
+
   // ─── Create Student ───────────────────────────────────────────────────
   async createStudent(dto: CreateStudentDto): Promise<Student> {
     if (!dto.confirmDuplicate) {
@@ -222,6 +345,11 @@ export class StudentsService implements OnModuleInit {
 
     const healthReview = this.buildHealthReviewState(dto);
 
+    let finalStudentId = dto.student_id?.trim();
+    if (!finalStudentId || finalStudentId.toUpperCase() === 'AUTO') {
+      finalStudentId = await this.generateStudentId(dto.branchId);
+    }
+
     const student = this.studentRepo.create({
       branch: dto.branchId ? ({ id: dto.branchId } as Branch) : null,
       province: dto.provinceId ? ({ id: dto.provinceId } as Province) : null,
@@ -233,7 +361,7 @@ export class StudentsService implements OnModuleInit {
         ? ({ id: dto.districtDbId } as District)
         : null,
 
-      student_id: dto.student_id,
+      student_id: finalStudentId,
       profile_image_path: dto.profile_image_path,
       image_passport: dto.image_passport,
       image_url: dto.image_url,
@@ -364,8 +492,13 @@ export class StudentsService implements OnModuleInit {
       if (!student) throw new NotFoundException('Student not found');
       return student;
     } catch (error: any) {
-      if (error?.code === '42703' || String(error?.message || '').includes('does not exist')) {
-        this.logger.warn('Missing column detected on findByIdUncached. Running schema alignment and retrying...');
+      if (
+        error?.code === '42703' ||
+        String(error?.message || '').includes('does not exist')
+      ) {
+        this.logger.warn(
+          'Missing column detected on findByIdUncached. Running schema alignment and retrying...',
+        );
         await this.schemaAlignment.alignAllSchemas();
         const student = await this.studentRepo.findOne({
           where: { id },
@@ -395,8 +528,13 @@ export class StudentsService implements OnModuleInit {
             relations: [...this.studentListRelations],
           });
         } catch (error: any) {
-          if (error?.code === '42703' || String(error?.message || '').includes('does not exist')) {
-            this.logger.warn('Missing column detected on findAll students. Running schema alignment and retrying...');
+          if (
+            error?.code === '42703' ||
+            String(error?.message || '').includes('does not exist')
+          ) {
+            this.logger.warn(
+              'Missing column detected on findAll students. Running schema alignment and retrying...',
+            );
             await this.schemaAlignment.alignAllSchemas();
             students = await this.studentRepo.find({
               where: {

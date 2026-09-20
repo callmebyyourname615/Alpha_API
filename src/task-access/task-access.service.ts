@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Task } from '../task/task.entity';
@@ -18,13 +22,18 @@ export class TaskAccessService {
     private readonly enrollmentRepo: Repository<Enrollment>,
   ) {}
 
-  async assertAdminCanMutateTask(taskId: string | null | undefined, adminId: string | null | undefined) {
+  async assertAdminCanMutateTask(
+    taskId: string | null | undefined,
+    adminId: string | null | undefined,
+  ) {
     const normalizedTaskId = normalizeId(taskId);
     const normalizedAdminId = normalizeId(adminId);
     if (!normalizedTaskId || !normalizedAdminId) return;
 
     if (await this.isHomeroomViewerTask(normalizedTaskId, normalizedAdminId)) {
-      throw new ForbiddenException('Homeroom teacher has viewer-only access to this task');
+      throw new ForbiddenException(
+        'Homeroom teacher has viewer-only access to this task',
+      );
     }
   }
 
@@ -43,17 +52,23 @@ export class TaskAccessService {
     if (!homeroomClassIds.size) return false;
 
     const taskClassIds = this.getTaskClassIds(task);
-    if (taskClassIds.some((classId) => homeroomClassIds.has(classId))) return true;
+    if (taskClassIds.some((classId) => homeroomClassIds.has(classId)))
+      return true;
 
     const taskStudentIds = this.getTaskStudentIds(task);
     if (!taskStudentIds.length) return false;
 
-    const homeroomStudentIds = await this.getHomeroomStudentIds(homeroomClassIds);
-    return taskStudentIds.some((studentId) => homeroomStudentIds.has(studentId));
+    const homeroomStudentIds =
+      await this.getHomeroomStudentIds(homeroomClassIds);
+    return taskStudentIds.some((studentId) =>
+      homeroomStudentIds.has(studentId),
+    );
   }
 
   private async getHomeroomClassIds(adminId: string) {
-    const classes = await this.classRepo.find({ where: { homeroom_teacher_id: adminId } });
+    const classes = await this.classRepo.find({
+      where: { homeroom_teacher_id: adminId },
+    });
     return new Set(
       classes
         .filter((schoolClass) => schoolClass.is_deleted !== true)
@@ -69,21 +84,33 @@ export class TaskAccessService {
     const enrollments = await this.enrollmentRepo.find({
       where: { classId: In(ids), is_active: true },
     });
-    return new Set(enrollments.map((enrollment) => normalizeId(enrollment.studentId)).filter(Boolean));
+    return new Set(
+      enrollments
+        .map((enrollment) => normalizeId(enrollment.studentId))
+        .filter(Boolean),
+    );
   }
 
   private getTaskClassIds(task: Task) {
     return [
-      ...(Array.isArray(task.assignment_class_ids) ? task.assignment_class_ids : []),
+      ...(Array.isArray(task.assignment_class_ids)
+        ? task.assignment_class_ids
+        : []),
       task.class_id,
       task.class?.id,
-    ].map(normalizeId).filter(Boolean);
+    ]
+      .map(normalizeId)
+      .filter(Boolean);
   }
 
   private getTaskStudentIds(task: Task) {
     return [
-      ...(Array.isArray(task.assignment_student_ids) ? task.assignment_student_ids : []),
+      ...(Array.isArray(task.assignment_student_ids)
+        ? task.assignment_student_ids
+        : []),
       task.student?.id,
-    ].map(normalizeId).filter(Boolean);
+    ]
+      .map(normalizeId)
+      .filter(Boolean);
   }
 }

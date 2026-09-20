@@ -11,8 +11,8 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Branch }                 from '../branches/branch.entity';
-import { AcademicYear }           from '../academic_years/academic-year.entity';
+import { Branch } from '../branches/branch.entity';
+import { AcademicYear } from '../academic_years/academic-year.entity';
 import { AppointmentStatus, CreatorRole } from './appointment.enum';
 import { AppointmentParticipant } from './dto/appointment-participant.entity';
 
@@ -109,6 +109,8 @@ export class Appointment {
   updated_at: Date;
 
   // ✅ Fixed: correct import path, no circular dependency issue
-  @OneToMany(() => AppointmentParticipant, (p) => p.appointment, { cascade: true })
+  @OneToMany(() => AppointmentParticipant, (p) => p.appointment, {
+    cascade: true,
+  })
   participants?: AppointmentParticipant[];
 }

@@ -6,10 +6,7 @@ import { FeeTemplateModule } from './fee-template.module';
 import { FeeAssignmentController } from '../controller/fee-assignment.controller';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([FeeAssignment]),
-    FeeTemplateModule,
-  ],
+  imports: [TypeOrmModule.forFeature([FeeAssignment]), FeeTemplateModule],
   controllers: [FeeAssignmentController],
   providers: [FeeAssignmentService],
   exports: [FeeAssignmentService],

@@ -9,10 +9,7 @@ import { SavingsModule } from '../savings/saving.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      BankDepositBatch,
-      PayReceive,
-    ]),
+    TypeOrmModule.forFeature([BankDepositBatch, PayReceive]),
     SavingsModule,
   ],
   controllers: [BankDepositBatchController],

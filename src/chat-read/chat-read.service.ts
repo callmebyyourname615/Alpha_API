@@ -21,8 +21,14 @@ export class ChatReadService {
   ) {}
 
   async markRead(dto: MarkReadDto): Promise<ChatRead> {
-    if (dto.module_type === 'TASK' && dto.reader_type === ChatReaderType.ADMIN) {
-      await this.taskAccess.assertAdminCanMutateTask(dto.module_id, dto.reader_id);
+    if (
+      dto.module_type === 'TASK' &&
+      dto.reader_type === ChatReaderType.ADMIN
+    ) {
+      await this.taskAccess.assertAdminCanMutateTask(
+        dto.module_id,
+        dto.reader_id,
+      );
     }
 
     const studentId = dto.student_id ?? null;
@@ -47,7 +53,9 @@ export class ChatReadService {
   }
 
   async getCursors(moduleType: string, moduleId?: string): Promise<ChatRead[]> {
-    const where: { module_type: string; module_id?: string } = { module_type: moduleType };
+    const where: { module_type: string; module_id?: string } = {
+      module_type: moduleType,
+    };
     if (moduleId) where.module_id = moduleId;
     return this.repo.find({ where });
   }

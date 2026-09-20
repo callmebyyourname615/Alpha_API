@@ -59,7 +59,7 @@ export class ParticipationScoreController {
     body: {
       branchId: string;
       academicYearId: string;
-      levelId: string;            // ← added
+      levelId: string; // ← added
       classId: string;
       date: string;
     },
@@ -67,7 +67,7 @@ export class ParticipationScoreController {
     return this.service.getScoresByFilter({
       branchId: body.branchId,
       academicYearId: body.academicYearId,
-      levelId: body.levelId,      // ← added
+      levelId: body.levelId, // ← added
       classId: body.classId,
       date: new Date(body.date),
     });

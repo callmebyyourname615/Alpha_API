@@ -1,6 +1,8 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateRubricReportMonthSettings1780000000008 implements MigrationInterface {
+export class CreateRubricReportMonthSettings1780000000008
+  implements MigrationInterface
+{
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "rubric_report_month_settings" (
@@ -20,6 +22,8 @@ export class CreateRubricReportMonthSettings1780000000008 implements MigrationIn
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query('DROP TABLE IF EXISTS "rubric_report_month_settings"');
+    await queryRunner.query(
+      'DROP TABLE IF EXISTS "rubric_report_month_settings"',
+    );
   }
 }

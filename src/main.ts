@@ -25,13 +25,19 @@ async function bootstrap() {
   app.set('trust proxy', true);
 
   // Security: Apply HTTP response headers to protect against common web vulnerabilities
-  app.use((_req: express.Request, res: express.Response, next: express.NextFunction) => {
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-    res.setHeader('X-XSS-Protection', '1; mode=block');
-    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-    next();
-  });
+  app.use(
+    (
+      _req: express.Request,
+      res: express.Response,
+      next: express.NextFunction,
+    ) => {
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+      res.setHeader('X-XSS-Protection', '1; mode=block');
+      res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+      next();
+    },
+  );
 
   // Security: Validate and sanitize all incoming payloads
   app.useGlobalPipes(
@@ -97,7 +103,9 @@ async function bootstrap() {
       .build();
     const document = SwaggerModule.createDocument(app, swaggerConfig);
     SwaggerModule.setup(`${prefix}/docs`, app, document);
-    logger.log(`Swagger docs enabled at http://localhost:${config.get('PORT') ?? 3000}${prefix}/docs`);
+    logger.log(
+      `Swagger docs enabled at http://localhost:${config.get('PORT') ?? 3000}${prefix}/docs`,
+    );
   }
 
   const port = Number(config.get<string>('PORT') ?? 3000);

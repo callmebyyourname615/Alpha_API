@@ -40,11 +40,23 @@ export class AddAuthAndParentPerformanceIndexes1780000000015
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_parents_deleted_created"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_parents_branch_deleted_created"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_parents_login_username_not_deleted"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_parents_login_email_not_deleted"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_admins_login_username_active"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_admins_login_email_active"');
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_parents_deleted_created"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_parents_branch_deleted_created"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_parents_login_username_not_deleted"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_parents_login_email_not_deleted"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_admins_login_username_active"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_admins_login_email_active"',
+    );
   }
 }

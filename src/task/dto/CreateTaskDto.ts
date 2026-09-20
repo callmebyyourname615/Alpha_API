@@ -37,7 +37,10 @@ const parseIdArray = ({ value }: { value: unknown }) => {
     } catch {
       /* fall through */
     }
-    return value.split(',').map((v) => v.trim()).filter(Boolean);
+    return value
+      .split(',')
+      .map((v) => v.trim())
+      .filter(Boolean);
   }
   return value;
 };
@@ -136,14 +139,36 @@ export class DueDayReminderDto {
 
 export class TaskRemindersDto {
   @IsOptional() @Transform(parseBool) @IsBoolean() day_before?: boolean;
-  @IsOptional() @Transform(parseInt10) @IsInt() @Min(1) @Max(7) day_before_days?: number;
-  @IsOptional() @IsString() @Matches(/^([01]\d|2[0-3]):[0-5]\d$/) day_before_time?: string;
-  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => DayBeforeReminderDto) day_before_schedule?: DayBeforeReminderDto[];
+  @IsOptional()
+  @Transform(parseInt10)
+  @IsInt()
+  @Min(1)
+  @Max(7)
+  day_before_days?: number;
+  @IsOptional()
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
+  day_before_time?: string;
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => DayBeforeReminderDto)
+  day_before_schedule?: DayBeforeReminderDto[];
   @IsOptional() @Transform(parseBool) @IsBoolean() due_day?: boolean;
-  @IsOptional() @IsString() @Matches(/^([01]\d|2[0-3]):[0-5]\d$/) due_day_time?: string;
-  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => DueDayReminderDto) due_day_schedule?: DueDayReminderDto[];
+  @IsOptional()
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
+  due_day_time?: string;
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => DueDayReminderDto)
+  due_day_schedule?: DueDayReminderDto[];
   @IsOptional() @Transform(parseBool) @IsBoolean() overdue?: boolean;
-  @IsOptional() @IsString() @Matches(/^([01]\d|2[0-3]):[0-5]\d$/) overdue_time?: string;
+  @IsOptional()
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
+  overdue_time?: string;
 }
 
 export class SubmissionScheduleDto {
@@ -160,9 +185,15 @@ export class SubmissionScheduleDto {
 }
 
 export class TaskSettingsDto {
-  @IsOptional() @Transform(parseBool) @IsBoolean() allow_late_submission?: boolean;
+  @IsOptional()
+  @Transform(parseBool)
+  @IsBoolean()
+  allow_late_submission?: boolean;
   @IsOptional() @Transform(parseBool) @IsBoolean() allow_resubmission?: boolean;
-  @IsOptional() @Transform(parseBool) @IsBoolean() require_parent_confirmation?: boolean;
+  @IsOptional()
+  @Transform(parseBool)
+  @IsBoolean()
+  require_parent_confirmation?: boolean;
   @IsOptional() @Transform(parseBool) @IsBoolean() attach_rubric?: boolean;
   @IsOptional() @Transform(parseBool) @IsBoolean() enable_discussion?: boolean;
 

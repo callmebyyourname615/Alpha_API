@@ -6,10 +6,10 @@ export class District {
   @PrimaryGeneratedColumn('uuid')
   id: string; // UUID
 
-  @Column({nullable: true})
+  @Column({ nullable: true })
   nameEn: string;
 
-  @Column({nullable: true})
+  @Column({ nullable: true })
   nameLa: string;
 
   @ManyToOne(() => Province, (province) => province.districts, {

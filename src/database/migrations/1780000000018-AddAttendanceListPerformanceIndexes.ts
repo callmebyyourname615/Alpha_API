@@ -26,9 +26,15 @@ export class AddAttendanceListPerformanceIndexes1780000000018
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_attendances_student_date_created"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_attendances_date_student"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_attendances_date_created_desc"');
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_attendances_student_date_created"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_attendances_date_student"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_attendances_date_created_desc"',
+    );
     await queryRunner.query(`
       DO $$
       BEGIN

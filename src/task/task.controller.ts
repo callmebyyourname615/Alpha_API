@@ -26,7 +26,9 @@ import type { Request } from 'express';
 // With multipart requests class-transformer can instantiate a nested DTO
 // before its JSON field is parsed, leaving JSON fields as `{}`. Keep the raw
 // fields available and restore parsed objects before they reach the service.
-function restoreMultipartJsonFields<T extends { settings?: unknown; reminders?: unknown }>(data: T, rawBody: any): T {
+function restoreMultipartJsonFields<
+  T extends { settings?: unknown; reminders?: unknown },
+>(data: T, rawBody: any): T {
   (['settings', 'reminders'] as const).forEach((field) => {
     const raw = rawBody?.[field];
     if (typeof raw !== 'string') return;
@@ -57,10 +59,24 @@ export class TaskController {
       }),
       limits: { fileSize: 5 * 1024 * 1024 }, // 5MB per file
       fileFilter: (req, file, cb) => {
-        const allowed = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.pdf', '.doc', '.docx', '.mp4', '.webm'];
+        const allowed = [
+          '.jpg',
+          '.jpeg',
+          '.png',
+          '.gif',
+          '.webp',
+          '.pdf',
+          '.doc',
+          '.docx',
+          '.mp4',
+          '.webm',
+        ];
         const ext = extname(file.originalname).toLowerCase();
         if (!allowed.includes(ext)) {
-          return cb(new BadRequestException(`File type '${ext}' not allowed.`), false);
+          return cb(
+            new BadRequestException(`File type '${ext}' not allowed.`),
+            false,
+          );
         }
         cb(null, true);
       },
@@ -79,7 +95,10 @@ export class TaskController {
     @UploadedFiles() files: Express.Multer.File[],
     @Req() request: Request,
   ) {
-    return this.taskService.create(restoreMultipartJsonFields(data, request.body), files);
+    return this.taskService.create(
+      restoreMultipartJsonFields(data, request.body),
+      files,
+    );
   }
 
   @Get()
@@ -124,10 +143,24 @@ export class TaskController {
       }),
       limits: { fileSize: 5 * 1024 * 1024 }, // 5MB per file
       fileFilter: (req, file, cb) => {
-        const allowed = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.pdf', '.doc', '.docx', '.mp4', '.webm'];
+        const allowed = [
+          '.jpg',
+          '.jpeg',
+          '.png',
+          '.gif',
+          '.webp',
+          '.pdf',
+          '.doc',
+          '.docx',
+          '.mp4',
+          '.webm',
+        ];
         const ext = extname(file.originalname).toLowerCase();
         if (!allowed.includes(ext)) {
-          return cb(new BadRequestException(`File type '${ext}' not allowed.`), false);
+          return cb(
+            new BadRequestException(`File type '${ext}' not allowed.`),
+            false,
+          );
         }
         cb(null, true);
       },
@@ -147,6 +180,10 @@ export class TaskController {
     @UploadedFiles() files: Express.Multer.File[],
     @Req() request: Request,
   ): Promise<Task> {
-    return this.taskService.update(id, restoreMultipartJsonFields(data, request.body), files);
+    return this.taskService.update(
+      id,
+      restoreMultipartJsonFields(data, request.body),
+      files,
+    );
   }
 }

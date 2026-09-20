@@ -12,7 +12,11 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { FeeTemplateService } from '../service/fee-template.service';
-import { CreateFeeTemplateDto, FeeTemplateQueryDto, UpdateFeeTemplateDto } from '../dto/fee-template.dto';
+import {
+  CreateFeeTemplateDto,
+  FeeTemplateQueryDto,
+  UpdateFeeTemplateDto,
+} from '../dto/fee-template.dto';
 
 @Controller('fee-templates')
 export class FeeTemplateController {

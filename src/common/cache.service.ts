@@ -71,8 +71,14 @@ export class CacheService implements OnModuleDestroy {
     }
   }
 
-  async onModuleDestroy() {
-    if (this.redis) this.redis.disconnect();
+  async onModuleDestroy(): Promise<void> {
+    if (this.redis) {
+      try {
+        await this.redis.quit();
+      } catch {
+        this.redis.disconnect();
+      }
+    }
   }
 
   private key(key: string): string {

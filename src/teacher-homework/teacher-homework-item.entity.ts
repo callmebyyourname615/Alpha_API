@@ -18,10 +18,14 @@ export class TeacherHomeworkItem {
   @Column('uuid', { name: 'teacher_homework_id' })
   teacherHomeworkId: string;
 
-  @ManyToOne(() => TeacherHomework, (teacherHomework) => teacherHomework.items, {
-    nullable: false,
-    onDelete: 'CASCADE',
-  })
+  @ManyToOne(
+    () => TeacherHomework,
+    (teacherHomework) => teacherHomework.items,
+    {
+      nullable: false,
+      onDelete: 'CASCADE',
+    },
+  )
   @JoinColumn({ name: 'teacher_homework_id' })
   teacherHomework: TeacherHomework;
 

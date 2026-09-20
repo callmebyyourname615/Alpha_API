@@ -1,7 +1,12 @@
-import { IsUUID, IsString, IsOptional, IsBoolean, IsNumber } from 'class-validator';
+import {
+  IsUUID,
+  IsString,
+  IsOptional,
+  IsBoolean,
+  IsNumber,
+} from 'class-validator';
 
 export class CreateClassDto {
-
   @IsUUID()
   year_level_id: string;
 

@@ -113,8 +113,9 @@ export class SubjectService {
 
     lessons.forEach((lesson) => {
       const lessonId = String(lesson?.id || '').trim();
-      const yearLevelId = String(lesson?.yearLevelId || lesson?.yearLevel?.id || '')
-        .trim();
+      const yearLevelId = String(
+        lesson?.yearLevelId || lesson?.yearLevel?.id || '',
+      ).trim();
       const subjectTypeName = String(lesson?.subjectType?.name || '').trim();
 
       if (
@@ -137,8 +138,9 @@ export class SubjectService {
     subjectQueuesByYearLevel.forEach((subjectQueue, yearLevelId) => {
       const lessonQueue = lessonQueuesByYearLevel.get(yearLevelId) || [];
       const allVisibleLessonsInYearLevel = lessons.filter((lesson) => {
-        const lessonYearLevelId = String(lesson?.yearLevelId || lesson?.yearLevel?.id || '')
-          .trim();
+        const lessonYearLevelId = String(
+          lesson?.yearLevelId || lesson?.yearLevel?.id || '',
+        ).trim();
         const subjectTypeName = String(lesson?.subjectType?.name || '').trim();
         return (
           lessonYearLevelId === yearLevelId &&
@@ -181,7 +183,9 @@ export class SubjectService {
   }
 
   private hasVisibleSubjectType(subject: Subject | null | undefined): boolean {
-    const directSubjectTypeName = String(subject?.subjectType?.name || '').trim();
+    const directSubjectTypeName = String(
+      subject?.subjectType?.name || '',
+    ).trim();
 
     if (
       directSubjectTypeName &&
@@ -233,7 +237,9 @@ export class SubjectService {
         where: { id: subjectTypeId },
       });
       if (!subjectType)
-        throw new BadRequestException(`Subject type ${subjectTypeId} not found`);
+        throw new BadRequestException(
+          `Subject type ${subjectTypeId} not found`,
+        );
       subject.subjectTypeId = subjectType.id;
       subject.subjectType = subjectType;
     }
@@ -327,7 +333,9 @@ export class SubjectService {
         where: { id: subjectTypeId },
       });
       if (!subjectType)
-        throw new BadRequestException(`Subject type ${subjectTypeId} not found`);
+        throw new BadRequestException(
+          `Subject type ${subjectTypeId} not found`,
+        );
       subject.subjectTypeId = subjectType.id;
       subject.subjectType = subjectType;
     }

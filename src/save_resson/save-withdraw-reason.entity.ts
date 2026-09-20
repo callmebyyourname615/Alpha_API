@@ -1,7 +1,10 @@
 // save-withdraw-reason.entity.ts
 import {
-  Entity, PrimaryGeneratedColumn, Column,
-  CreateDateColumn, UpdateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { SaveWithdrawReasonType } from './save-withdraw-reason-type.enum';
 

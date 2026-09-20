@@ -12,7 +12,10 @@ export class ChatReadController {
   }
 
   @Get()
-  getCursors(@Query('module_type') moduleType: string, @Query('module_id') moduleId?: string) {
+  getCursors(
+    @Query('module_type') moduleType: string,
+    @Query('module_id') moduleId?: string,
+  ) {
     return this.service.getCursors(moduleType, moduleId);
   }
 }

@@ -222,6 +222,7 @@ export class BranchService {
 
     // ✅ Only assign safe fields, not subjects or address directly
     if (dto.branch_id) branch.branch_id = dto.branch_id;
+    if (dto.branch_no) branch.branch_no = dto.branch_no;
     if (dto.branch_map) branch.branch_map = dto.branch_map;
     if (dto.branch_fb) branch.branch_fb = dto.branch_fb;
     if (dto.branch_website) branch.branch_website = dto.branch_website;

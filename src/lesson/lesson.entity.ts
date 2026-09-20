@@ -50,7 +50,7 @@ export class Lesson {
   })
   @JoinTable({
     name: 'lesson_curriculums',
-    joinColumn:        { name: 'lesson_id',     referencedColumnName: 'id' },
+    joinColumn: { name: 'lesson_id', referencedColumnName: 'id' },
     inverseJoinColumn: { name: 'curriculum_id', referencedColumnName: 'id' },
   })
   curriculums: Curriculum[];

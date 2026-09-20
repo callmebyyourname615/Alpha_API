@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddParentBranchColumn1780000000013
-  implements MigrationInterface
-{
+export class AddParentBranchColumn1780000000013 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
       ALTER TABLE "parents"

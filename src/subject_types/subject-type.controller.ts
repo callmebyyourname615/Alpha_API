@@ -6,7 +6,7 @@ import {
   Patch,
   Param,
   Delete,
-  ParseUUIDPipe,        // ← Important change
+  ParseUUIDPipe, // ← Important change
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
@@ -15,9 +15,8 @@ import { SubjectTypeService } from './subject-type.service';
 import { CreateSubjectTypeDto } from './dto/create-subject-type.dto';
 import { UpdateSubjectTypeDto } from './dto/update-subject-type.dto';
 
-@Controller('subject-type')   // ← Recommended: plural
+@Controller('subject-type') // ← Recommended: plural
 export class SubjectTypeController {
-
   constructor(private readonly subjectService: SubjectTypeService) {}
 
   @Post()
@@ -31,20 +30,22 @@ export class SubjectTypeController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseUUIDPipe) id: string) {   // ← Fixed
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
+    // ← Fixed
     return this.subjectService.findOne(id);
   }
 
   @Patch(':id')
   update(
-    @Param('id', ParseUUIDPipe) id: string,           // ← Fixed
+    @Param('id', ParseUUIDPipe) id: string, // ← Fixed
     @Body() updateDto: UpdateSubjectTypeDto,
   ) {
     return this.subjectService.update(id, updateDto);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseUUIDPipe) id: string) {    // ← Fixed
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    // ← Fixed
     return this.subjectService.remove(id);
   }
 }

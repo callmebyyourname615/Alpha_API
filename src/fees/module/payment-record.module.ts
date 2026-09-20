@@ -6,10 +6,7 @@ import { StudentFeeModule } from './student-fee.module';
 import { PaymentRecordController } from '../controller/payment-record.controller';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([PaymentRecord]),
-    StudentFeeModule,
-  ],
+  imports: [TypeOrmModule.forFeature([PaymentRecord]), StudentFeeModule],
   controllers: [PaymentRecordController],
   providers: [PaymentRecordService],
   exports: [PaymentRecordService],

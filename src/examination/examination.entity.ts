@@ -119,13 +119,25 @@ export class Examination {
   @JoinColumn({ name: 'super_admin_role_id' })
   superAdminRole: Role | null;
 
-  @Column({ type: 'varchar', length: 20, nullable: true, name: 'checker_status', default: 'PENDING' })
+  @Column({
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+    name: 'checker_status',
+    default: 'PENDING',
+  })
   checkerStatus: 'PENDING' | 'CHECKED' | 'REJECTED' | null;
 
   @Column({ type: 'text', nullable: true, name: 'checker_reject_comment' })
   checkerRejectComment: string | null;
 
-  @Column({ type: 'varchar', length: 20, nullable: true, name: 'super_admin_status', default: 'PENDING' })
+  @Column({
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+    name: 'super_admin_status',
+    default: 'PENDING',
+  })
   superAdminStatus: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
 
   @Column({ type: 'text', nullable: true, name: 'super_admin_reject_comment' })

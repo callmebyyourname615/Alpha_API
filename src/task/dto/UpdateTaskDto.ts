@@ -41,7 +41,10 @@ const parseIdArray = ({ value }: { value: unknown }) => {
     } catch {
       /* fall through */
     }
-    return value.split(',').map((v) => v.trim()).filter(Boolean);
+    return value
+      .split(',')
+      .map((v) => v.trim())
+      .filter(Boolean);
   }
   return value;
 };

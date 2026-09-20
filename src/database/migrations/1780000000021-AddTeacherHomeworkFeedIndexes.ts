@@ -26,9 +26,17 @@ export class AddTeacherHomeworkFeedIndexes1780000000021
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_teacher_homework_item_homework_sort"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_teacher_homework_class_status_created"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_teacher_homework_teaching_status_created"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_teacher_homework_created"');
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_teacher_homework_item_homework_sort"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_teacher_homework_class_status_created"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_teacher_homework_teaching_status_created"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_teacher_homework_created"',
+    );
   }
 }

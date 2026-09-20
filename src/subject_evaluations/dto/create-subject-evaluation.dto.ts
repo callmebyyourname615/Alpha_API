@@ -1,5 +1,12 @@
 import { Type, Transform } from 'class-transformer';
-import { IsString, IsUUID, IsOptional, IsArray, IsObject, ValidateNested } from 'class-validator';
+import {
+  IsString,
+  IsUUID,
+  IsOptional,
+  IsArray,
+  IsObject,
+  ValidateNested,
+} from 'class-validator';
 
 export class ContentDto {
   @IsString()

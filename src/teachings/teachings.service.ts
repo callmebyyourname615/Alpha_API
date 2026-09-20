@@ -137,7 +137,9 @@ export class TeachingService {
     );
   }
 
-  private async getAvailableLessons(yearLevelIds?: string[]): Promise<Lesson[]> {
+  private async getAvailableLessons(
+    yearLevelIds?: string[],
+  ): Promise<Lesson[]> {
     return this.lessonRepo.find({
       where: yearLevelIds?.length ? { yearLevelId: In(yearLevelIds) } : {},
       relations: ['subjectType', 'yearLevel'],
@@ -174,7 +176,8 @@ export class TeachingService {
 
     for (const teaching of teachings) {
       if (!teaching.subject?.id) continue;
-      teaching.subject.lessons = lessonsBySubjectId.get(teaching.subject.id) ?? [];
+      teaching.subject.lessons =
+        lessonsBySubjectId.get(teaching.subject.id) ?? [];
     }
   }
 

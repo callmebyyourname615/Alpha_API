@@ -144,6 +144,20 @@ export class StudentsController {
     return this.service.findAll(branchId ?? branchIdAlias);
   }
 
+  // ================= GENERATE ID =================
+  @Get('generate-id')
+  async generateStudentId(
+    @Query('branch_id') branchId?: string,
+    @Query('branchId') branchIdAlias?: string,
+    @Query('academic_year') academicYear?: string,
+  ) {
+    const student_id = await this.service.generateStudentId(
+      branchId ?? branchIdAlias,
+      academicYear,
+    );
+    return { student_id };
+  }
+
   // ================= GET BY ID =================
   @Get(':id')
   findById(@Param('id') id: string) {
@@ -221,41 +235,19 @@ export class StudentsController {
       ...body,
       live_with: parseMaybeJson(body.live_with, []),
       emergency_contacts: parseMaybeJson(body.emergency_contacts, []),
-      Siblings_info: parseMaybeJson((body as any).Siblings_info, []),
-      his_school_kindergarten: parseMaybeJson(
-        (body as any).his_school_kindergarten,
-        [],
-      ),
-      his_school_primary: parseMaybeJson(
-        (body as any).his_school_primary,
-        [],
-      ),
-      his_school_nursery: parseMaybeJson(
-        (body as any).his_school_nursery,
-        [],
-      ),
-      health_history: parseMaybeJson((body as any).health_history, []),
-      physical_disability: parseMaybeJson(
-        (body as any).physical_disability,
-        [],
-      ),
-      health_review_required: parseMaybeBoolean(
-        (body as any).health_review_required,
-      ),
-      healthReviewRequired: parseMaybeBoolean(
-        (body as any).healthReviewRequired,
-      ),
-      health_review_reasons: parseMaybeJson(
-        (body as any).health_review_reasons,
-        [],
-      ),
-      healthReviewReasons: parseMaybeJson(
-        (body as any).healthReviewReasons,
-        [],
-      ),
-      is_active: parseMaybeBoolean((body as any).is_active),
-      protective_info: parseMaybeJson((body as any).protective_info, []),
-      parentIds: parseMaybeJson((body as any).parentIds, []),
+      Siblings_info: parseMaybeJson(body.Siblings_info, []),
+      his_school_kindergarten: parseMaybeJson(body.his_school_kindergarten, []),
+      his_school_primary: parseMaybeJson(body.his_school_primary, []),
+      his_school_nursery: parseMaybeJson(body.his_school_nursery, []),
+      health_history: parseMaybeJson(body.health_history, []),
+      physical_disability: parseMaybeJson(body.physical_disability, []),
+      health_review_required: parseMaybeBoolean(body.health_review_required),
+      healthReviewRequired: parseMaybeBoolean(body.healthReviewRequired),
+      health_review_reasons: parseMaybeJson(body.health_review_reasons, []),
+      healthReviewReasons: parseMaybeJson(body.healthReviewReasons, []),
+      is_active: parseMaybeBoolean(body.is_active),
+      protective_info: parseMaybeJson(body.protective_info, []),
+      parentIds: parseMaybeJson(body.parentIds, []),
     };
 
     if (profileFile) dto.profile_image_path = profileFile.path;
@@ -267,10 +259,7 @@ export class StudentsController {
 
   // ================= LINK PARENTS =================
   @Post(':id/parents')
-  linkParents(
-    @Param('id') id: string,
-    @Body('parentIds') parentIds: string[],
-  ) {
+  linkParents(@Param('id') id: string, @Body('parentIds') parentIds: string[]) {
     return this.service.linkParents(id, parentIds);
   }
 
@@ -302,7 +291,12 @@ export class StudentsController {
 
     const dto: Partial<CreateStudentDto> = {
       ...body,
-      is_active: body.is_active === 'true' || body.is_active === true ? true : (body.is_active === 'false' || body.is_active === false ? false : undefined),
+      is_active:
+        body.is_active === 'true' || body.is_active === true
+          ? true
+          : body.is_active === 'false' || body.is_active === false
+            ? false
+            : undefined,
       live_with: parseMaybeJson(body.live_with),
       emergency_contacts: parseMaybeJson(body.emergency_contacts),
       bos_info: parseMaybeJson(body.bos_info),

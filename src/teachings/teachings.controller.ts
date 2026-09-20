@@ -37,12 +37,11 @@ export class TeachingController {
     return this.teachingService.findOne(id);
   }
 
-   @Post('by-admin')
+  @Post('by-admin')
   findByAdmin(@Body() dto: GetTeachingByAdminDto) {
     return this.teachingService.findByAdmin(dto);
   }
 
-  
   @Patch(':id')
   update(
     @Param('id', ParseUUIDPipe) id: string,

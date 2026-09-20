@@ -14,7 +14,6 @@ import { UpdateCurriculumDto } from './dto/update-curriculum.dto';
 
 @Controller('curriculums')
 export class CurriculumController {
-
   constructor(private readonly curriculumService: CurriculumService) {}
 
   @Post()
@@ -33,10 +32,7 @@ export class CurriculumController {
   }
 
   @Patch(':id')
-  update(
-    @Param('id') id: string,
-    @Body() dto: UpdateCurriculumDto,
-  ) {
+  update(@Param('id') id: string, @Body() dto: UpdateCurriculumDto) {
     return this.curriculumService.update(id, dto);
   }
 
@@ -44,5 +40,4 @@ export class CurriculumController {
   remove(@Param('id') id: string) {
     return this.curriculumService.remove(id);
   }
-
 }

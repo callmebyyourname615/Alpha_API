@@ -65,7 +65,9 @@ export class TeachLearningService {
     branchId?: string,
   ): Promise<Record<string, TeachLearning>> {
     const normalizedSubjectIds = [
-      ...new Set(subjectIds.map((value) => String(value || '').trim()).filter(Boolean)),
+      ...new Set(
+        subjectIds.map((value) => String(value || '').trim()).filter(Boolean),
+      ),
     ];
     const normalizedBranchId = String(branchId || '').trim();
 
@@ -93,13 +95,16 @@ export class TeachLearningService {
       .addOrderBy('teachLearning.created_at', 'DESC')
       .getMany();
 
-    return records.reduce<Record<string, TeachLearning>>((latestBySubject, record) => {
-      if (!latestBySubject[record.subjectId]) {
-        latestBySubject[record.subjectId] = record;
-      }
+    return records.reduce<Record<string, TeachLearning>>(
+      (latestBySubject, record) => {
+        if (!latestBySubject[record.subjectId]) {
+          latestBySubject[record.subjectId] = record;
+        }
 
-      return latestBySubject;
-    }, {});
+        return latestBySubject;
+      },
+      {},
+    );
   }
 
   async findOne(id: string): Promise<TeachLearning> {
@@ -115,24 +120,24 @@ export class TeachLearningService {
     return teachLearning;
   }
 
-async findByDateRange(
-  startDate: string,
-  endDate: string,
-): Promise<TeachLearning[]> {
-  this.validateDates(startDate, endDate);
+  async findByDateRange(
+    startDate: string,
+    endDate: string,
+  ): Promise<TeachLearning[]> {
+    this.validateDates(startDate, endDate);
 
-  const startDateTime = `${startDate} 00:00:00`;
-  const endDateTime = `${endDate} 23:59:59`;
+    const startDateTime = `${startDate} 00:00:00`;
+    const endDateTime = `${endDate} 23:59:59`;
 
-  return await this.teachLearningRepo
-    .createQueryBuilder('teachLearning')
-    .leftJoinAndSelect('teachLearning.admin', 'admin')
-    .leftJoinAndSelect('teachLearning.subject', 'subject')
-    .where('teachLearning.start_date <= :endDateTime', { endDateTime })
-    .andWhere('teachLearning.end_date >= :startDateTime', { startDateTime })
-    .orderBy('teachLearning.start_date', 'ASC')
-    .getMany();
-}
+    return await this.teachLearningRepo
+      .createQueryBuilder('teachLearning')
+      .leftJoinAndSelect('teachLearning.admin', 'admin')
+      .leftJoinAndSelect('teachLearning.subject', 'subject')
+      .where('teachLearning.start_date <= :endDateTime', { endDateTime })
+      .andWhere('teachLearning.end_date >= :startDateTime', { startDateTime })
+      .orderBy('teachLearning.start_date', 'ASC')
+      .getMany();
+  }
   async update(
     id: string,
     updateDto: UpdateTeachLearningDto,

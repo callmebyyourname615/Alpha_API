@@ -9,7 +9,10 @@ import { FileController } from './file.controller';
 import { TaskSubmissionModule } from '../task-submission/task-submission.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([File, Event, EventActivity, Task]), TaskSubmissionModule],
+  imports: [
+    TypeOrmModule.forFeature([File, Event, EventActivity, Task]),
+    TaskSubmissionModule,
+  ],
   controllers: [FileController],
   providers: [FileService],
   exports: [FileService],

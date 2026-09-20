@@ -22,7 +22,10 @@ export class RubricSettingsService {
     });
 
     if (!workspace) {
-      workspace = this.workspaceRepository.create({ workspaceKey: key, objects: [] });
+      workspace = this.workspaceRepository.create({
+        workspaceKey: key,
+        objects: [],
+      });
       workspace = await this.workspaceRepository.save(workspace);
     }
 

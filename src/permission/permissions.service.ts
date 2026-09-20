@@ -18,11 +18,11 @@ export class PermissionsService {
     @InjectRepository(Permission)
     private permissionRepository: Repository<Permission>,
 
-@InjectRepository(Role)
-  private roleRepository: Repository<Role>,          // ← index [1]
+    @InjectRepository(Role)
+    private roleRepository: Repository<Role>, // ← index [1]
 
-  @InjectRepository(PermissionModule)
-  private moduleRepository: Repository<PermissionModule>,
+    @InjectRepository(PermissionModule)
+    private moduleRepository: Repository<PermissionModule>,
   ) {}
 
   async create(dto: CreatePermissionDto): Promise<PermissionResponseDto> {
@@ -35,7 +35,9 @@ export class PermissionsService {
     let permissionModule: PermissionModule | null = null;
 
     if (dto.moduleId) {
-      permissionModule = await this.moduleRepository.findOneBy({ id: dto.moduleId });
+      permissionModule = await this.moduleRepository.findOneBy({
+        id: dto.moduleId,
+      });
       if (!permissionModule) {
         throw new NotFoundException(`Module with ID ${dto.moduleId} not found`);
       }
@@ -57,22 +59,22 @@ export class PermissionsService {
     return this.toResponseDto(saved);
   }
 
-async findAll(): Promise<PermissionResponseDto[]> {
-  try {
-    const permissions = await this.permissionRepository.find({
-      relations: ['role', 'permissionModule'],
-      order: { createdAt: 'DESC' },
-    });
+  async findAll(): Promise<PermissionResponseDto[]> {
+    try {
+      const permissions = await this.permissionRepository.find({
+        relations: ['role', 'permissionModule'],
+        order: { createdAt: 'DESC' },
+      });
 
-    console.log(`Found ${permissions.length} permissions`); // debug
+      console.log(`Found ${permissions.length} permissions`); // debug
 
-    return permissions.map((p) => this.toResponseDto(p));
-  } catch (error) {
-    console.error('Error in findAll:', error);
-    console.error('Stack:', error.stack);
-    throw error; // rethrow so Nest logs full error
+      return permissions.map((p) => this.toResponseDto(p));
+    } catch (error) {
+      console.error('Error in findAll:', error);
+      console.error('Stack:', error.stack);
+      throw error; // rethrow so Nest logs full error
+    }
   }
-}
   async findOne(id: string): Promise<PermissionResponseDto> {
     const permission = await this.permissionRepository.findOne({
       where: { id },
@@ -86,7 +88,10 @@ async findAll(): Promise<PermissionResponseDto[]> {
     return this.toResponseDto(permission);
   }
 
-  async update(id: string, dto: UpdatePermissionDto): Promise<PermissionResponseDto> {
+  async update(
+    id: string,
+    dto: UpdatePermissionDto,
+  ): Promise<PermissionResponseDto> {
     const permission = await this.permissionRepository.findOne({
       where: { id },
       relations: ['role', 'permissionModule'],
@@ -110,9 +115,13 @@ async findAll(): Promise<PermissionResponseDto[]> {
       if (dto.moduleId === null) {
         permission.permissionModule = null;
       } else {
-        const module = await this.moduleRepository.findOneBy({ id: dto.moduleId });
+        const module = await this.moduleRepository.findOneBy({
+          id: dto.moduleId,
+        });
         if (!module) {
-          throw new NotFoundException(`Module with ID ${dto.moduleId} not found`);
+          throw new NotFoundException(
+            `Module with ID ${dto.moduleId} not found`,
+          );
         }
         permission.permissionModule = module;
       }
@@ -146,20 +155,20 @@ async findAll(): Promise<PermissionResponseDto[]> {
   // ─── Helper ────────────────────────────────────────────────────────────────
 
   private toResponseDto(permission: Permission): PermissionResponseDto {
-  return {
-    id: permission.id,
-    roleId: permission.role?.id ?? null,          // ← safe access + fallback
-    roleName: permission.role?.name ?? null,      // ← safe access + fallback
-    moduleId: permission.permissionModule?.id ?? null,
-    moduleName: permission.permissionModule?.name ?? null,
-    canCreate: permission.can_add,
-    canView: permission.can_view,
-    canUpdate: permission.can_edit,
-    canUpdatePassword: permission.can_update_password,
-    canDelete: permission.can_delete,
-    canExport: permission.can_export,
-    createdAt: permission.createdAt.toISOString(),
-    updatedAt: permission.updatedAt.toISOString(),
-  };
-}
+    return {
+      id: permission.id,
+      roleId: permission.role?.id ?? null, // ← safe access + fallback
+      roleName: permission.role?.name ?? null, // ← safe access + fallback
+      moduleId: permission.permissionModule?.id ?? null,
+      moduleName: permission.permissionModule?.name ?? null,
+      canCreate: permission.can_add,
+      canView: permission.can_view,
+      canUpdate: permission.can_edit,
+      canUpdatePassword: permission.can_update_password,
+      canDelete: permission.can_delete,
+      canExport: permission.can_export,
+      createdAt: permission.createdAt.toISOString(),
+      updatedAt: permission.updatedAt.toISOString(),
+    };
+  }
 }

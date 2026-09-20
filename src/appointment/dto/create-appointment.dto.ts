@@ -1,7 +1,7 @@
 // ============================================================
 // FILE 5: src/appointment/dto/create-appointment.dto.ts
 // ============================================================
-import { Type }            from 'class-transformer';
+import { Type } from 'class-transformer';
 import {
   IsString,
   IsUUID,
@@ -40,10 +40,14 @@ export class CreateAppointmentDto {
   @IsDateString()
   date: string;
 
-  @Matches(/^\d{2}:\d{2}(:\d{2})?$/, { message: 'from_time must be HH:MM or HH:MM:SS' })
+  @Matches(/^\d{2}:\d{2}(:\d{2})?$/, {
+    message: 'from_time must be HH:MM or HH:MM:SS',
+  })
   from_time: string;
 
-  @Matches(/^\d{2}:\d{2}(:\d{2})?$/, { message: 'to_time must be HH:MM or HH:MM:SS' })
+  @Matches(/^\d{2}:\d{2}(:\d{2})?$/, {
+    message: 'to_time must be HH:MM or HH:MM:SS',
+  })
   to_time: string;
 
   @IsArray()

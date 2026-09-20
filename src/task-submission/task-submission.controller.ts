@@ -14,7 +14,11 @@ import { TaskSubmissionService } from './task-submission.service';
 import { UpsertTaskSubmissionDto } from './dto/create-task-submission.dto';
 import { UpdateTaskSubmissionDto } from './dto/update-task-submission.dto';
 import { CreateTaskSubmissionAttemptDto } from './dto/create-task-submission-attempt.dto';
-import { ReviewTaskSlotDto, SubmitTaskSlotDto, SyncTaskSlotsDto } from './dto/task-submission-slot.dto';
+import {
+  ReviewTaskSlotDto,
+  SubmitTaskSlotDto,
+  SyncTaskSlotsDto,
+} from './dto/task-submission-slot.dto';
 
 @Controller('task-submissions')
 @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
@@ -32,13 +36,20 @@ export class TaskSubmissionController {
   }
 
   @Get('slots/tracking')
-  findSlots(@Query('task_id') taskId: string, @Query('student_id') studentId?: string) {
+  findSlots(
+    @Query('task_id') taskId: string,
+    @Query('student_id') studentId?: string,
+  ) {
     return this.service.findSlots(taskId, studentId);
   }
 
   @Post('slots/sync')
   syncSlots(@Body() dto: SyncTaskSlotsDto) {
-    return this.service.syncSlots(dto.task_id, dto.student_ids, dto.actor_admin_id);
+    return this.service.syncSlots(
+      dto.task_id,
+      dto.student_ids,
+      dto.actor_admin_id,
+    );
   }
 
   @Post('slots/submit')
@@ -62,7 +73,10 @@ export class TaskSubmissionController {
   }
 
   @Post(':id/attempts')
-  recordAttempt(@Param('id') id: string, @Body() dto: CreateTaskSubmissionAttemptDto) {
+  recordAttempt(
+    @Param('id') id: string,
+    @Body() dto: CreateTaskSubmissionAttemptDto,
+  ) {
     return this.service.recordAttempt(id, dto.file_id);
   }
 

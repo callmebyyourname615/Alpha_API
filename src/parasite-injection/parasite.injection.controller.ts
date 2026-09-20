@@ -36,7 +36,6 @@ export class ParasiteInjectionController {
     return this.service.findByStudent(studentId);
   }
 
-
   /**
    * GET /parasite-injections/:id
    */

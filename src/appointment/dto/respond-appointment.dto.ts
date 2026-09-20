@@ -1,11 +1,7 @@
 // ============================================================
 // FILE 7: src/appointment/dto/respond-appointment.dto.ts
 // ============================================================
-import {
-  IsEnum,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
 import { ParticipantStatus } from '../appointment.enum';
 
 export class RespondAppointmentDto {

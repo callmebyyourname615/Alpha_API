@@ -64,7 +64,7 @@ export class File {
 
   @ManyToOne(() => Task, (task) => task.files, {
     nullable: true,
-    onDelete: 'SET NULL'
+    onDelete: 'SET NULL',
   })
   @JoinColumn({ name: 'task_id' })
   task?: Task;

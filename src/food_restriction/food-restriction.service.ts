@@ -24,7 +24,9 @@ export class FoodRestrictionService {
       where: { id: nutritionId },
     });
     if (!record) {
-      throw new NotFoundException(`Nutrition record "${nutritionId}" not found`);
+      throw new NotFoundException(
+        `Nutrition record "${nutritionId}" not found`,
+      );
     }
     return record;
   }

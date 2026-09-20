@@ -8,7 +8,11 @@ import {
 } from 'typeorm';
 
 @Entity('rubric_report_month_settings')
-@Index('UQ_rubric_report_month_settings_scope_month', ['classId', 'studentId', 'subjectId', 'month'], { unique: true })
+@Index(
+  'UQ_rubric_report_month_settings_scope_month',
+  ['classId', 'studentId', 'subjectId', 'month'],
+  { unique: true },
+)
 export class RubricReportMonthSetting {
   @PrimaryGeneratedColumn('uuid')
   id: string;

@@ -42,7 +42,10 @@ const fileInterceptorOptions = {
     if (allowedMimeTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new BadRequestException(`File type ${file.mimetype} is not allowed`), false);
+      cb(
+        new BadRequestException(`File type ${file.mimetype} is not allowed`),
+        false,
+      );
     }
   },
 };
@@ -68,7 +71,10 @@ export class ExaminationController {
   @Post()
   @UseInterceptors(
     FileFieldsInterceptor(
-      [{ name: 'exam_file', maxCount: 1 }, { name: 'answer_file', maxCount: 1 }],
+      [
+        { name: 'exam_file', maxCount: 1 },
+        { name: 'answer_file', maxCount: 1 },
+      ],
       fileInterceptorOptions,
     ),
   )
@@ -93,7 +99,10 @@ export class ExaminationController {
   @Put(':id')
   @UseInterceptors(
     FileFieldsInterceptor(
-      [{ name: 'exam_file', maxCount: 1 }, { name: 'answer_file', maxCount: 1 }],
+      [
+        { name: 'exam_file', maxCount: 1 },
+        { name: 'answer_file', maxCount: 1 },
+      ],
       fileInterceptorOptions,
     ),
   )

@@ -11,7 +11,13 @@ import { EnrollmentController } from './enrollment.controller';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Enrollment, Student, AcademicYear, Class, Branch]),
+    TypeOrmModule.forFeature([
+      Enrollment,
+      Student,
+      AcademicYear,
+      Class,
+      Branch,
+    ]),
   ],
   controllers: [EnrollmentController],
   providers: [EnrollmentService],

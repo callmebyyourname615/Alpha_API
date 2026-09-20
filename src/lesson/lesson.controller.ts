@@ -105,11 +105,19 @@ export class LessonController {
     return this.lessonService.remove(id);
   }
 
-  private normalizeLessonBody(body: LessonBody): CreateLessonDto | UpdateLessonDto {
+  private normalizeLessonBody(
+    body: LessonBody,
+  ): CreateLessonDto | UpdateLessonDto {
     const normalized: Record<string, unknown> = { ...body };
     const subjectId = this.pickFirstString(body.subjectId, body.subject_id);
-    const subjectTypeId = this.pickFirstString(body.subjectTypeId, body.subject_type_id);
-    const yearLevelId = this.pickFirstString(body.yearLevelId, body.year_level_id);
+    const subjectTypeId = this.pickFirstString(
+      body.subjectTypeId,
+      body.subject_type_id,
+    );
+    const yearLevelId = this.pickFirstString(
+      body.yearLevelId,
+      body.year_level_id,
+    );
     const { ids, provided } = this.extractCurriculumIds(body);
 
     if (subjectId) {
@@ -131,7 +139,10 @@ export class LessonController {
     return normalized as CreateLessonDto | UpdateLessonDto;
   }
 
-  private extractCurriculumIds(body: LessonBody): { ids: string[]; provided: boolean } {
+  private extractCurriculumIds(body: LessonBody): {
+    ids: string[];
+    provided: boolean;
+  } {
     const collected = new Set<string>();
     let provided = false;
 
@@ -177,8 +188,13 @@ export class LessonController {
     }
 
     const indexedKeys = Object.keys(body)
-      .filter((key) => /^(curriculumIds|curriculum_ids|curriculums)\[\d+\]$/.test(key))
-      .sort((a, b) => Number(a.match(/\d+/)?.[0] ?? 0) - Number(b.match(/\d+/)?.[0] ?? 0));
+      .filter((key) =>
+        /^(curriculumIds|curriculum_ids|curriculums)\[\d+\]$/.test(key),
+      )
+      .sort(
+        (a, b) =>
+          Number(a.match(/\d+/)?.[0] ?? 0) - Number(b.match(/\d+/)?.[0] ?? 0),
+      );
 
     if (indexedKeys.length) {
       provided = true;

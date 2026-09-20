@@ -37,7 +37,13 @@ export class FileService {
 
   // Find files by module + related entity
   async findByModuleAndOwner(
-    module: 'event' | 'event_activity' | 'task' | 'comment' | 'task_submission' | 'gallery',
+    module:
+      | 'event'
+      | 'event_activity'
+      | 'task'
+      | 'comment'
+      | 'task_submission'
+      | 'gallery',
     ownerId: string,
   ): Promise<File[]> {
     const columnMap = {
@@ -49,7 +55,7 @@ export class FileService {
       gallery: 'gallery_id',
     } as const;
 
-    const where: any = { 
+    const where: any = {
       [columnMap[module]]: ownerId,
       is_deleted: false,
     };

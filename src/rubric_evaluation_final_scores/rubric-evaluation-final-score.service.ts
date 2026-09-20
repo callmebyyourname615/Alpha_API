@@ -80,7 +80,9 @@ export class RubricEvaluationFinalScoreService {
     const studentId = this.text(dto.studentId);
     const studentName = this.text(dto.studentName);
     const subjectId = this.text(dto.subjectId);
-    const subjectKey = this.text(dto.subjectKey || dto.subjectId || dto.subjectName);
+    const subjectKey = this.text(
+      dto.subjectKey || dto.subjectId || dto.subjectName,
+    );
     const subjectName = this.text(dto.subjectName);
     const reportForm = this.text(dto.reportForm);
     const reportTemplate = this.text(dto.reportTemplate);
@@ -94,7 +96,9 @@ export class RubricEvaluationFinalScoreService {
     const finalScore = this.optionalNumber(dto.finalScore);
 
     if (!studentId || !subjectKey || !reportForm) {
-      throw new BadRequestException('studentId, subjectKey, and reportForm are required.');
+      throw new BadRequestException(
+        'studentId, subjectKey, and reportForm are required.',
+      );
     }
     if (reportMonth < 1) {
       throw new BadRequestException('reportMonth is required.');

@@ -1,8 +1,17 @@
 import { Transform } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import {
+  IsArray,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+} from 'class-validator';
 
-const normalizeCurriculumIds = (value: unknown, obj?: Record<string, unknown>): string[] => {
+const normalizeCurriculumIds = (
+  value: unknown,
+  obj?: Record<string, unknown>,
+): string[] => {
   const collected = new Set<string>();
 
   const append = (item: unknown): void => {
@@ -32,13 +41,26 @@ const normalizeCurriculumIds = (value: unknown, obj?: Record<string, unknown>): 
   append(value);
 
   if (obj) {
-    for (const key of ['curriculumIds_json', 'curriculum_ids', 'curriculum_ids[]', 'curriculum_ids_json', 'curriculums', 'curriculums[]', 'curriculums_json']) {
+    for (const key of [
+      'curriculumIds_json',
+      'curriculum_ids',
+      'curriculum_ids[]',
+      'curriculum_ids_json',
+      'curriculums',
+      'curriculums[]',
+      'curriculums_json',
+    ]) {
       append(obj[key]);
     }
 
     const indexedKeys = Object.keys(obj)
-      .filter((key) => /^(curriculumIds|curriculum_ids|curriculums)\\[\\d+\\]$/.test(key))
-      .sort((a, b) => Number(a.match(/\d+/)?.[0] ?? 0) - Number(b.match(/\d+/)?.[0] ?? 0));
+      .filter((key) =>
+        /^(curriculumIds|curriculum_ids|curriculums)\\[\\d+\\]$/.test(key),
+      )
+      .sort(
+        (a, b) =>
+          Number(a.match(/\d+/)?.[0] ?? 0) - Number(b.match(/\d+/)?.[0] ?? 0),
+      );
 
     for (const key of indexedKeys) {
       append(obj[key]);

@@ -1,4 +1,12 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import type { Request } from 'express';
 import { AuthService } from './auth.service';
 import { LoginParentDto } from './dto/login-parent.dto';
@@ -12,7 +20,10 @@ export class AuthController {
   @Public()
   @UseGuards(LoginRateLimitGuard)
   @Post('login')
-  async login(@Body() body: { email: string; password: string }, @Req() req: Request) {
+  async login(
+    @Body() body: { email: string; password: string },
+    @Req() req: Request,
+  ) {
     try {
       const result = await this.authService.login(body.email, body.password);
       LoginRateLimitGuard.recordSuccess(req, body.email);
@@ -29,7 +40,10 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async loginParent(@Body() dto: LoginParentDto, @Req() req: Request) {
     try {
-      const result = await this.authService.loginParent(dto.email, dto.password);
+      const result = await this.authService.loginParent(
+        dto.email,
+        dto.password,
+      );
       LoginRateLimitGuard.recordSuccess(req, dto.email);
       return result;
     } catch (err) {

@@ -15,8 +15,9 @@ export class RubricEvaluationFinalScoreController {
 
   @Put()
   async saveScore(@Body() body: { score?: SaveRubricEvaluationFinalScoreDto }) {
-    const score = await this.service.save(body?.score || (body as SaveRubricEvaluationFinalScoreDto));
+    const score = await this.service.save(
+      body?.score || (body as SaveRubricEvaluationFinalScoreDto),
+    );
     return { data: await this.service.findAll(), score };
   }
-
 }

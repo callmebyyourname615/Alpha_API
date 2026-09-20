@@ -20,7 +20,10 @@ export class TaskNoteController {
   constructor(private readonly service: TaskNoteService) {}
 
   @Get()
-  findForAdmin(@Query('task_id') taskId: string, @Query('admin_id') adminId: string) {
+  findForAdmin(
+    @Query('task_id') taskId: string,
+    @Query('admin_id') adminId: string,
+  ) {
     return this.service.findForAdmin(taskId, adminId);
   }
 
@@ -30,7 +33,11 @@ export class TaskNoteController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateTaskNoteDto, @Query('admin_id') adminId?: string) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateTaskNoteDto,
+    @Query('admin_id') adminId?: string,
+  ) {
     return this.service.update(id, dto, adminId);
   }
 

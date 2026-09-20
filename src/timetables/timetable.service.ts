@@ -1,5 +1,9 @@
 // src/timetables/timetable.service.ts
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Timetable } from './timetable.entity';
@@ -26,7 +30,10 @@ export class TimetableService {
   ) {}
 
   private async assertNoClassTimeConflict(
-    dto: Pick<CreateTimetableDto, 'classId' | 'dayOfWeek' | 'startTime' | 'endTime'>,
+    dto: Pick<
+      CreateTimetableDto,
+      'classId' | 'dayOfWeek' | 'startTime' | 'endTime'
+    >,
     ignoreId?: string,
   ): Promise<void> {
     const conflict = await this.timetableRepo
@@ -140,7 +147,8 @@ export class TimetableService {
 
     for (const timetable of timetables) {
       if (!timetable.subject?.id) continue;
-      timetable.subject.lessons = lessonsBySubjectId.get(timetable.subject.id) ?? [];
+      timetable.subject.lessons =
+        lessonsBySubjectId.get(timetable.subject.id) ?? [];
     }
   }
 

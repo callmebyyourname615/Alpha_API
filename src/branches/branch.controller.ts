@@ -111,9 +111,33 @@ export class BranchController {
   @UseInterceptors(BranchController.fileInterceptor)
   async update(
     @Param('id') id: string,
-    @Body() dto: UpdateBranchDto,
+    @Body() body: any,
     @UploadedFile() file?: Express.Multer.File,
   ): Promise<BranchResponseDto> {
+    const parseJson = (val: any) => {
+      if (typeof val === 'string') {
+        try {
+          return JSON.parse(val);
+        } catch {
+          return val;
+        }
+      }
+      return val;
+    };
+
+    const dto: UpdateBranchDto = {
+      branch_id: body.branch_id,
+      branch_no: body.branch_no,
+      name: body.name,
+      contact: body.contact,
+      phone: body.phone,
+      branch_map: body.branch_map,
+      branch_fb: body.branch_fb,
+      branch_website: body.branch_website,
+      address: body.address !== undefined ? parseJson(body.address) : undefined,
+      subjects: body.subjects !== undefined ? parseJson(body.subjects) : undefined,
+    };
+
     return this.branchService.update(id, dto, file);
   }
 

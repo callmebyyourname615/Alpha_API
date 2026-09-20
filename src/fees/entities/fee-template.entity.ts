@@ -33,9 +33,9 @@ export class FeeTemplate {
   year_level_id: string;
 
   // Uncomment when you import YearLevel entity:
-   @ManyToOne(() => YearLevel, { eager: true })
-   @JoinColumn({ name: 'year_level_id' })
-   year_level: YearLevel;
+  @ManyToOne(() => YearLevel, { eager: true })
+  @JoinColumn({ name: 'year_level_id' })
+  year_level: YearLevel;
 
   @Column({ default: true })
   is_active: boolean;
@@ -47,6 +47,6 @@ export class FeeTemplate {
   updated_at: Date;
 
   // Uncomment when FeeAssignment is imported:
-   @OneToMany(() => FeeAssignment, (fa) => fa.fee_template)
-   fee_assignments: FeeAssignment[];
+  @OneToMany(() => FeeAssignment, (fa) => fa.fee_template)
+  fee_assignments: FeeAssignment[];
 }

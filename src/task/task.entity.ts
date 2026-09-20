@@ -168,8 +168,12 @@ export class Task {
   @UpdateDateColumn()
   updated_at: Date;
 
-  @ManyToOne(() => TeacherHomework, (teacherhomework) => teacherhomework.tasks, {
-    nullable: true,
-  })
+  @ManyToOne(
+    () => TeacherHomework,
+    (teacherhomework) => teacherhomework.tasks,
+    {
+      nullable: true,
+    },
+  )
   homework?: TeacherHomework;
 }

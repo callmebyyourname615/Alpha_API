@@ -50,9 +50,9 @@ export class Subject {
   // =========================
   @ManyToMany(() => Lesson, { cascade: true, eager: false })
   @JoinTable({
-    name: 'subject_lessons',                                    // ✅ join table
-    joinColumn:        { name: 'subject_id', referencedColumnName: 'id' },
-    inverseJoinColumn: { name: 'lesson_id',  referencedColumnName: 'id' },
+    name: 'subject_lessons', // ✅ join table
+    joinColumn: { name: 'subject_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'lesson_id', referencedColumnName: 'id' },
   })
   lessons: Lesson[];
 

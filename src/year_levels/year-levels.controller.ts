@@ -31,13 +31,13 @@ export class YearLevelsController {
     return this.service.findOne(id);
   }
 
-@Put(':id')
-async update(
-  @Param('id') id: string,
-  @Body() dto: UpdateYearLevelDto,
-): Promise<YearLevel> {
-  return this.service.update(id, dto);
-}
+  @Put(':id')
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateYearLevelDto,
+  ): Promise<YearLevel> {
+    return this.service.update(id, dto);
+  }
 
   @Delete(':id')
   remove(@Param('id') id: string): Promise<void> {

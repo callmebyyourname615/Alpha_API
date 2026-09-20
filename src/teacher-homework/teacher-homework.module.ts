@@ -8,7 +8,6 @@ import { TeachLearning } from '../teach_learning/teach-learning.entity';
 import { Teaching } from '../teachings/teaching.entity';
 import { Class } from '../classes/class.entity';
 
-
 @Module({
   imports: [
     TypeOrmModule.forFeature([

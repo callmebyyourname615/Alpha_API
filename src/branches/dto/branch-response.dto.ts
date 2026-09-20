@@ -1,7 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class BranchResponseDto {
-
   @ApiProperty()
   id: string;
 

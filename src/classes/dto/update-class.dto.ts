@@ -1,7 +1,12 @@
-import { IsOptional, IsString, IsNumber, IsBoolean, IsUUID } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsNumber,
+  IsBoolean,
+  IsUUID,
+} from 'class-validator';
 
 export class UpdateClassDto {
-
   @IsOptional()
   @IsUUID()
   year_level_id?: string;

@@ -1,5 +1,4 @@
-import { PaymentPlan } from "./entities/enums";
-
+import { PaymentPlan } from './entities/enums';
 
 export interface InstallmentSlot {
   period_label: string;
@@ -85,8 +84,18 @@ function adjustLastSlot(slots: InstallmentSlot[], total: number): void {
 }
 
 const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 function formatMonthLabel(d: Date): string {
   return `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;

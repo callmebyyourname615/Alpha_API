@@ -8,7 +8,11 @@ import { Comment, ModuleType } from '../comments/comments.entity';
 import { Notification } from '../notifications/notification.entity';
 import { TaskSubmissionSlot } from '../task-submission/task-submission-slot.entity';
 
-export type TaskActivityCategory = 'task' | 'submission' | 'message' | 'notification';
+export type TaskActivityCategory =
+  | 'task'
+  | 'submission'
+  | 'message'
+  | 'notification';
 
 export interface TaskActivityEntry {
   id: string;
@@ -50,13 +54,24 @@ export class TaskActivityService {
     const task = await this.taskRepo.findOne({ where: { id: taskId } });
     if (!task) throw new NotFoundException('Task not found');
 
-    const [submissions, attempts, slots, comments, notifications] = await Promise.all([
-      this.submissionRepo.find({ where: { task_id: taskId } }),
-      this.attemptRepo.find({ where: { task_id: taskId }, order: { submitted_at: 'DESC' } }),
-      this.slotRepo.find({ where: { task_id: taskId }, order: { schedule_index: 'ASC' } }),
-      this.commentRepo.find({ where: { module_type: ModuleType.TASK, module_id: taskId } }),
-      this.notificationRepo.find({ where: { module_id: taskId, module_type: 'TASK', is_deleted: false } }),
-    ]);
+    const [submissions, attempts, slots, comments, notifications] =
+      await Promise.all([
+        this.submissionRepo.find({ where: { task_id: taskId } }),
+        this.attemptRepo.find({
+          where: { task_id: taskId },
+          order: { submitted_at: 'DESC' },
+        }),
+        this.slotRepo.find({
+          where: { task_id: taskId },
+          order: { schedule_index: 'ASC' },
+        }),
+        this.commentRepo.find({
+          where: { module_type: ModuleType.TASK, module_id: taskId },
+        }),
+        this.notificationRepo.find({
+          where: { module_id: taskId, module_type: 'TASK', is_deleted: false },
+        }),
+      ]);
 
     const entries: TaskActivityEntry[] = [];
 
@@ -70,7 +85,10 @@ export class TaskActivityService {
       created_at: task.created_at,
     });
 
-    if (task.updated_at && task.updated_at.getTime() !== task.created_at.getTime()) {
+    if (
+      task.updated_at &&
+      task.updated_at.getTime() !== task.created_at.getTime()
+    ) {
       entries.push({
         id: `task-updated-${task.id}`,
         category: 'task',
@@ -82,14 +100,19 @@ export class TaskActivityService {
       });
     }
 
-    const studentsWithPlannedSlots = new Set(slots.map((slot) => slot.student_id));
+    const studentsWithPlannedSlots = new Set(
+      slots.map((slot) => slot.student_id),
+    );
     attempts.forEach((attempt) => {
       if (studentsWithPlannedSlots.has(attempt.student_id)) return;
       entries.push({
         id: `submission-attempt-${attempt.id}`,
         category: 'submission',
         title: `Submission #${attempt.submission_number}`,
-        description: attempt.submission_number === 1 ? 'File submitted for review' : 'Additional file submitted for review',
+        description:
+          attempt.submission_number === 1
+            ? 'File submitted for review'
+            : 'Additional file submitted for review',
         actor_id: attempt.student_id,
         actor_type: 'student',
         created_at: attempt.submitted_at,
@@ -102,15 +125,26 @@ export class TaskActivityService {
           id: `submission-round-${slot.id}`,
           category: 'submission',
           title: `Round #${slot.schedule_index} submitted`,
-          description: slot.status === 'late' ? 'Submitted after the deadline' : 'Submitted for review',
+          description:
+            slot.status === 'late'
+              ? 'Submitted after the deadline'
+              : 'Submitted for review',
           actor_id: slot.submitted_by_id ?? slot.student_id,
           actor_type: slot.submitted_by_type ?? 'student',
           created_at: slot.submitted_at,
         });
       }
       if (slot.reviewed_at) {
-        const score = slot.score != null ? ` · scored ${slot.score}/${slot.max_score ?? ''}` : '';
-        const progress = slot.progress_pct != null ? `Progress ${slot.progress_pct}%${score}` : score ? score.slice(3) : 'Feedback published';
+        const score =
+          slot.score != null
+            ? ` · scored ${slot.score}/${slot.max_score ?? ''}`
+            : '';
+        const progress =
+          slot.progress_pct != null
+            ? `Progress ${slot.progress_pct}%${score}`
+            : score
+              ? score.slice(3)
+              : 'Feedback published';
         entries.push({
           id: `submission-round-${slot.id}-reviewed`,
           category: 'submission',
@@ -142,7 +176,9 @@ export class TaskActivityService {
           id: `submission-${s.id}-reviewed`,
           category: 'submission',
           title: 'Teacher Feedback',
-          description: s.feedback ? s.feedback : `Submission reviewed${s.score != null ? ` — scored ${s.score}/${s.max_score ?? ''}` : ''}`,
+          description: s.feedback
+            ? s.feedback
+            : `Submission reviewed${s.score != null ? ` — scored ${s.score}/${s.max_score ?? ''}` : ''}`,
           actor_id: s.reviewed_by_id ?? null,
           actor_type: s.reviewed_by_type ?? null,
           created_at: s.reviewed_at,
@@ -174,7 +210,10 @@ export class TaskActivityService {
       });
     });
 
-    entries.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    entries.sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
     return entries;
   }
 }

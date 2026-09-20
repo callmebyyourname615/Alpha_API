@@ -9,7 +9,11 @@ import { Repository, DataSource, In } from 'typeorm';
 import { StudentFee } from '../entities/student-fee.entity';
 import { PaymentRecord } from '../entities/payment-record.entity';
 import { FeeAssignmentService } from './fee-assignment.service';
-import { AssignStudentFeeDto, StudentFeeQueryDto, UpdatePaymentPlanDto } from '../dto/student-fee.dto';
+import {
+  AssignStudentFeeDto,
+  StudentFeeQueryDto,
+  UpdatePaymentPlanDto,
+} from '../dto/student-fee.dto';
 import { FeeStatus, PaymentPlan, PaymentRecordStatus } from '../entities/enums';
 import { generateInstallments } from '../installment.helper';
 
@@ -29,7 +33,9 @@ export class StudentFeeService {
    * Wrapped in a transaction so either all students are assigned or none.
    */
   async assignToStudents(dto: AssignStudentFeeDto): Promise<StudentFee[]> {
-    const assignment = await this.feeAssignmentService.findOne(dto.fee_assignment_id);
+    const assignment = await this.feeAssignmentService.findOne(
+      dto.fee_assignment_id,
+    );
     const baseAmount = Number(assignment.fee_template.amount);
     const yearlyDiscount = Number(assignment.yearly_discount);
 
@@ -39,7 +45,9 @@ export class StudentFeeService {
         : baseAmount;
 
     if (netAmount <= 0) {
-      throw new BadRequestException('Net amount after discount must be greater than zero.');
+      throw new BadRequestException(
+        'Net amount after discount must be greater than zero.',
+      );
     }
 
     const studentIds = Array.from(new Set(dto.student_ids));
@@ -111,7 +119,9 @@ export class StudentFeeService {
     if (query.student_id)
       qb.andWhere('sf.student_id = :sid', { sid: query.student_id });
     if (query.fee_assignment_id)
-      qb.andWhere('sf.fee_assignment_id = :faid', { faid: query.fee_assignment_id });
+      qb.andWhere('sf.fee_assignment_id = :faid', {
+        faid: query.fee_assignment_id,
+      });
     if (query.payment_plan)
       qb.andWhere('sf.payment_plan = :pp', { pp: query.payment_plan });
 
@@ -121,7 +131,11 @@ export class StudentFeeService {
   async findOne(id: string): Promise<StudentFee> {
     const sf = await this.studentFeeRepo.findOne({
       where: { id },
-      relations: ['fee_assignment', 'fee_assignment.fee_template', 'payment_records'],
+      relations: [
+        'fee_assignment',
+        'fee_assignment.fee_template',
+        'payment_records',
+      ],
       order: { payment_records: { due_date: 'ASC' } },
     });
     if (!sf) throw new NotFoundException(`Student fee ${id} not found`);

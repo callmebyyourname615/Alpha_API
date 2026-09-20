@@ -18,14 +18,14 @@ export class Permission {
 
   @ManyToOne(() => Role, { nullable: true, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'role_id' })
-  role: Role;                       // ← must exist for relation
+  role: Role; // ← must exist for relation
 
   @ManyToOne(() => PermissionModule, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'permission_module_id' })
   permissionModule: PermissionModule | null;
 
   @Column({ default: false })
-  can_add: boolean;                 // ← must match exactly what you use
+  can_add: boolean; // ← must match exactly what you use
 
   @Column({ default: false })
   can_view: boolean;

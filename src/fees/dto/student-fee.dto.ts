@@ -1,9 +1,4 @@
-import {
-  IsUUID,
-  IsEnum,
-  IsOptional,
-  IsArray,
-} from 'class-validator';
+import { IsUUID, IsEnum, IsOptional, IsArray } from 'class-validator';
 import { PaymentPlan } from '../entities/enums';
 
 export class AssignStudentFeeDto {

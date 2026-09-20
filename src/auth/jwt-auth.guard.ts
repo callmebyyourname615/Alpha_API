@@ -30,7 +30,9 @@ export class JwtAuthGuard implements CanActivate {
     const token = this.extractTokenFromHeader(request);
 
     if (!token) {
-      throw new UnauthorizedException('Authentication token is missing. Please log in.');
+      throw new UnauthorizedException(
+        'Authentication token is missing. Please log in.',
+      );
     }
 
     try {
@@ -53,12 +55,17 @@ export class JwtAuthGuard implements CanActivate {
           const response = context.switchToHttp().getResponse();
           if (response && typeof response.setHeader === 'function') {
             response.setHeader('X-Refreshed-Token', refreshedToken);
-            response.setHeader('Access-Control-Expose-Headers', 'X-Refreshed-Token');
+            response.setHeader(
+              'Access-Control-Expose-Headers',
+              'X-Refreshed-Token',
+            );
           }
         }
       }
     } catch {
-      throw new UnauthorizedException('Invalid or expired authentication token. Please log in again.');
+      throw new UnauthorizedException(
+        'Invalid or expired authentication token. Please log in again.',
+      );
     }
 
     return true;
@@ -73,4 +80,3 @@ export class JwtAuthGuard implements CanActivate {
     return type?.toLowerCase() === 'bearer' ? token : undefined;
   }
 }
-

@@ -38,7 +38,9 @@ export class AddGalleryFeedSearchIndexes1780000000027
     await queryRunner.query(
       'DROP INDEX IF EXISTS "idx_gallery_posts_description_trgm"',
     );
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_gallery_posts_title_trgm"');
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_gallery_posts_title_trgm"',
+    );
     await queryRunner.query(
       'DROP INDEX IF EXISTS "idx_gallery_posts_feed_coalesced_order"',
     );

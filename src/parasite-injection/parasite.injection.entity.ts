@@ -19,31 +19,31 @@ import { Class } from '../classes/class.entity';
 // =========================
 
 export enum ParasiteType {
-  WORM        = 'worm',
+  WORM = 'worm',
   LIVER_FLUKE = 'liver_fluke',
-  MALARIA     = 'malaria',
-  OTHER       = 'other',
+  MALARIA = 'malaria',
+  OTHER = 'other',
 }
 
 export enum DrugForm {
-  TABLET    = 'tablet',
-  LIQUID    = 'liquid',
+  TABLET = 'tablet',
+  LIQUID = 'liquid',
   INJECTION = 'injection',
-  OTHER     = 'other',
+  OTHER = 'other',
 }
 
 export enum InjectionReaction {
-  NONE     = 'none',
-  MILD     = 'mild',
+  NONE = 'none',
+  MILD = 'mild',
   MODERATE = 'moderate',
-  SEVERE   = 'severe',
+  SEVERE = 'severe',
 }
 
 export enum InjectionStatus {
   SCHEDULED = 'scheduled',
   COMPLETED = 'completed',
-  SKIPPED   = 'skipped',
-  MISSED    = 'missed',
+  SKIPPED = 'skipped',
+  MISSED = 'missed',
 }
 
 // =========================
@@ -68,13 +68,12 @@ export class ParasiteInjection {
   @JoinColumn({ name: 'student_id' })
   student: Student;
 
-
   @Column('uuid', { name: 'class_id', nullable: true })
-classId: string | null;
+  classId: string | null;
 
-@ManyToOne(() => Class, { nullable: true, onDelete: 'SET NULL' })
-@JoinColumn({ name: 'class_id' })
-class: Class | null;
+  @ManyToOne(() => Class, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'class_id' })
+  class: Class | null;
 
   // =========================
   // FK: Branch (optional — where injection was given)

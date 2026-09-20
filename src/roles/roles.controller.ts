@@ -1,4 +1,12 @@
-import { Controller, Post, Get, Put, Delete, Body, Param } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Put,
+  Delete,
+  Body,
+  Param,
+} from '@nestjs/common';
 import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
@@ -24,7 +32,10 @@ export class RolesController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateRoleDto): Promise<Role | null> {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateRoleDto,
+  ): Promise<Role | null> {
     return this.service.update(id, dto);
   }
 

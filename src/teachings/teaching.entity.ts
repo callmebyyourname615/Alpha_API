@@ -52,6 +52,9 @@ export class Teaching {
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 
-  @OneToMany(() => TeacherHomework, (teacherhomework) => teacherhomework.teaching)
+  @OneToMany(
+    () => TeacherHomework,
+    (teacherhomework) => teacherhomework.teaching,
+  )
   homeworks: TeacherHomework[];
 }

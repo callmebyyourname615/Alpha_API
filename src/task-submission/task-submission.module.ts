@@ -9,7 +9,15 @@ import { TaskSubmissionController } from './task-submission.controller';
 import { TaskAccessModule } from '../task-access/task-access.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([TaskSubmission, TaskSubmissionAttempt, TaskSubmissionSlot, Task]), TaskAccessModule],
+  imports: [
+    TypeOrmModule.forFeature([
+      TaskSubmission,
+      TaskSubmissionAttempt,
+      TaskSubmissionSlot,
+      Task,
+    ]),
+    TaskAccessModule,
+  ],
   providers: [TaskSubmissionService],
   controllers: [TaskSubmissionController],
   exports: [TaskSubmissionService],

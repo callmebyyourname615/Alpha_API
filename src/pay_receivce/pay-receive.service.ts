@@ -54,23 +54,38 @@ export class PayReceiveService {
     } as const;
   }
 
-  private guardStatus(record: PayReceive, required: PayReceiveStatus, action: string): void {
+  private guardStatus(
+    record: PayReceive,
+    required: PayReceiveStatus,
+    action: string,
+  ): void {
     if (record.status !== required)
-      throw new BadRequestException(`Cannot "${action}": status is "${record.status}", expected "${required}"`);
+      throw new BadRequestException(
+        `Cannot "${action}": status is "${record.status}", expected "${required}"`,
+      );
   }
 
   private guardNotDeleted(record: PayReceive): void {
-    if (record.is_deleted) throw new BadRequestException('This record has been soft-deleted');
+    if (record.is_deleted)
+      throw new BadRequestException('This record has been soft-deleted');
   }
 
-  private guardFlowType(record: PayReceive, expected: PayReceiveFlowType, action: string): void {
+  private guardFlowType(
+    record: PayReceive,
+    expected: PayReceiveFlowType,
+    action: string,
+  ): void {
     if (record.flow_type !== expected)
-      throw new BadRequestException(`Cannot "${action}": endpoint is for flow_type="${expected}" but record is "${record.flow_type}"`);
+      throw new BadRequestException(
+        `Cannot "${action}": endpoint is for flow_type="${expected}" but record is "${record.flow_type}"`,
+      );
   }
 
   private guardCanEdit(record: PayReceive, action: string): void {
     if (!record.can_edit)
-      throw new BadRequestException(`Cannot "${action}": super admin has not yet enabled editing on this record (can_edit = false)`);
+      throw new BadRequestException(
+        `Cannot "${action}": super admin has not yet enabled editing on this record (can_edit = false)`,
+      );
   }
 
   // ===========================================================================
@@ -144,9 +159,11 @@ export class PayReceiveService {
     nonAvailableBalance: number;
   }> {
     const totalBalance = Number(
-      (await this.savingsService.getStudentBalance(studentId)).current_balance ?? 0,
+      (await this.savingsService.getStudentBalance(studentId))
+        .current_balance ?? 0,
     );
-    const rawAvailableBalance = await this.getAvailableBalanceByStudent(studentId);
+    const rawAvailableBalance =
+      await this.getAvailableBalanceByStudent(studentId);
     const availableBalance = Math.min(
       Math.max(rawAvailableBalance, 0),
       totalBalance,
@@ -198,7 +215,9 @@ export class PayReceiveService {
         .createQueryBuilder('pr')
         .select('COALESCE(SUM(pr.amount), 0)', 'total')
         .where('pr.saving_id IN (:...ids)', { ids })
-        .andWhere('pr.flow_type = :type', { type: PayReceiveFlowType.WITHDRAWAL })
+        .andWhere('pr.flow_type = :type', {
+          type: PayReceiveFlowType.WITHDRAWAL,
+        })
         .andWhere('pr.status NOT IN (:...excluded)', { excluded: EXCLUDED })
         .andWhere('pr.is_deleted = false')
         .getRawOne<{ total: string }>(),
@@ -214,7 +233,10 @@ export class PayReceiveService {
   /**
    * Throws BadRequestException with breakdown if requestedAmount exceeds available.
    */
-  private async validateWithdrawalAmount(savingId: string, requestedAmount: number): Promise<void> {
+  private async validateWithdrawalAmount(
+    savingId: string,
+    requestedAmount: number,
+  ): Promise<void> {
     const available = await this.getAvailableBalance(savingId);
     if (requestedAmount > available) {
       const [bankedResult, pendingResult] = await Promise.all([
@@ -222,7 +244,9 @@ export class PayReceiveService {
           .createQueryBuilder('pr')
           .select('COALESCE(SUM(pr.amount), 0)', 'total')
           .where('pr.saving_id = :savingId', { savingId })
-          .andWhere('pr.flow_type = :type', { type: PayReceiveFlowType.DEPOSIT })
+          .andWhere('pr.flow_type = :type', {
+            type: PayReceiveFlowType.DEPOSIT,
+          })
           .andWhere('pr.bank_deposited_by IS NOT NULL')
           .andWhere('pr.is_deleted = false')
           .getRawOne<{ total: string }>(),
@@ -231,7 +255,9 @@ export class PayReceiveService {
           .createQueryBuilder('pr')
           .select('COALESCE(SUM(pr.amount), 0)', 'total')
           .where('pr.saving_id = :savingId', { savingId })
-          .andWhere('pr.flow_type = :type', { type: PayReceiveFlowType.DEPOSIT })
+          .andWhere('pr.flow_type = :type', {
+            type: PayReceiveFlowType.DEPOSIT,
+          })
           .andWhere('pr.bank_deposited_by IS NULL')
           .andWhere('pr.is_deleted = false')
           .getRawOne<{ total: string }>(),
@@ -239,8 +265,8 @@ export class PayReceiveService {
 
       throw new BadRequestException(
         `Insufficient balance. Requested: ${requestedAmount}, Available: ${available} ` +
-        `(banked: ${parseFloat(bankedResult?.total ?? '0')}, ` +
-        `pending not yet in bank: ${parseFloat(pendingResult?.total ?? '0')})`,
+          `(banked: ${parseFloat(bankedResult?.total ?? '0')}, ` +
+          `pending not yet in bank: ${parseFloat(pendingResult?.total ?? '0')})`,
       );
     }
   }
@@ -283,23 +309,42 @@ export class PayReceiveService {
   // ===========================================================================
 
   async findAll(): Promise<PayReceive[]> {
-    return await this.payReceiveRepo.find({ where: { is_deleted: false }, relations: this.withRelations(), order: { created_at: 'DESC' } });
+    return await this.payReceiveRepo.find({
+      where: { is_deleted: false },
+      relations: this.withRelations(),
+      order: { created_at: 'DESC' },
+    });
   }
 
   async findAllDeposits(): Promise<PayReceive[]> {
-    return await this.payReceiveRepo.find({ where: { flow_type: PayReceiveFlowType.DEPOSIT, is_deleted: false }, relations: this.withRelations(), order: { created_at: 'DESC' } });
+    return await this.payReceiveRepo.find({
+      where: { flow_type: PayReceiveFlowType.DEPOSIT, is_deleted: false },
+      relations: this.withRelations(),
+      order: { created_at: 'DESC' },
+    });
   }
 
   async findAllWithdrawals(): Promise<PayReceive[]> {
-    return await this.payReceiveRepo.find({ where: { flow_type: PayReceiveFlowType.WITHDRAWAL, is_deleted: false }, relations: this.withRelations(), order: { created_at: 'DESC' } });
+    return await this.payReceiveRepo.find({
+      where: { flow_type: PayReceiveFlowType.WITHDRAWAL, is_deleted: false },
+      relations: this.withRelations(),
+      order: { created_at: 'DESC' },
+    });
   }
 
   async findBySaving(savingId: string): Promise<PayReceive[]> {
-    return await this.payReceiveRepo.find({ where: { saving_id: savingId, is_deleted: false }, relations: this.withRelations(), order: { created_at: 'DESC' } });
+    return await this.payReceiveRepo.find({
+      where: { saving_id: savingId, is_deleted: false },
+      relations: this.withRelations(),
+      order: { created_at: 'DESC' },
+    });
   }
 
   async findOne(id: string): Promise<PayReceive> {
-    const record = await this.payReceiveRepo.findOne({ where: { id, is_deleted: false }, relations: this.withRelations() });
+    const record = await this.payReceiveRepo.findOne({
+      where: { id, is_deleted: false },
+      relations: this.withRelations(),
+    });
     if (!record) throw new NotFoundException(`PayReceive "${id}" not found`);
     return record;
   }
@@ -308,14 +353,14 @@ export class PayReceiveService {
   // UPDATE (PENDING only)
   // ===========================================================================
 
-   async update(id: string, dto: UpdatePayReceiveDto): Promise<PayReceive> {
+  async update(id: string, dto: UpdatePayReceiveDto): Promise<PayReceive> {
     const record = await this.findOne(id);
     this.guardNotDeleted(record);
     this.guardStatus(record, PayReceiveStatus.PENDING, 'edit');
- 
+
     const oldAmount = Number(record.amount);
     const newAmount = dto.amount !== undefined ? Number(dto.amount) : oldAmount;
- 
+
     if (dto.amount !== undefined && newAmount !== oldAmount) {
       // ── WITHDRAW: check banked available balance before allowing edit ─────────
       // The current record already holds an oldAmount debit in the wallet.
@@ -330,18 +375,20 @@ export class PayReceiveService {
       if (record.flow_type === PayReceiveFlowType.WITHDRAWAL) {
         const ownerType = record.saving?.owner_type;
         const studentId = record.saving?.student_id;
-        const classId   = record.saving?.class_id;
- 
+        const classId = record.saving?.class_id;
+
         // ── 1. Total ledger balance (saving_wallet) ───────────────────────────
         // This is the full accounting balance — every deposit minus every
         // withdrawal regardless of bank status.
         const totalBalance =
           ownerType === SavingOwnerType.STUDENT && studentId
-            ? (await this.savingsService.getStudentBalance(studentId)).current_balance
+            ? (await this.savingsService.getStudentBalance(studentId))
+                .current_balance
             : ownerType === SavingOwnerType.CLASS && classId
-              ? (await this.savingsService.getClassBalance(classId)).current_balance
+              ? (await this.savingsService.getClassBalance(classId))
+                  .current_balance
               : 0;
- 
+
         // ── 2. Banked available balance (bank_deposited_by IS NOT NULL) ────────
         // Only deposits physically in the bank count.
         // Add back oldAmount so we don't penalise the record being edited.
@@ -352,45 +399,44 @@ export class PayReceiveService {
               ? await this.getAvailableBalanceByClass(classId)
               : 0;
         const availableBanked = bankedRaw + oldAmount;
- 
+
         // ── 3. Two-tier error messages ─────────────────────────────────────────
         if (newAmount > totalBalance + oldAmount) {
           // Exceeds even the total wallet — hard stop
           throw new BadRequestException(
             `Insufficient balance. ` +
-            `Requested: ${newAmount}, ` +
-            `Total wallet balance: ${totalBalance + oldAmount}.`,
+              `Requested: ${newAmount}, ` +
+              `Total wallet balance: ${totalBalance + oldAmount}.`,
           );
         }
- 
+
         if (newAmount > availableBanked) {
           // Within total balance but exceeds what has been banked
           throw new BadRequestException(
             `Insufficient available balance. ` +
-            `Requested: ${newAmount}, ` +
-            `Available (banked): ${availableBanked}, ` +
-            `Total wallet: ${totalBalance + oldAmount}. ` +
-            `The remaining ${(totalBalance + oldAmount) - availableBanked} kip ` +
-            `has not been deposited to the bank yet and cannot be withdrawn.`,
+              `Requested: ${newAmount}, ` +
+              `Available (banked): ${availableBanked}, ` +
+              `Total wallet: ${totalBalance + oldAmount}. ` +
+              `The remaining ${totalBalance + oldAmount - availableBanked} kip ` +
+              `has not been deposited to the bank yet and cannot be withdrawn.`,
           );
         }
       }
- 
+
       // ── Update saving row + recalculate wallet (DEPOSIT and WITHDRAW) ─────────
       // updateSavingAmount() writes saving.amount = newAmount then calls
       // recalculateStudentBalances() or recalculateClassBalance() so
       // student.saving_wallet / class.saving_wallet is always correct.
       await this.savingsService.updateSavingAmount(record.saving_id, newAmount);
     }
- 
+
     // Apply remaining dto fields (note etc.) — amount handled explicitly above
     const { amount: _amount, ...rest } = dto;
     Object.assign(record, rest);
     if (dto.amount !== undefined) record.amount = newAmount;
- 
+
     return await this.payReceiveRepo.save(record);
   }
- 
 
   // ===========================================================================
   // DEPOSIT CHAIN
@@ -410,11 +456,22 @@ export class PayReceiveService {
     return await this.payReceiveRepo.save(record);
   }
 
-  async adminReceiveDeposit(id: string, dto: AdminReceiveDto): Promise<PayReceive> {
+  async adminReceiveDeposit(
+    id: string,
+    dto: AdminReceiveDto,
+  ): Promise<PayReceive> {
     const record = await this.findOne(id);
     this.guardNotDeleted(record);
-    this.guardFlowType(record, PayReceiveFlowType.DEPOSIT, 'admin-receive-deposit');
-    this.guardStatus(record, PayReceiveStatus.TEACHER_SUBMITTED, 'admin-receive-deposit');
+    this.guardFlowType(
+      record,
+      PayReceiveFlowType.DEPOSIT,
+      'admin-receive-deposit',
+    );
+    this.guardStatus(
+      record,
+      PayReceiveStatus.TEACHER_SUBMITTED,
+      'admin-receive-deposit',
+    );
 
     record.status = PayReceiveStatus.ADMIN_RECEIVED;
     record.received_by = dto.received_by;
@@ -428,7 +485,10 @@ export class PayReceiveService {
    * Step 3: Admin confirms cash has physically arrived at the bank.
    * Setting bank_deposited_by unlocks this amount for withdrawal.
    */
-  async confirmBankDeposit(id: string, dto: BankDepositDto): Promise<PayReceive> {
+  async confirmBankDeposit(
+    id: string,
+    dto: BankDepositDto,
+  ): Promise<PayReceive> {
     const record = await this.findOne(id);
     this.guardNotDeleted(record);
     this.guardFlowType(record, PayReceiveFlowType.DEPOSIT, 'bank-deposit');
@@ -446,11 +506,22 @@ export class PayReceiveService {
     return await this.payReceiveRepo.save(record);
   }
 
-  async superAdminConfirmDeposit(id: string, dto: SuperAdminConfirmDepositDto): Promise<PayReceive> {
+  async superAdminConfirmDeposit(
+    id: string,
+    dto: SuperAdminConfirmDepositDto,
+  ): Promise<PayReceive> {
     const record = await this.findOne(id);
     this.guardNotDeleted(record);
-    this.guardFlowType(record, PayReceiveFlowType.DEPOSIT, 'super-admin-confirm-deposit');
-    this.guardStatus(record, PayReceiveStatus.BANK_DEPOSITED, 'super-admin-confirm-deposit');
+    this.guardFlowType(
+      record,
+      PayReceiveFlowType.DEPOSIT,
+      'super-admin-confirm-deposit',
+    );
+    this.guardStatus(
+      record,
+      PayReceiveStatus.BANK_DEPOSITED,
+      'super-admin-confirm-deposit',
+    );
 
     record.status = PayReceiveStatus.SUPER_ADMIN_CONFIRMED;
     record.super_admin_confirmed_by = dto.super_admin_confirmed_by;
@@ -464,11 +535,22 @@ export class PayReceiveService {
   // WITHDRAWAL CHAIN
   // ===========================================================================
 
-  async adminConfirmWithdrawal(id: string, dto: AdminConfirmWithdrawalDto): Promise<PayReceive> {
+  async adminConfirmWithdrawal(
+    id: string,
+    dto: AdminConfirmWithdrawalDto,
+  ): Promise<PayReceive> {
     const record = await this.findOne(id);
     this.guardNotDeleted(record);
-    this.guardFlowType(record, PayReceiveFlowType.WITHDRAWAL, 'admin-confirm-withdrawal');
-    this.guardStatus(record, PayReceiveStatus.PENDING, 'admin-confirm-withdrawal');
+    this.guardFlowType(
+      record,
+      PayReceiveFlowType.WITHDRAWAL,
+      'admin-confirm-withdrawal',
+    );
+    this.guardStatus(
+      record,
+      PayReceiveStatus.PENDING,
+      'admin-confirm-withdrawal',
+    );
 
     record.status = PayReceiveStatus.ADMIN_CONFIRMED;
     record.admin_confirmed_by = dto.admin_confirmed_by;
@@ -478,11 +560,22 @@ export class PayReceiveService {
     return await this.payReceiveRepo.save(record);
   }
 
-  async superAdminApproveWithdrawal(id: string, dto: SuperAdminApproveWithdrawalDto): Promise<PayReceive> {
+  async superAdminApproveWithdrawal(
+    id: string,
+    dto: SuperAdminApproveWithdrawalDto,
+  ): Promise<PayReceive> {
     const record = await this.findOne(id);
     this.guardNotDeleted(record);
-    this.guardFlowType(record, PayReceiveFlowType.WITHDRAWAL, 'super-admin-approve-withdrawal');
-    this.guardStatus(record, PayReceiveStatus.ADMIN_CONFIRMED, 'super-admin-approve-withdrawal');
+    this.guardFlowType(
+      record,
+      PayReceiveFlowType.WITHDRAWAL,
+      'super-admin-approve-withdrawal',
+    );
+    this.guardStatus(
+      record,
+      PayReceiveStatus.ADMIN_CONFIRMED,
+      'super-admin-approve-withdrawal',
+    );
 
     record.status = PayReceiveStatus.SUPER_ADMIN_APPROVED;
     record.super_admin_approved_by = dto.super_admin_approved_by;
@@ -499,11 +592,22 @@ export class PayReceiveService {
    * STUDENT: savingsService.remove() → recalculateStudentBalances() ✅
    * CLASS:   savingsService.removeClassSaving() → recalculateClassBalance() ✅
    */
-  async superAdminRejectWithdrawal(id: string, dto: SuperAdminRejectWithdrawalDto): Promise<PayReceive> {
+  async superAdminRejectWithdrawal(
+    id: string,
+    dto: SuperAdminRejectWithdrawalDto,
+  ): Promise<PayReceive> {
     const record = await this.findOne(id);
     this.guardNotDeleted(record);
-    this.guardFlowType(record, PayReceiveFlowType.WITHDRAWAL, 'super-admin-reject-withdrawal');
-    this.guardStatus(record, PayReceiveStatus.ADMIN_CONFIRMED, 'super-admin-reject-withdrawal');
+    this.guardFlowType(
+      record,
+      PayReceiveFlowType.WITHDRAWAL,
+      'super-admin-reject-withdrawal',
+    );
+    this.guardStatus(
+      record,
+      PayReceiveStatus.ADMIN_CONFIRMED,
+      'super-admin-reject-withdrawal',
+    );
 
     const ownerType = record.saving?.owner_type;
 
@@ -534,14 +638,27 @@ export class PayReceiveService {
    *
    * ✅ No wallet change needed here — wallet is adjusted on resubmit.
    */
-  async adminRejectWithdrawal(id: string, dto: AdminRejectWithdrawalDto): Promise<PayReceive> {
+  async adminRejectWithdrawal(
+    id: string,
+    dto: AdminRejectWithdrawalDto,
+  ): Promise<PayReceive> {
     const record = await this.findOne(id);
     this.guardNotDeleted(record);
-    this.guardFlowType(record, PayReceiveFlowType.WITHDRAWAL, 'admin-reject-withdrawal');
-    this.guardStatus(record, PayReceiveStatus.ADMIN_CONFIRMED, 'admin-reject-withdrawal');
+    this.guardFlowType(
+      record,
+      PayReceiveFlowType.WITHDRAWAL,
+      'admin-reject-withdrawal',
+    );
+    this.guardStatus(
+      record,
+      PayReceiveStatus.ADMIN_CONFIRMED,
+      'admin-reject-withdrawal',
+    );
 
     if (record.saving?.owner_type !== SavingOwnerType.CLASS)
-      throw new BadRequestException('Cannot "admin-reject-withdrawal": only CLASS savings can be rejected at this stage');
+      throw new BadRequestException(
+        'Cannot "admin-reject-withdrawal": only CLASS savings can be rejected at this stage',
+      );
 
     record.status = PayReceiveStatus.ADMIN_REJECTED;
     record.rejected_by = dto.rejected_by;
@@ -563,11 +680,22 @@ export class PayReceiveService {
    *
    * ✅ FIX: update saving.amount then recalculateClassBalance() so wallet reflects new amount.
    */
-  async teacherResubmitWithdrawal(id: string, dto: TeacherResubmitDto): Promise<PayReceive> {
+  async teacherResubmitWithdrawal(
+    id: string,
+    dto: TeacherResubmitDto,
+  ): Promise<PayReceive> {
     const record = await this.findOne(id);
     this.guardNotDeleted(record);
-    this.guardFlowType(record, PayReceiveFlowType.WITHDRAWAL, 'teacher-resubmit-withdrawal');
-    this.guardStatus(record, PayReceiveStatus.ADMIN_REJECTED, 'teacher-resubmit-withdrawal');
+    this.guardFlowType(
+      record,
+      PayReceiveFlowType.WITHDRAWAL,
+      'teacher-resubmit-withdrawal',
+    );
+    this.guardStatus(
+      record,
+      PayReceiveStatus.ADMIN_REJECTED,
+      'teacher-resubmit-withdrawal',
+    );
     this.guardCanEdit(record, 'teacher-resubmit-withdrawal');
 
     const oldAmount = Number(record.amount);
@@ -580,20 +708,27 @@ export class PayReceiveService {
     if (dto.amount !== undefined && dto.amount !== oldAmount) {
       if (saving?.owner_type === SavingOwnerType.CLASS && saving.class_id) {
         // class wallet already has the old debit baked in; add it back to get "available before this tx"
-        const walletBeforeThis = (await this.savingsService.getClassBalance(saving.class_id)).current_balance + oldAmount;
+        const walletBeforeThis =
+          (await this.savingsService.getClassBalance(saving.class_id))
+            .current_balance + oldAmount;
         if (newAmount > walletBeforeThis) {
           throw new BadRequestException(
             `Insufficient class balance on resubmit. ` +
-            `Requested: ${newAmount}, Available: ${walletBeforeThis}`,
+              `Requested: ${newAmount}, Available: ${walletBeforeThis}`,
           );
         }
-      } else if (saving?.owner_type === SavingOwnerType.STUDENT && saving.student_id) {
-        const { current_balance } = await this.savingsService.getStudentBalance(saving.student_id);
+      } else if (
+        saving?.owner_type === SavingOwnerType.STUDENT &&
+        saving.student_id
+      ) {
+        const { current_balance } = await this.savingsService.getStudentBalance(
+          saving.student_id,
+        );
         const walletBeforeThis = current_balance + oldAmount;
         if (newAmount > walletBeforeThis) {
           throw new BadRequestException(
             `Insufficient student balance on resubmit. ` +
-            `Requested: ${newAmount}, Available: ${walletBeforeThis}`,
+              `Requested: ${newAmount}, Available: ${walletBeforeThis}`,
           );
         }
       }
@@ -629,20 +764,33 @@ export class PayReceiveService {
    * ✅ FIX: soft-delete the saving and recalculate to restore the wallet,
    * same as superAdminRejectWithdrawal.
    */
-  async superAdminRejectClassWithdrawal(id: string, dto: SuperAdminRejectClassWithdrawalDto): Promise<PayReceive> {
+  async superAdminRejectClassWithdrawal(
+    id: string,
+    dto: SuperAdminRejectClassWithdrawalDto,
+  ): Promise<PayReceive> {
     const record = await this.findOne(id);
     this.guardNotDeleted(record);
-    this.guardFlowType(record, PayReceiveFlowType.WITHDRAWAL, 'super-admin-reject-class-withdrawal');
+    this.guardFlowType(
+      record,
+      PayReceiveFlowType.WITHDRAWAL,
+      'super-admin-reject-class-withdrawal',
+    );
 
     if (record.status === PayReceiveStatus.ADMIN_REJECTED)
       throw new BadRequestException(
         'Cannot reject: admin has already rejected this withdrawal (status = admin_rejected). CEO is not involved after admin rejection.',
       );
 
-    this.guardStatus(record, PayReceiveStatus.ADMIN_CONFIRMED, 'super-admin-reject-class-withdrawal');
+    this.guardStatus(
+      record,
+      PayReceiveStatus.ADMIN_CONFIRMED,
+      'super-admin-reject-class-withdrawal',
+    );
 
     if (record.saving?.owner_type !== SavingOwnerType.CLASS)
-      throw new BadRequestException('Cannot "super-admin-reject-class-withdrawal": only CLASS savings use this endpoint.');
+      throw new BadRequestException(
+        'Cannot "super-admin-reject-class-withdrawal": only CLASS savings use this endpoint.',
+      );
 
     // ✅ FIX: delete saving and recalculate so class wallet is restored
     await this.savingsService.removeClassSaving(record.saving_id);
@@ -663,10 +811,16 @@ export class PayReceiveService {
     const record = await this.findOne(id);
     this.guardNotDeleted(record);
     this.guardFlowType(record, PayReceiveFlowType.WITHDRAWAL, 'parent-receive');
-    this.guardStatus(record, PayReceiveStatus.SUPER_ADMIN_APPROVED, 'parent-receive');
+    this.guardStatus(
+      record,
+      PayReceiveStatus.SUPER_ADMIN_APPROVED,
+      'parent-receive',
+    );
 
     if (record.saving?.owner_type !== SavingOwnerType.STUDENT)
-      throw new BadRequestException('Cannot "parent-receive": this saving belongs to a CLASS, use teacher-receive instead');
+      throw new BadRequestException(
+        'Cannot "parent-receive": this saving belongs to a CLASS, use teacher-receive instead',
+      );
 
     record.status = PayReceiveStatus.PARENT_RECEIVED;
     record.parent_received_by = dto.parent_received_by;
@@ -679,14 +833,27 @@ export class PayReceiveService {
   /**
    * Teacher collects cash for a CLASS saving withdrawal. Terminal ✓
    */
-  async teacherReceive(id: string, dto: TeacherReceiveDto): Promise<PayReceive> {
+  async teacherReceive(
+    id: string,
+    dto: TeacherReceiveDto,
+  ): Promise<PayReceive> {
     const record = await this.findOne(id);
     this.guardNotDeleted(record);
-    this.guardFlowType(record, PayReceiveFlowType.WITHDRAWAL, 'teacher-receive');
-    this.guardStatus(record, PayReceiveStatus.SUPER_ADMIN_APPROVED, 'teacher-receive');
+    this.guardFlowType(
+      record,
+      PayReceiveFlowType.WITHDRAWAL,
+      'teacher-receive',
+    );
+    this.guardStatus(
+      record,
+      PayReceiveStatus.SUPER_ADMIN_APPROVED,
+      'teacher-receive',
+    );
 
     if (record.saving?.owner_type !== SavingOwnerType.CLASS)
-      throw new BadRequestException('Cannot "teacher-receive": this saving belongs to a STUDENT, use parent-receive instead');
+      throw new BadRequestException(
+        'Cannot "teacher-receive": this saving belongs to a STUDENT, use parent-receive instead',
+      );
 
     record.status = PayReceiveStatus.TEACHER_RECEIVED;
     record.teacher_received_by = dto.teacher_received_by;
@@ -717,7 +884,9 @@ export class PayReceiveService {
       PayReceiveStatus.REJECTED,
     ];
     if (TERMINAL.includes(record.status))
-      throw new BadRequestException(`Cannot reject: already in terminal status "${record.status}"`);
+      throw new BadRequestException(
+        `Cannot reject: already in terminal status "${record.status}"`,
+      );
 
     record.status = PayReceiveStatus.REJECTED;
     record.rejected_by = dto.rejected_by;
@@ -737,7 +906,9 @@ export class PayReceiveService {
     this.guardStatus(record, PayReceiveStatus.REJECTED, 'unlock-for-edit');
 
     if (record.can_edit)
-      throw new BadRequestException('Record is already unlocked for editing (can_edit = true)');
+      throw new BadRequestException(
+        'Record is already unlocked for editing (can_edit = true)',
+      );
 
     record.can_edit = true;
     record.note = record.note
@@ -768,7 +939,10 @@ export class PayReceiveService {
    *
    * Status → PENDING, can_edit → false, rejection fields cleared.
    */
-  async teacherResubmit(id: string, dto: TeacherResubmitDto): Promise<PayReceive> {
+  async teacherResubmit(
+    id: string,
+    dto: TeacherResubmitDto,
+  ): Promise<PayReceive> {
     const record = await this.findOne(id);
     this.guardNotDeleted(record);
     this.guardFlowType(record, PayReceiveFlowType.DEPOSIT, 'teacher-resubmit');

@@ -9,7 +9,10 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { StudentNutritionService } from './nutrition.service';
-import { CreateStudentNutritionDto, UpdateStudentNutritionDto } from './dto/nutrition.dto';
+import {
+  CreateStudentNutritionDto,
+  UpdateStudentNutritionDto,
+} from './dto/nutrition.dto';
 
 @Controller('student-nutritions')
 export class StudentNutritionController {

@@ -1,7 +1,6 @@
 import { IsString, IsOptional, IsArray } from 'class-validator';
 
 export class CreateBranchDto {
-
   @IsString()
   branch_id: string;
 
@@ -11,13 +10,16 @@ export class CreateBranchDto {
   @IsOptional()
   name?: string;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   branch_map?: string;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   branch_fb?: string;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   branch_website?: string;
 
   @IsOptional()
@@ -32,5 +34,4 @@ export class CreateBranchDto {
   @IsOptional()
   @IsArray()
   subjects?: string[];
-
 }

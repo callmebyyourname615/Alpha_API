@@ -1,4 +1,10 @@
-import { IsString, IsOptional, IsBoolean, IsUUID, IsArray } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsBoolean,
+  IsUUID,
+  IsArray,
+} from 'class-validator';
 
 export class UpdateRoleDto {
   name?: string;

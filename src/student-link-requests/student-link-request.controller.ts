@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { StudentLinkRequestStatus } from './student-link-request.entity';
 import { StudentLinkRequestsService } from './student-link-request.service';
 

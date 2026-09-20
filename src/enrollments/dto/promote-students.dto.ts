@@ -15,7 +15,9 @@ export class PromoteStudentItemDto {
 
 // Promote ALL students in a class at once
 export class PromoteByClassDto {
-  @ApiProperty({ description: 'Current class UUID — promotes ALL students in it' })
+  @ApiProperty({
+    description: 'Current class UUID — promotes ALL students in it',
+  })
   @IsUUID()
   currentClassId: string;
 

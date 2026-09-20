@@ -1,4 +1,12 @@
-import { Controller, Post, Get, Param, Put, Delete, Body } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Param,
+  Put,
+  Delete,
+  Body,
+} from '@nestjs/common';
 import { SubjectEvaluationService } from './subject-evaluation.service';
 import { CreateSubjectEvaluationDto } from './dto/create-subject-evaluation.dto';
 import { UpdateSubjectEvaluationDto } from './dto/update-subject-evaluation.dto';

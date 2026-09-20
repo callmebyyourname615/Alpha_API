@@ -53,7 +53,12 @@ export class StudentLinkRequest {
   @Column({ name: 'reviewed_at', type: 'timestamptz', nullable: true })
   reviewedAt: Date | null;
 
-  @Column({ name: 'rejection_reason', type: 'varchar', length: 500, nullable: true })
+  @Column({
+    name: 'rejection_reason',
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+  })
   rejectionReason: string | null;
 
   @Column({ name: 'is_deleted', default: false })

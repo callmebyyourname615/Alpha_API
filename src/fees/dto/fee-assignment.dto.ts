@@ -19,7 +19,7 @@ export class CreateFeeAssignmentDto {
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
-  yearly_discount?: number;   // discount amount if parent pays full year
+  yearly_discount?: number; // discount amount if parent pays full year
 
   @IsOptional()
   @IsDateString()

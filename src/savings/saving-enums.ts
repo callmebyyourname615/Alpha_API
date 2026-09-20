@@ -1,10 +1,10 @@
 // src/savings/saving-enums.ts
 export enum SavingOwnerType {
   STUDENT = 'STUDENT',
-  CLASS   = 'CLASS',
+  CLASS = 'CLASS',
 }
 
 export enum SavingTransactionType {
-  DEPOSIT  = 'DEPOSIT',
+  DEPOSIT = 'DEPOSIT',
   WITHDRAW = 'WITHDRAW',
 }

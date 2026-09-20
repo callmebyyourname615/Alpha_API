@@ -30,21 +30,21 @@ export class StudentFee {
   student_id: string;
 
   // Uncomment when Student entity is imported:
-   @ManyToOne(() => Student, { eager: true })
-   @JoinColumn({ name: 'student_id' })
-   student: Student;
+  @ManyToOne(() => Student, { eager: true })
+  @JoinColumn({ name: 'student_id' })
+  student: Student;
 
   @Column({ type: 'enum', enum: PaymentPlan })
   payment_plan: PaymentPlan;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
-  total_amount: number;       // original fee amount
+  total_amount: number; // original fee amount
 
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
-  discount_applied: number;   // yearly discount applied if plan = yearly
+  discount_applied: number; // yearly discount applied if plan = yearly
 
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
-  paid_amount: number;        // sum of paid PaymentRecords
+  paid_amount: number; // sum of paid PaymentRecords
 
   @Column({ type: 'enum', enum: FeeStatus, default: FeeStatus.PENDING })
   status: FeeStatus;

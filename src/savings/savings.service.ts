@@ -155,20 +155,24 @@ export class SavingsService {
     let ownerLabel = '';
 
     if (ownerType === SavingOwnerType.STUDENT && studentId) {
-      available = await this.payReceiveService.getAvailableBalanceByStudent(studentId);
+      available =
+        await this.payReceiveService.getAvailableBalanceByStudent(studentId);
       ownerLabel = `student ${studentId}`;
     } else if (ownerType === SavingOwnerType.CLASS && classId) {
-      available = await this.payReceiveService.getAvailableBalanceByClass(classId);
+      available =
+        await this.payReceiveService.getAvailableBalanceByClass(classId);
       ownerLabel = `class ${classId}`;
     } else {
-      throw new BadRequestException('Cannot check available balance: missing owner id');
+      throw new BadRequestException(
+        'Cannot check available balance: missing owner id',
+      );
     }
 
     if (requestedAmount > available) {
       throw new BadRequestException(
         `Insufficient available balance for ${ownerLabel}. ` +
-        `Requested: ${requestedAmount}, Available (banked): ${available}. ` +
-        `Deposits not yet confirmed by bank cannot be withdrawn.`,
+          `Requested: ${requestedAmount}, Available (banked): ${available}. ` +
+          `Deposits not yet confirmed by bank cannot be withdrawn.`,
       );
     }
   }
@@ -199,7 +203,11 @@ export class SavingsService {
     for (const item of savings) {
       const amount = Number(item.amount);
       item.opening_balance = running;
-      const next = this.applyTransaction(running, item.transaction_type, amount);
+      const next = this.applyTransaction(
+        running,
+        item.transaction_type,
+        amount,
+      );
       if (next < 0) {
         throw new BadRequestException(
           `Saving balance cannot be negative for student ${studentId}`,
@@ -240,7 +248,11 @@ export class SavingsService {
     for (const item of savings) {
       const amount = Number(item.amount);
       item.opening_balance = running;
-      const next = this.applyTransaction(running, item.transaction_type, amount);
+      const next = this.applyTransaction(
+        running,
+        item.transaction_type,
+        amount,
+      );
       if (next < 0) {
         throw new BadRequestException(
           `Class balance cannot be negative for class ${classId}`,
@@ -374,7 +386,11 @@ export class SavingsService {
       if (!classInfo) throw new NotFoundException('Class not found');
 
       const last = await this.savingRepository.findOne({
-        where: { owner_type: SavingOwnerType.CLASS, class_id, is_deleted: false },
+        where: {
+          owner_type: SavingOwnerType.CLASS,
+          class_id,
+          is_deleted: false,
+        },
         order: { created_at: 'DESC', updated_at: 'DESC' },
       });
 
@@ -473,7 +489,10 @@ export class SavingsService {
       class_id,
     );
 
-    const resolvedYearId = await this.resolveActiveAcademicYearId(branch_id, academic_year_id);
+    const resolvedYearId = await this.resolveActiveAcademicYearId(
+      branch_id,
+      academic_year_id,
+    );
     if (!resolvedYearId)
       throw new BadRequestException('academic_year_id is required');
 
@@ -553,11 +572,15 @@ export class SavingsService {
 
     for (const entry of students) {
       try {
-        const effectiveReasonId = entry.withdraw_reason_id ?? withdraw_reason_id;
+        const effectiveReasonId =
+          entry.withdraw_reason_id ?? withdraw_reason_id;
         this.guardWithdrawReason(transaction_type, effectiveReasonId);
 
         const student = await this.getStudentWithRelations(entry.student_id);
-        if (!student) { failedCount++; continue; }
+        if (!student) {
+          failedCount++;
+          continue;
+        }
 
         const studentData = student as any;
         const currentBalance = Number(studentData.saving_wallet ?? 0);
@@ -567,12 +590,21 @@ export class SavingsService {
           Number(entry.amount),
         );
 
-        if (nextBalance < 0) { failedCount++; continue; }
+        if (nextBalance < 0) {
+          failedCount++;
+          continue;
+        }
 
         // ✅ For WITHDRAW: check banked available balance per student.
         if (transaction_type === SavingTransactionType.WITHDRAW) {
-          const available = await this.payReceiveService.getAvailableBalanceByStudent(student.id);
-          if (Number(entry.amount) > available) { failedCount++; continue; }
+          const available =
+            await this.payReceiveService.getAvailableBalanceByStudent(
+              student.id,
+            );
+          if (Number(entry.amount) > available) {
+            failedCount++;
+            continue;
+          }
         }
 
         const saving = this.savingRepository.create({
@@ -582,7 +614,8 @@ export class SavingsService {
           student_id: student.id,
           class_id: studentData.classId?.id ?? null,
           branch_id: studentData.branch?.id ?? null,
-          academic_year_id: studentData.academicYear?.id ?? resolvedSessionYearId ?? null,
+          academic_year_id:
+            studentData.academicYear?.id ?? resolvedSessionYearId ?? null,
           transaction_type,
           opening_balance: currentBalance,
           amount: Number(entry.amount),
@@ -619,7 +652,8 @@ export class SavingsService {
         savings: { student: true, withdrawReason: true },
       },
     });
-    if (!result) throw new NotFoundException('Session not found after creation');
+    if (!result)
+      throw new NotFoundException('Session not found after creation');
     return result;
   }
 
@@ -634,7 +668,14 @@ export class SavingsService {
     success: Saving[];
     failed: { student_id: string; reason: string }[];
   }> {
-    const { created_by, student_ids, transaction_type, amount, note, withdraw_reason_id } = dto;
+    const {
+      created_by,
+      student_ids,
+      transaction_type,
+      amount,
+      note,
+      withdraw_reason_id,
+    } = dto;
 
     if (!student_ids || student_ids.length === 0)
       throw new BadRequestException('student_ids must not be empty');
@@ -647,19 +688,35 @@ export class SavingsService {
     for (const student_id of student_ids) {
       try {
         const student = await this.getStudentWithRelations(student_id);
-        if (!student) { failed.push({ student_id, reason: 'Student not found' }); continue; }
+        if (!student) {
+          failed.push({ student_id, reason: 'Student not found' });
+          continue;
+        }
 
         const studentData = student as any;
         const currentBalance = Number(studentData.saving_wallet ?? 0);
-        const nextBalance = this.applyTransaction(currentBalance, transaction_type, Number(amount));
+        const nextBalance = this.applyTransaction(
+          currentBalance,
+          transaction_type,
+          Number(amount),
+        );
 
-        if (nextBalance < 0) { failed.push({ student_id, reason: 'Insufficient balance' }); continue; }
+        if (nextBalance < 0) {
+          failed.push({ student_id, reason: 'Insufficient balance' });
+          continue;
+        }
 
         // ✅ For WITHDRAW: check banked available balance per student.
         if (transaction_type === SavingTransactionType.WITHDRAW) {
-          const available = await this.payReceiveService.getAvailableBalanceByStudent(student.id);
+          const available =
+            await this.payReceiveService.getAvailableBalanceByStudent(
+              student.id,
+            );
           if (Number(amount) > available) {
-            failed.push({ student_id, reason: `Insufficient banked balance. Available: ${available}, Requested: ${amount}` });
+            failed.push({
+              student_id,
+              reason: `Insufficient banked balance. Available: ${available}, Requested: ${amount}`,
+            });
             continue;
           }
         }
@@ -691,7 +748,13 @@ export class SavingsService {
       }
     }
 
-    return { total: student_ids.length, success_count: success.length, failed_count: failed.length, success, failed };
+    return {
+      total: student_ids.length,
+      success_count: success.length,
+      failed_count: failed.length,
+      success,
+      failed,
+    };
   }
 
   // ===========================================================================
@@ -705,14 +768,17 @@ export class SavingsService {
     success: Saving[];
     failed: { student_id: string; reason: string }[];
   }> {
-    const classInfo = await this.classRepository.findOne({ where: { id: dto.class_id } });
+    const classInfo = await this.classRepository.findOne({
+      where: { id: dto.class_id },
+    });
     if (!classInfo) throw new NotFoundException('Class not found');
 
     const students = await this.studentRepository.find({
       where: { classId: { id: dto.class_id }, is_deleted: false } as any,
       select: ['id'] as any,
     });
-    if (!students.length) throw new NotFoundException('No students found in this class');
+    if (!students.length)
+      throw new NotFoundException('No students found in this class');
 
     return this.createBulk({
       created_by: dto.created_by,
@@ -735,7 +801,9 @@ export class SavingsService {
     withdrawReasonId?: string;
   }): Promise<{ saving: Saving; payReceive: PayReceive }> {
     if (!dto.withdrawReasonId)
-      throw new BadRequestException('withdraw_reason_id is required for withdrawals');
+      throw new BadRequestException(
+        'withdraw_reason_id is required for withdrawals',
+      );
 
     const student = await this.getStudentWithRelations(dto.studentId);
     if (!student) throw new NotFoundException('Student not found');
@@ -794,7 +862,14 @@ export class SavingsService {
   async findAll(): Promise<Saving[]> {
     return await this.savingRepository.find({
       where: { is_deleted: false },
-      relations: { student: true, class: true, branch: true, academic_year: true, createdBy: true, withdrawReason: true },
+      relations: {
+        student: true,
+        class: true,
+        branch: true,
+        academic_year: true,
+        createdBy: true,
+        withdrawReason: true,
+      },
       order: { created_at: 'DESC' },
     });
   }
@@ -802,19 +877,35 @@ export class SavingsService {
   async findOne(id: string): Promise<Saving> {
     const saving = await this.savingRepository.findOne({
       where: { id, is_deleted: false },
-      relations: { student: true, class: true, branch: true, academic_year: true, createdBy: true, withdrawReason: true },
+      relations: {
+        student: true,
+        class: true,
+        branch: true,
+        academic_year: true,
+        createdBy: true,
+        withdrawReason: true,
+      },
     });
     if (!saving) throw new NotFoundException('Saving not found');
     return saving;
   }
 
   async getSavingHistoryByStudent(studentId: string): Promise<Saving[]> {
-    const student = await this.studentRepository.findOne({ where: { id: studentId } });
+    const student = await this.studentRepository.findOne({
+      where: { id: studentId },
+    });
     if (!student) throw new NotFoundException('Student not found');
 
     return await this.savingRepository.find({
       where: { student_id: studentId, is_deleted: false },
-      relations: { student: true, class: true, branch: true, academic_year: true, createdBy: true, withdrawReason: true },
+      relations: {
+        student: true,
+        class: true,
+        branch: true,
+        academic_year: true,
+        createdBy: true,
+        withdrawReason: true,
+      },
       order: { created_at: 'DESC' },
     });
   }
@@ -824,9 +915,12 @@ export class SavingsService {
   // ===========================================================================
 
   async update(id: string, updateSavingDto: UpdateSavingDto): Promise<Saving> {
-    const saving = await this.savingRepository.findOne({ where: { id, is_deleted: false } });
+    const saving = await this.savingRepository.findOne({
+      where: { id, is_deleted: false },
+    });
     if (!saving) throw new NotFoundException('Saving not found');
-    if (!saving.student_id) throw new BadRequestException('Saving.student_id is missing');
+    if (!saving.student_id)
+      throw new BadRequestException('Saving.student_id is missing');
 
     const oldStudentId = saving.student_id;
     const nextStudentId = updateSavingDto.student_id ?? oldStudentId;
@@ -841,8 +935,10 @@ export class SavingsService {
       saving.branch_id = studentData.branch?.id ?? null;
       saving.academic_year_id = null;
     }
-    if (updateSavingDto.transaction_type !== undefined) saving.transaction_type = updateSavingDto.transaction_type;
-    if (updateSavingDto.amount !== undefined) saving.amount = Number(updateSavingDto.amount);
+    if (updateSavingDto.transaction_type !== undefined)
+      saving.transaction_type = updateSavingDto.transaction_type;
+    if (updateSavingDto.amount !== undefined)
+      saving.amount = Number(updateSavingDto.amount);
     if (updateSavingDto.note !== undefined) saving.note = updateSavingDto.note;
     if (updateSavingDto.withdraw_reason_id !== undefined)
       saving.withdraw_reason_id = updateSavingDto.withdraw_reason_id ?? null;
@@ -875,12 +971,16 @@ export class SavingsService {
    *   Same logic — recalculateStudentBalances() replays all rows so the
    *   wallet reflects the corrected amount automatically.
    */
-  async updateSavingAmount(savingId: string, newAmount: number): Promise<Saving> {
+  async updateSavingAmount(
+    savingId: string,
+    newAmount: number,
+  ): Promise<Saving> {
     const saving = await this.savingRepository.findOne({
       where: { id: savingId, is_deleted: false },
     });
     if (!saving) throw new NotFoundException(`Saving "${savingId}" not found`);
-    if (newAmount <= 0) throw new BadRequestException('amount must be greater than 0');
+    if (newAmount <= 0)
+      throw new BadRequestException('amount must be greater than 0');
 
     saving.amount = newAmount;
     await this.savingRepository.save(saving);
@@ -904,7 +1004,9 @@ export class SavingsService {
    * — recalculate restores the debited amount automatically.
    */
   async remove(id: string): Promise<{ message: string }> {
-    const saving = await this.savingRepository.findOne({ where: { id, is_deleted: false } });
+    const saving = await this.savingRepository.findOne({
+      where: { id, is_deleted: false },
+    });
     if (!saving) throw new NotFoundException('Saving not found');
 
     saving.is_deleted = true;
@@ -925,7 +1027,9 @@ export class SavingsService {
    * ✅ FIX: now calls recalculateClassBalance so class.saving_wallet is restored.
    */
   async removeClassSaving(id: string): Promise<{ message: string }> {
-    const saving = await this.savingRepository.findOne({ where: { id, is_deleted: false } });
+    const saving = await this.savingRepository.findOne({
+      where: { id, is_deleted: false },
+    });
     if (!saving) throw new NotFoundException('Saving not found');
     if (saving.owner_type !== SavingOwnerType.CLASS)
       throw new BadRequestException('This method is only for CLASS savings');
@@ -935,8 +1039,7 @@ export class SavingsService {
     await this.savingRepository.save(saving);
 
     // ✅ FIX: restore class wallet after soft-delete
-    if (saving.class_id)
-      await this.recalculateClassBalance(saving.class_id);
+    if (saving.class_id) await this.recalculateClassBalance(saving.class_id);
 
     return { message: 'Class saving deleted successfully' };
   }
@@ -946,20 +1049,25 @@ export class SavingsService {
   // ===========================================================================
 
   async getStudentBalance(studentId: string) {
-    const student = await this.studentRepository.findOne({ where: { id: studentId } });
+    const student = await this.studentRepository.findOne({
+      where: { id: studentId },
+    });
     if (!student) throw new NotFoundException('Student not found');
 
     const studentData = student as any;
     return {
       student_id: student.id,
       student_code: studentData.student_id,
-      student_name: `${studentData.first_name ?? ''} ${studentData.last_name ?? ''}`.trim(),
+      student_name:
+        `${studentData.first_name ?? ''} ${studentData.last_name ?? ''}`.trim(),
       current_balance: Number(studentData.saving_wallet ?? 0),
     };
   }
 
   async getClassBalance(classId: string) {
-    const classInfo = await this.classRepository.findOne({ where: { id: classId } });
+    const classInfo = await this.classRepository.findOne({
+      where: { id: classId },
+    });
     if (!classInfo) throw new NotFoundException('Class not found');
 
     // ✅ FIX: read from class.saving_wallet (maintained by recalculateClassBalance)
@@ -971,11 +1079,17 @@ export class SavingsService {
   }
 
   async getClassBalanceWithStudents(classId: string) {
-    const classInfo = await this.classRepository.findOne({ where: { id: classId } });
+    const classInfo = await this.classRepository.findOne({
+      where: { id: classId },
+    });
     if (!classInfo) throw new NotFoundException('Class not found');
 
     const classSavings = await this.savingRepository.find({
-      where: { owner_type: SavingOwnerType.CLASS, class_id: classId, is_deleted: false },
+      where: {
+        owner_type: SavingOwnerType.CLASS,
+        class_id: classId,
+        is_deleted: false,
+      },
       relations: { createdBy: true, withdrawReason: true },
       order: { created_at: 'ASC', updated_at: 'ASC' },
     });
@@ -999,7 +1113,11 @@ export class SavingsService {
     let studentSavings: Saving[] = [];
     if (studentIds.length > 0) {
       studentSavings = await this.savingRepository.find({
-        where: { owner_type: SavingOwnerType.STUDENT, student_id: In(studentIds), is_deleted: false },
+        where: {
+          owner_type: SavingOwnerType.STUDENT,
+          student_id: In(studentIds),
+          is_deleted: false,
+        },
         relations: { createdBy: true, withdrawReason: true },
         order: { created_at: 'ASC', updated_at: 'ASC' },
       });
@@ -1036,21 +1154,30 @@ export class SavingsService {
       total_students: students.length,
       students: students.map((student: any) => {
         const histories = savingMap.get(student.id) ?? [];
-        const depositTotal = histories.filter((i) => i.transaction_type === SavingTransactionType.DEPOSIT).reduce((s, i) => s + Number(i.amount), 0);
-        const withdrawTotal = histories.filter((i) => i.transaction_type === SavingTransactionType.WITHDRAW).reduce((s, i) => s + Number(i.amount), 0);
+        const depositTotal = histories
+          .filter((i) => i.transaction_type === SavingTransactionType.DEPOSIT)
+          .reduce((s, i) => s + Number(i.amount), 0);
+        const withdrawTotal = histories
+          .filter((i) => i.transaction_type === SavingTransactionType.WITHDRAW)
+          .reduce((s, i) => s + Number(i.amount), 0);
         return {
           id: student.id,
           student_id: student.student_id,
           first_name: student.first_name,
           last_name: student.last_name,
-          full_name: `${student.first_name ?? ''} ${student.last_name ?? ''}`.trim(),
+          full_name:
+            `${student.first_name ?? ''} ${student.last_name ?? ''}`.trim(),
           gender: student.gender,
           profile_image_path: student.profile_image_path,
           saving_wallet: Number(student.saving_wallet ?? 0),
           class: null,
           branch: student.branch,
           academic_year: null,
-          summary: { deposit_total: depositTotal, withdraw_total: withdrawTotal, total_transactions: histories.length },
+          summary: {
+            deposit_total: depositTotal,
+            withdraw_total: withdrawTotal,
+            total_transactions: histories.length,
+          },
           history: histories.map((item) => ({
             id: item.id,
             transaction_type: item.transaction_type,

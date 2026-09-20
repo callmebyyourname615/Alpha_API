@@ -14,8 +14,12 @@ export class RubricReportMonthSettingController {
   }
 
   @Put()
-  async saveSetting(@Body() body: { setting?: SaveRubricReportMonthSettingDto }) {
-    const setting = await this.service.save(body?.setting || (body as SaveRubricReportMonthSettingDto));
+  async saveSetting(
+    @Body() body: { setting?: SaveRubricReportMonthSettingDto },
+  ) {
+    const setting = await this.service.save(
+      body?.setting || (body as SaveRubricReportMonthSettingDto),
+    );
     return { data: await this.service.findAll(), setting };
   }
 }

@@ -49,7 +49,9 @@ export class RubricReportMonthSettingService {
       throw new BadRequestException('Invalid month or lesson range.');
     }
 
-    let setting = await this.repo.findOne({ where: { classId, studentId, subjectId, month } });
+    let setting = await this.repo.findOne({
+      where: { classId, studentId, subjectId, month },
+    });
     if (!setting) {
       setting = this.repo.create({ classId, studentId, subjectId, month });
     }

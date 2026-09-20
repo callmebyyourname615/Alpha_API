@@ -8,13 +8,13 @@ import {
 } from 'typeorm';
 import { Lesson } from '../lesson/lesson.entity';
 
-@Entity('subject_types')   // ← Better table name (plural)
+@Entity('subject_types') // ← Better table name (plural)
 export class SubjectType {
-  @PrimaryGeneratedColumn('uuid')   // ← Changed to uuid for consistency with other entities
+  @PrimaryGeneratedColumn('uuid') // ← Changed to uuid for consistency with other entities
   id: string;
 
   @Column({ length: 150, nullable: false, unique: true })
-  name: string;                  
+  name: string;
 
   @Column({ default: true })
   is_active: boolean;
@@ -29,6 +29,6 @@ export class SubjectType {
   updated_at: Date;
 
   // Inverse relation
-   @OneToMany(() => Lesson, (lesson) => lesson.subjectType)
+  @OneToMany(() => Lesson, (lesson) => lesson.subjectType)
   lessons: Lesson[];
 }

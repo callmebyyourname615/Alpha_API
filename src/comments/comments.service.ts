@@ -54,31 +54,49 @@ export class CommentsService {
 
   // Create comment
   async create(dto: CreateCommentDto) {
-    if (dto.module_type === ModuleType.TASK && dto.auditor_type === AuditorType.ADMIN) {
-      await this.taskAccess.assertAdminCanMutateTask(dto.module_id, dto.auditor_id);
+    if (
+      dto.module_type === ModuleType.TASK &&
+      dto.auditor_type === AuditorType.ADMIN
+    ) {
+      await this.taskAccess.assertAdminCanMutateTask(
+        dto.module_id,
+        dto.auditor_id,
+      );
     }
 
     // ตรวจสอบ auditor
     if (dto.auditor_type === AuditorType.ADMIN) {
-      const admin = await this.adminRepo.findOne({ where: { id: dto.auditor_id } });
+      const admin = await this.adminRepo.findOne({
+        where: { id: dto.auditor_id },
+      });
       if (!admin) throw new NotFoundException('Admin not found');
     } else if (dto.auditor_type === AuditorType.PARENT) {
-      const parent = await this.parentRepo.findOne({ where: { id: dto.auditor_id } });
+      const parent = await this.parentRepo.findOne({
+        where: { id: dto.auditor_id },
+      });
       if (!parent) throw new NotFoundException('Parent not found');
     }
 
     // ตรวจสอบ module
     if (dto.module_type === ModuleType.TASK) {
-      const task = await this.taskRepo.findOne({ where: { id: dto.module_id } as any });
+      const task = await this.taskRepo.findOne({
+        where: { id: dto.module_id } as any,
+      });
       if (!task) throw new NotFoundException('Task not found');
     } else if (dto.module_type === ModuleType.EVENT) {
-      const event = await this.eventRepo.findOne({ where: { id: dto.module_id } as any });
+      const event = await this.eventRepo.findOne({
+        where: { id: dto.module_id } as any,
+      });
       if (!event) throw new NotFoundException('Event not found');
     } else if (dto.module_type === ModuleType.EVENT_ACTIVITY) {
-      const activity = await this.eventActivityRepo.findOne({ where: { id: dto.module_id } as any });
+      const activity = await this.eventActivityRepo.findOne({
+        where: { id: dto.module_id } as any,
+      });
       if (!activity) throw new NotFoundException('Event Activity not found');
     } else if (dto.module_type === ModuleType.ANNOUNCEMENT) {
-      const announcement = await this.announcementRepo.findOne({ where: { id: dto.module_id } as any });
+      const announcement = await this.announcementRepo.findOne({
+        where: { id: dto.module_id } as any,
+      });
       if (!announcement) throw new NotFoundException('Announcement not found');
     }
 
@@ -89,7 +107,8 @@ export class CommentsService {
       auditor_type: dto.auditor_type,
       module_id: dto.module_id, // string
       module_type: dto.module_type,
-      student_id: dto.module_type === ModuleType.TASK ? dto.student_id || null : null,
+      student_id:
+        dto.module_type === ModuleType.TASK ? dto.student_id || null : null,
       reply_to_id: dto.reply_to_id || null,
     });
 
@@ -99,8 +118,18 @@ export class CommentsService {
   async update(id: string, dto: Partial<CreateCommentDto>) {
     const comment = await this.commentRepo.findOne({ where: { id } });
     if (!comment) throw new NotFoundException('Comment not found');
-    const adminId = dto.auditor_type === AuditorType.ADMIN ? dto.auditor_id : comment.auditor_type === AuditorType.ADMIN ? comment.auditor_id : null;
-    const moduleId = dto.module_type === ModuleType.TASK ? dto.module_id : comment.module_type === ModuleType.TASK ? comment.module_id : null;
+    const adminId =
+      dto.auditor_type === AuditorType.ADMIN
+        ? dto.auditor_id
+        : comment.auditor_type === AuditorType.ADMIN
+          ? comment.auditor_id
+          : null;
+    const moduleId =
+      dto.module_type === ModuleType.TASK
+        ? dto.module_id
+        : comment.module_type === ModuleType.TASK
+          ? comment.module_id
+          : null;
     if (adminId && moduleId) {
       await this.taskAccess.assertAdminCanMutateTask(moduleId, adminId);
     }
@@ -114,123 +143,159 @@ export class CommentsService {
     return this.commentRepo.save(comment);
   }
 
- async findAll(module_type?: ModuleType, module_id?: string, student_id?: string) {
-  const query = this.commentRepo.createQueryBuilder('comment');
+  async findAll(
+    module_type?: ModuleType,
+    module_id?: string,
+    student_id?: string,
+  ) {
+    const query = this.commentRepo.createQueryBuilder('comment');
 
-  if (module_type) {
-    query.andWhere('comment.module_type = :module_type', { module_type });
-  }
+    if (module_type) {
+      query.andWhere('comment.module_type = :module_type', { module_type });
+    }
 
-  if (module_id) {
-    query.andWhere('comment.module_id = :module_id', { module_id });
-  }
+    if (module_id) {
+      query.andWhere('comment.module_id = :module_id', { module_id });
+    }
 
-  if (student_id) {
-    query.andWhere('comment.student_id = :student_id', { student_id });
-  }
+    if (student_id) {
+      query.andWhere('comment.student_id = :student_id', { student_id });
+    }
 
-  query.orderBy('comment.created_at', 'ASC');
+    query.orderBy('comment.created_at', 'ASC');
 
-  const comments = await query.getMany();
+    const comments = await query.getMany();
 
-  // Fetch auditor info for each comment
-  const enrichedComments = await Promise.all(
-    comments.map(async (comment) => {
-      let auditor: any = null;
-      if (comment.auditor_type === AuditorType.ADMIN) {
-        auditor = await this.adminRepo.findOne({ 
-          where: { id: comment.auditor_id },
-          select: ['id', 'username', 'first_name', 'last_name', 'profile_pic']
-        });
-      } else if (comment.auditor_type === AuditorType.PARENT) {
-        auditor = await this.parentRepo.findOne({ 
-          where: { id: comment.auditor_id },
-          select: ['id', 'firstName_lao', 'firstName_eng', 'lastName_lao', 'lastName_eng', 'profilePictureUrl']
-        });
-      }
-      return { ...comment, auditor };
-    })
-  );
-
-  // Fetch images for each comment
-  const withImages = await Promise.all(
-    enrichedComments.map(async (comment) => {
-      const files = await this.fileRepo.find({
-        where: { comment_id: comment.id, is_deleted: false },
-      });
-      const images = files.map((f) => f.file_path);
-      return { ...comment, images };
-    })
-  );
-
-  // Fetch reactions for each comment, grouped by emoji with counts
-  const withReactions = await Promise.all(
-    withImages.map(async (comment) => {
-      const reactions = await this.reactionRepo.find({ where: { comment_id: comment.id } });
-      const grouped = new Map<string, { emoji: string; count: number; auditor_ids: string[] }>();
-      reactions.forEach((r) => {
-        const entry = grouped.get(r.emoji) || { emoji: r.emoji, count: 0, auditor_ids: [] };
-        entry.count += 1;
-        entry.auditor_ids.push(r.auditor_id);
-        grouped.set(r.emoji, entry);
-      });
-      return { ...comment, reactions: [...grouped.values()] };
-    })
-  );
-
-  // Attach a lightweight snippet of the message being replied to, if any,
-  // so the frontend can render a quoted preview without another round trip.
-  const byId = new Map(enrichedComments.map((c) => [c.id, c]));
-  const withReplies = withReactions.map((comment) => {
-    const original = comment.reply_to_id ? byId.get(comment.reply_to_id) : null;
-    const reply_to = original
-      ? {
-          id: original.id,
-          comment: original.comment,
-          auditor_type: original.auditor_type,
-          auditor: original.auditor,
+    // Fetch auditor info for each comment
+    const enrichedComments = await Promise.all(
+      comments.map(async (comment) => {
+        let auditor: any = null;
+        if (comment.auditor_type === AuditorType.ADMIN) {
+          auditor = await this.adminRepo.findOne({
+            where: { id: comment.auditor_id },
+            select: [
+              'id',
+              'username',
+              'first_name',
+              'last_name',
+              'profile_pic',
+            ],
+          });
+        } else if (comment.auditor_type === AuditorType.PARENT) {
+          auditor = await this.parentRepo.findOne({
+            where: { id: comment.auditor_id },
+            select: [
+              'id',
+              'firstName_lao',
+              'firstName_eng',
+              'lastName_lao',
+              'lastName_eng',
+              'profilePictureUrl',
+            ],
+          });
         }
-      : null;
-    return { ...comment, reply_to };
-  });
+        return { ...comment, auditor };
+      }),
+    );
 
-  return withReplies;
-}
+    // Fetch images for each comment
+    const withImages = await Promise.all(
+      enrichedComments.map(async (comment) => {
+        const files = await this.fileRepo.find({
+          where: { comment_id: comment.id, is_deleted: false },
+        });
+        const images = files.map((f) => f.file_path);
+        return { ...comment, images };
+      }),
+    );
 
-async toggleReaction(commentId: string, dto: ToggleReactionDto) {
-  const comment = await this.commentRepo.findOne({ where: { id: commentId } });
-  if (!comment) throw new NotFoundException('Comment not found');
-  if (comment.module_type === ModuleType.TASK && dto.auditor_type === AuditorType.ADMIN) {
-    await this.taskAccess.assertAdminCanMutateTask(comment.module_id, dto.auditor_id);
+    // Fetch reactions for each comment, grouped by emoji with counts
+    const withReactions = await Promise.all(
+      withImages.map(async (comment) => {
+        const reactions = await this.reactionRepo.find({
+          where: { comment_id: comment.id },
+        });
+        const grouped = new Map<
+          string,
+          { emoji: string; count: number; auditor_ids: string[] }
+        >();
+        reactions.forEach((r) => {
+          const entry = grouped.get(r.emoji) || {
+            emoji: r.emoji,
+            count: 0,
+            auditor_ids: [],
+          };
+          entry.count += 1;
+          entry.auditor_ids.push(r.auditor_id);
+          grouped.set(r.emoji, entry);
+        });
+        return { ...comment, reactions: [...grouped.values()] };
+      }),
+    );
+
+    // Attach a lightweight snippet of the message being replied to, if any,
+    // so the frontend can render a quoted preview without another round trip.
+    const byId = new Map(enrichedComments.map((c) => [c.id, c]));
+    const withReplies = withReactions.map((comment) => {
+      const original = comment.reply_to_id
+        ? byId.get(comment.reply_to_id)
+        : null;
+      const reply_to = original
+        ? {
+            id: original.id,
+            comment: original.comment,
+            auditor_type: original.auditor_type,
+            auditor: original.auditor,
+          }
+        : null;
+      return { ...comment, reply_to };
+    });
+
+    return withReplies;
   }
 
-  const existing = await this.reactionRepo.findOne({
-    where: {
+  async toggleReaction(commentId: string, dto: ToggleReactionDto) {
+    const comment = await this.commentRepo.findOne({
+      where: { id: commentId },
+    });
+    if (!comment) throw new NotFoundException('Comment not found');
+    if (
+      comment.module_type === ModuleType.TASK &&
+      dto.auditor_type === AuditorType.ADMIN
+    ) {
+      await this.taskAccess.assertAdminCanMutateTask(
+        comment.module_id,
+        dto.auditor_id,
+      );
+    }
+
+    const existing = await this.reactionRepo.findOne({
+      where: {
+        comment_id: commentId,
+        auditor_id: dto.auditor_id,
+        auditor_type: dto.auditor_type,
+        emoji: dto.emoji,
+      },
+    });
+
+    if (existing) {
+      await this.reactionRepo.remove(existing);
+      return { toggled: 'off' };
+    }
+
+    const reaction = this.reactionRepo.create({
       comment_id: commentId,
       auditor_id: dto.auditor_id,
       auditor_type: dto.auditor_type,
       emoji: dto.emoji,
-    },
-  });
-
-  if (existing) {
-    await this.reactionRepo.remove(existing);
-    return { toggled: 'off' };
+    });
+    await this.reactionRepo.save(reaction);
+    return { toggled: 'on' };
   }
 
-  const reaction = this.reactionRepo.create({
-    comment_id: commentId,
-    auditor_id: dto.auditor_id,
-    auditor_type: dto.auditor_type,
-    emoji: dto.emoji,
-  });
-  await this.reactionRepo.save(reaction);
-  return { toggled: 'on' };
-}
-
-async getReactions(commentId: string) {
-  return this.reactionRepo.find({ where: { comment_id: commentId } });
-}
+  async getReactions(commentId: string) {
+    return this.reactionRepo.find({ where: { comment_id: commentId } });
+  }
 
   async findOne(id: string) {
     const comment = await this.commentRepo.findOne({ where: { id } });
@@ -240,8 +305,14 @@ async getReactions(commentId: string) {
 
   async remove(id: string) {
     const comment = await this.findOne(id);
-    if (comment.module_type === ModuleType.TASK && comment.auditor_type === AuditorType.ADMIN) {
-      await this.taskAccess.assertAdminCanMutateTask(comment.module_id, comment.auditor_id);
+    if (
+      comment.module_type === ModuleType.TASK &&
+      comment.auditor_type === AuditorType.ADMIN
+    ) {
+      await this.taskAccess.assertAdminCanMutateTask(
+        comment.module_id,
+        comment.auditor_id,
+      );
     }
     return this.commentRepo.remove(comment);
   }

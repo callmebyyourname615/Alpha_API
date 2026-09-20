@@ -13,7 +13,10 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { LeaveReasonService } from './leave-reason.service';
-import { CreateLeaveReasonDto, UpdateLeaveReasonDto } from './dto/leave-reason.dto';
+import {
+  CreateLeaveReasonDto,
+  UpdateLeaveReasonDto,
+} from './dto/leave-reason.dto';
 
 @ApiTags('Leave Reasons')
 @Controller('leave-reasons')

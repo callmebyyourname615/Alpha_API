@@ -23,18 +23,19 @@ export class EventController {
   // ✅ Create Event + Upload Files
   @Post()
   @UseInterceptors(
-    FileFieldsInterceptor(
-      [{ name: 'files', maxCount: 10 }],
-      {
-        storage: diskStorage({
-          destination: './uploads/events',
-          filename: (req, file, cb) => {
-            const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-            cb(null, `${file.fieldname}-${uniqueSuffix}${extname(file.originalname)}`);
-          },
-        }),
-      },
-    ),
+    FileFieldsInterceptor([{ name: 'files', maxCount: 10 }], {
+      storage: diskStorage({
+        destination: './uploads/events',
+        filename: (req, file, cb) => {
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(
+            null,
+            `${file.fieldname}-${uniqueSuffix}${extname(file.originalname)}`,
+          );
+        },
+      }),
+    }),
   )
   async create(
     @Body() dto: CreateEventDto,
@@ -58,18 +59,19 @@ export class EventController {
   // ✅ Update Event + Optional Upload Files
   @Put(':id')
   @UseInterceptors(
-    FileFieldsInterceptor(
-      [{ name: 'files', maxCount: 10 }],
-      {
-        storage: diskStorage({
-          destination: './uploads/events',
-          filename: (req, file, cb) => {
-            const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-            cb(null, `${file.fieldname}-${uniqueSuffix}${extname(file.originalname)}`);
-          },
-        }),
-      },
-    ),
+    FileFieldsInterceptor([{ name: 'files', maxCount: 10 }], {
+      storage: diskStorage({
+        destination: './uploads/events',
+        filename: (req, file, cb) => {
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(
+            null,
+            `${file.fieldname}-${uniqueSuffix}${extname(file.originalname)}`,
+          );
+        },
+      }),
+    }),
   )
   update(
     @Param('id') id: string,

@@ -11,7 +11,17 @@ import { TaskService } from './task.service';
 import { TaskController } from './task.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Task, File, Class, Enrollment, Student, TaskSubmissionSlot]), FileModule],
+  imports: [
+    TypeOrmModule.forFeature([
+      Task,
+      File,
+      Class,
+      Enrollment,
+      Student,
+      TaskSubmissionSlot,
+    ]),
+    FileModule,
+  ],
   providers: [TaskService],
   controllers: [TaskController],
 })

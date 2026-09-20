@@ -47,7 +47,9 @@ export class SiblingGroupService {
     if (students.length !== ids.length) {
       const found = new Set(students.map((s) => s.id));
       const missing = ids.filter((id) => !found.has(id));
-      throw new NotFoundException(`Student(s) not found: ${missing.join(', ')}`);
+      throw new NotFoundException(
+        `Student(s) not found: ${missing.join(', ')}`,
+      );
     }
 
     return students;
@@ -93,7 +95,9 @@ export class SiblingGroupService {
   async createGroup(dto: CreateSiblingGroupDto): Promise<SiblingGroup> {
     const uniqueIds = [...new Set(dto.studentIds)];
     if (uniqueIds.length < 2) {
-      throw new BadRequestException('A sibling group requires at least 2 distinct students');
+      throw new BadRequestException(
+        'A sibling group requires at least 2 distinct students',
+      );
     }
 
     const students = await this.getStudentsWithParents(uniqueIds);
@@ -149,7 +153,12 @@ export class SiblingGroupService {
   async findAll(): Promise<SiblingGroup[]> {
     return this.groupRepo.find({
       where: { is_deleted: false },
-      relations: ['students', 'members', 'members.student','members.student.parents', ],
+      relations: [
+        'students',
+        'members',
+        'members.student',
+        'members.student.parents',
+      ],
       order: { createdAt: 'DESC' },
     });
   }
@@ -162,12 +171,15 @@ export class SiblingGroupService {
   async findByStudent(studentId: string): Promise<SiblingGroup[]> {
     const members = await this.memberRepo.find({
       where: { studentId },
-      relations: ['group', 'group.students', 'group.members', 'group.members.student'],
+      relations: [
+        'group',
+        'group.students',
+        'group.members',
+        'group.members.student',
+      ],
     });
 
-    return members
-      .map((m) => m.group)
-      .filter((g) => g && !g.is_deleted);
+    return members.map((m) => m.group).filter((g) => g && !g.is_deleted);
   }
 
   // Flat list of all sibling Students for a given student
@@ -191,14 +203,17 @@ export class SiblingGroupService {
 
   // ─── UPDATE GROUP METADATA ─────────────────────────────────────────────────
 
-  async updateGroup(id: string, dto: UpdateSiblingGroupDto): Promise<SiblingGroup> {
+  async updateGroup(
+    id: string,
+    dto: UpdateSiblingGroupDto,
+  ): Promise<SiblingGroup> {
     const group = await this.loadGroup(id);
 
     Object.assign(group, {
-      name:          dto.name          ?? group.name,
+      name: dto.name ?? group.name,
       relation_type: dto.relation_type ?? group.relation_type,
-      note:          dto.note          ?? group.note,
-      is_active:     dto.is_active     ?? group.is_active,
+      note: dto.note ?? group.note,
+      is_active: dto.is_active ?? group.is_active,
     });
 
     await this.groupRepo.save(group);
@@ -213,7 +228,9 @@ export class SiblingGroupService {
 
     const newIds = dto.studentIds.filter((id) => !currentIds.has(id));
     if (!newIds.length) {
-      throw new ConflictException('All provided students are already members of this group');
+      throw new ConflictException(
+        'All provided students are already members of this group',
+      );
     }
 
     const newStudents = await this.getStudentsWithParents(newIds);
@@ -224,7 +241,11 @@ export class SiblingGroupService {
 
     // Add member records
     const memberEntities = newStudents.map((s) =>
-      this.memberRepo.create({ groupId, studentId: s.id,  addedById: dto.added_by }),
+      this.memberRepo.create({
+        groupId,
+        studentId: s.id,
+        addedById: dto.added_by,
+      }),
     );
     await this.memberRepo.save(memberEntities);
 
@@ -244,7 +265,10 @@ export class SiblingGroupService {
 
   // ─── REMOVE MEMBERS ────────────────────────────────────────────────────────
 
-  async removeMembers(groupId: string, dto: RemoveMembersDto): Promise<SiblingGroup> {
+  async removeMembers(
+    groupId: string,
+    dto: RemoveMembersDto,
+  ): Promise<SiblingGroup> {
     const group = await this.loadGroup(groupId);
     const toRemove = new Set(dto.studentIds);
 
@@ -317,7 +341,8 @@ export class SiblingGroupService {
       // Group existing members by groupId
       const groupMemberCount = new Map<string, Set<string>>();
       for (const m of existingMembers) {
-        if (!groupMemberCount.has(m.groupId)) groupMemberCount.set(m.groupId, new Set());
+        if (!groupMemberCount.has(m.groupId))
+          groupMemberCount.set(m.groupId, new Set());
         groupMemberCount.get(m.groupId)!.add(m.studentId);
       }
 
@@ -328,7 +353,10 @@ export class SiblingGroupService {
           studentIds.every((id) => memberSet.has(id)),
       );
 
-      if (alreadyExists) { skipped++; continue; }
+      if (alreadyExists) {
+        skipped++;
+        continue;
+      }
       if (!persist) continue;
 
       const group = await this.createGroup({
@@ -354,7 +382,7 @@ export class SiblingGroupService {
   async deleteGroup(id: string): Promise<{ message: string }> {
     const group = await this.loadGroup(id);
     group.is_deleted = true;
-    group.is_active  = false;
+    group.is_active = false;
     await this.groupRepo.save(group);
     return { message: `Sibling group ${id} deleted successfully` };
   }

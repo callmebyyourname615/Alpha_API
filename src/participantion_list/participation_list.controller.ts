@@ -29,7 +29,7 @@ export class ParticipationListController {
     return this.service.findAll();
   }
 
-  @Get('level/:levelId')                                        // ← was class/:classId
+  @Get('level/:levelId') // ← was class/:classId
   findByLevel(@Param('levelId', ParseUUIDPipe) levelId: string) {
     return this.service.findByLevelId(levelId);
   }

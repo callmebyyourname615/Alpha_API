@@ -34,15 +34,15 @@ export class FeeAssignment {
   class_id: string;
 
   // Uncomment when Class entity is imported:
-   @ManyToOne(() => Class, { eager: true })
-   @JoinColumn({ name: 'class_id' })
-   class: Class;
+  @ManyToOne(() => Class, { eager: true })
+  @JoinColumn({ name: 'class_id' })
+  class: Class;
 
   @Column({ name: 'academic_year_id' })
   academic_year_id: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
-  yearly_discount: number;   // flat discount amount if parent pays full year
+  yearly_discount: number; // flat discount amount if parent pays full year
 
   @Column({ type: 'date', nullable: true })
   due_date: Date;
@@ -52,9 +52,9 @@ export class FeeAssignment {
   assigned_by: string;
 
   // Uncomment when User entity is imported:
-   @ManyToOne(() => Admin, { eager: true })  // assuming Admin is the entity for staff users
-   @JoinColumn({ name: 'assigned_by' })
-   assigner: Admin;
+  @ManyToOne(() => Admin, { eager: true }) // assuming Admin is the entity for staff users
+  @JoinColumn({ name: 'assigned_by' })
+  assigner: Admin;
 
   @CreateDateColumn()
   created_at: Date;
@@ -63,6 +63,6 @@ export class FeeAssignment {
   updated_at: Date;
 
   // Uncomment when StudentFee entity is imported:
-   @OneToMany(() => StudentFee, (sf) => sf.fee_assignment)
-   student_fees: StudentFee[];
+  @OneToMany(() => StudentFee, (sf) => sf.fee_assignment)
+  student_fees: StudentFee[];
 }

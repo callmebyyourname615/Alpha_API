@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, UpdateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  UpdateDateColumn,
+  Index,
+} from 'typeorm';
 
 export enum ChatReaderType {
   ADMIN = 'ADMIN',
@@ -6,7 +12,9 @@ export enum ChatReaderType {
 }
 
 @Entity('chat_reads')
-@Index(['module_type', 'module_id', 'reader_id', 'reader_type', 'student_id'], { unique: true })
+@Index(['module_type', 'module_id', 'reader_id', 'reader_type', 'student_id'], {
+  unique: true,
+})
 export class ChatRead {
   @PrimaryGeneratedColumn('uuid')
   id: string;

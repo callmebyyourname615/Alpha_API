@@ -8,7 +8,7 @@ import {
 
 interface ScoreEntry {
   studentId: string;
-  studentName?: string;  // ← store name to avoid joins when reading history
+  studentName?: string; // ← store name to avoid joins when reading history
   participationId: string;
   participationName: string;
   score: number;
@@ -26,10 +26,10 @@ export class ParticipationScore {
   academicYearId: string;
 
   @Column({ type: 'uuid', nullable: true })
-  levelId: string;    // ← to know which participation lists were available
+  levelId: string; // ← to know which participation lists were available
 
   @Column({ type: 'uuid', nullable: true })
-  classId: string;    // ← to know which class was scored that day
+  classId: string; // ← to know which class was scored that day
 
   @Column({ type: 'jsonb', nullable: true })
   scores: ScoreEntry[];

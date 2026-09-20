@@ -18,7 +18,7 @@ import {
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import { extname }    from 'path';
+import { extname } from 'path';
 import { v4 as uuid } from 'uuid';
 import {
   ApiTags,
@@ -29,8 +29,8 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 
-import { AdminResponseDto, AdminsService }     from './admins.service';
-import { CreateAdminDto, UpdateAdminDto }    from './dto/create-admin.dto';
+import { AdminResponseDto, AdminsService } from './admins.service';
+import { CreateAdminDto, UpdateAdminDto } from './dto/create-admin.dto';
 
 // =========================
 // FILE UPLOAD CONFIG
@@ -74,8 +74,8 @@ const MAX_ARRAY_ITEMS = 10;
 
 const adminFileFields = [
   // ── Top-level files ───────────────────────────────────────────────
-  { name: 'profile_pic',   maxCount: 1 },
-  { name: 'home_picture',  maxCount: 1 },
+  { name: 'profile_pic', maxCount: 1 },
+  { name: 'home_picture', maxCount: 1 },
   { name: 'id_card_image', maxCount: 1 },
   { name: 'passport_image', maxCount: 1 },
   { name: 'family_book_image', maxCount: 5 },
@@ -126,7 +126,7 @@ const adminFileFields = [
 // =========================
 
 type AdminUploadedFiles = {
-  profile_pic?:  Express.Multer.File[];
+  profile_pic?: Express.Multer.File[];
   home_picture?: Express.Multer.File[];
   id_card_image?: Express.Multer.File[];
   passport_image?: Express.Multer.File[];
@@ -208,8 +208,8 @@ function injectArrayFilePaths(
 @Controller('admins')
 @UsePipes(
   new ValidationPipe({
-    transform:           true,
-    whitelist:           true,
+    transform: true,
+    whitelist: true,
     forbidNonWhitelisted: true,
   }),
 )
@@ -229,8 +229,6 @@ export class AdminsController {
     @Body() dto: CreateAdminDto,
     @UploadedFiles() files: AdminUploadedFiles,
   ): Promise<AdminResponseDto> {
-
-   
     // Top-level files
     if (files?.profile_pic?.[0]) {
       dto.profile_pic = `uploads/admin/${files.profile_pic[0].filename}`;
@@ -248,7 +246,10 @@ export class AdminsController {
       const familyInfo = dto.family_info ?? (dto.family_info = {});
       const basicInfo = familyInfo.basic_info ?? (familyInfo.basic_info = {});
       basicInfo.family_book_image = `uploads/admin/${files.family_book_image[0].filename}`;
-    } else if (dto.family_book_image && typeof dto.family_book_image === 'string') {
+    } else if (
+      dto.family_book_image &&
+      typeof dto.family_book_image === 'string'
+    ) {
       const familyInfo = dto.family_info ?? (dto.family_info = {});
       const basicInfo = familyInfo.basic_info ?? (familyInfo.basic_info = {});
       if (!basicInfo.family_book_image) {
@@ -315,7 +316,10 @@ export class AdminsController {
       const familyInfo = dto.family_info ?? (dto.family_info = {});
       const basicInfo = familyInfo.basic_info ?? (familyInfo.basic_info = {});
       basicInfo.family_book_image = `uploads/admin/${files.family_book_image[0].filename}`;
-    } else if (dto.family_book_image && typeof dto.family_book_image === 'string') {
+    } else if (
+      dto.family_book_image &&
+      typeof dto.family_book_image === 'string'
+    ) {
       const familyInfo = dto.family_info ?? (dto.family_info = {});
       const basicInfo = familyInfo.basic_info ?? (familyInfo.basic_info = {});
       if (!basicInfo.family_book_image) {

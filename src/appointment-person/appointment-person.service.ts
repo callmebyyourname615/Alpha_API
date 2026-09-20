@@ -1,7 +1,11 @@
 // ============================================================
 // FILE: src/appointment-person/appointment-person.service.ts
 // ============================================================
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { randomUUID } from 'crypto';
@@ -10,8 +14,8 @@ import { CheckConflictsDto } from './dto/check-conflicts.dto';
 import { AppointmentParticipant } from '../appointment/dto/appointment-participant.entity';
 import { CreateAppointmentPersonDto } from './dto/create-appointment-person.dto';
 import { UpdateAppointmentPersonDto } from './dto/update-appointment-person.dto';
-import { Appointment }  from '../appointment/appointment.entity';
-import { Branch }       from '../branches/branch.entity';
+import { Appointment } from '../appointment/appointment.entity';
+import { Branch } from '../branches/branch.entity';
 import { AcademicYear } from '../academic_years/academic-year.entity';
 import { ParticipantStatus, PersonType } from '../appointment/appointment.enum';
 
@@ -35,14 +39,21 @@ export class AppointmentPersonService {
     const normalized = String(value || '').toUpperCase();
     if (normalized === 'PARENT') return PersonType.PARENT;
     if (normalized === 'TEACHER') return PersonType.TEACHER;
-    if (normalized === 'ADMIN' || normalized === 'STAFF' || normalized === 'OTHER') return PersonType.ADMIN;
+    if (
+      normalized === 'ADMIN' ||
+      normalized === 'STAFF' ||
+      normalized === 'OTHER'
+    )
+      return PersonType.ADMIN;
     if (normalized === 'SUPER_ADMIN') return PersonType.SUPER_ADMIN;
     if (normalized === 'SUPER_SUPER_ADMIN') return PersonType.SUPER_SUPER_ADMIN;
     return normalized as PersonType;
   }
 
   private normalizeStatus(value?: string): ParticipantStatus | undefined {
-    return value ? String(value).toUpperCase() as ParticipantStatus : undefined;
+    return value
+      ? (String(value).toUpperCase() as ParticipantStatus)
+      : undefined;
   }
 
   private normalizeDate(value: Date | string | null | undefined): string {
@@ -87,7 +98,8 @@ export class AppointmentPersonService {
       );
       if (conflict) {
         throw new BadRequestException({
-          message: 'This person already has an appointment during the selected time.',
+          message:
+            'This person already has an appointment during the selected time.',
           conflict: {
             appointment_id: conflict.id,
             title: conflict.title,
@@ -107,18 +119,18 @@ export class AppointmentPersonService {
     // ✅ Fixed: explicitly map fields instead of spreading dto
     // This ensures person_type is cast to enum, not left as plain string
     const ap = this.repo.create({
-      id:               randomUUID().replace(/-/g, '').slice(0, 24),
-      appointment_id:   dto.appointment_id,
-      branch_id:        dto.branch_id,
+      id: randomUUID().replace(/-/g, '').slice(0, 24),
+      appointment_id: dto.appointment_id,
+      branch_id: dto.branch_id,
       academic_year_id: dto.academic_year_id,
-      person_id:        dto.person_id,
-      person_type:      this.normalizePersonType(dto.person_type),
-      status:           this.normalizeStatus(dto.status),
-      response_note:    dto.notes,
-      declined_count:   dto.declined_count   ?? 0,
+      person_id: dto.person_id,
+      person_type: this.normalizePersonType(dto.person_type),
+      status: this.normalizeStatus(dto.status),
+      response_note: dto.notes,
+      declined_count: dto.declined_count ?? 0,
       reschedule_count: dto.rescheduled_count ?? 0,
-      is_active:        dto.is_active        ?? true,
-      is_deleted:       false,
+      is_active: dto.is_active ?? true,
+      is_deleted: false,
     });
 
     return this.repo.save(ap);
@@ -158,23 +170,27 @@ export class AppointmentPersonService {
     const previousStatus = String(existing.status || '').toUpperCase();
 
     // ✅ Fixed: assign fields explicitly to preserve enum types
-    if (dto.appointment_id)   existing.appointment_id   = dto.appointment_id;
-    if (dto.person_id)        existing.person_id        = dto.person_id;
-    if (dto.person_type)      existing.person_type      = this.normalizePersonType(dto.person_type);
-    if (dto.status)           existing.status           = this.normalizeStatus(dto.status);
+    if (dto.appointment_id) existing.appointment_id = dto.appointment_id;
+    if (dto.person_id) existing.person_id = dto.person_id;
+    if (dto.person_type)
+      existing.person_type = this.normalizePersonType(dto.person_type);
+    if (dto.status) existing.status = this.normalizeStatus(dto.status);
     if (dto.notes !== undefined) existing.response_note = dto.notes;
-    if (dto.branch_id)        existing.branch_id        = dto.branch_id;
+    if (dto.branch_id) existing.branch_id = dto.branch_id;
     if (dto.academic_year_id) existing.academic_year_id = dto.academic_year_id;
     if (dto.is_active !== undefined) existing.is_active = dto.is_active;
-    if (dto.declined_count   !== undefined) existing.declined_count   = dto.declined_count;
-    if (dto.rescheduled_count !== undefined) existing.reschedule_count = dto.rescheduled_count;
+    if (dto.declined_count !== undefined)
+      existing.declined_count = dto.declined_count;
+    if (dto.rescheduled_count !== undefined)
+      existing.reschedule_count = dto.rescheduled_count;
 
     const nextStatus = String(existing.status || '').toUpperCase();
     const nextRescheduleCount = Number(existing.reschedule_count ?? 0);
     const statusChanged = !!dto.status && nextStatus !== previousStatus;
     const shouldRecordResponse =
       ['ACCEPTED', 'DECLINED'].includes(nextStatus) ||
-      (nextStatus === 'RESCHEDULED' && nextRescheduleCount > previousRescheduleCount);
+      (nextStatus === 'RESCHEDULED' &&
+        nextRescheduleCount > previousRescheduleCount);
 
     if (statusChanged && shouldRecordResponse) {
       const now = new Date();

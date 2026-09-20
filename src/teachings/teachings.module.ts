@@ -15,8 +15,8 @@ import { TeachingService } from './teachings.service';
   imports: [
     TypeOrmModule.forFeature([
       Teaching,
-      Admin,      // for relations
-      Subject,    // for relations
+      Admin, // for relations
+      Subject, // for relations
       Lesson,
       AcademicYear,
       Branch,
@@ -24,6 +24,6 @@ import { TeachingService } from './teachings.service';
   ],
   controllers: [TeachingController],
   providers: [TeachingService],
-  exports: [TeachingService],   // Export if other modules need to use TeachingService
+  exports: [TeachingService], // Export if other modules need to use TeachingService
 })
 export class TeachingModule {}

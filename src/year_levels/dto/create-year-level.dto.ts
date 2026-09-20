@@ -2,7 +2,7 @@ import { IsUUID, IsString, IsOptional, IsBoolean } from 'class-validator';
 
 export class CreateYearLevelDto {
   @IsUUID()
- levelId : string;
+  levelId: string;
 
   @IsString()
   name: string;

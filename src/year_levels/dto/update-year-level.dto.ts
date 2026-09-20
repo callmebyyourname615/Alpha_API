@@ -4,7 +4,7 @@ export class UpdateYearLevelDto {
   @IsOptional()
   @IsUUID()
   levelId?: string;
-  
+
   @IsOptional()
   @IsString()
   name?: string;

@@ -54,7 +54,6 @@ export class AdminResponseDto {
   passport_number?: string | null;
   passport_image?: string | null;
   current_status?: string | null;
-  
 
   // Address
   notes?: string | null;
@@ -195,19 +194,22 @@ export class AdminsService implements OnModuleInit {
       profile_pic: dto.profile_pic ?? null,
 
       nationality: dto.nationality ?? null,
-ethnicity: dto.ethnicity ?? null,
-religion: dto.religion ?? null,
-id_card_number: dto.id_card_number ?? null,
-id_card_image: dto.id_card_image ?? null,
-passport_number: dto.passport_number ?? null,
-passport_image: dto.passport_image ?? null,
-current_status: dto.current_status ?? null,
+      ethnicity: dto.ethnicity ?? null,
+      religion: dto.religion ?? null,
+      id_card_number: dto.id_card_number ?? null,
+      id_card_image: dto.id_card_image ?? null,
+      passport_number: dto.passport_number ?? null,
+      passport_image: dto.passport_image ?? null,
+      current_status: dto.current_status ?? null,
 
       // ── jsonb arrays ──
       history_work: dto.history_work ?? [],
       education_level: dto.education_level ?? [],
       emergency_with: dto.emergency_with ?? [],
-      family_info: (dto.family_info as any) ?? { basic_info: null, members: [] },
+      family_info: (dto.family_info as any) ?? {
+        basic_info: null,
+        members: [],
+      },
       other_restriction: dto.other_restriction ?? {},
 
       // ── flags ──
@@ -229,8 +231,6 @@ current_status: dto.current_status ?? null,
       if (!branch) throw new BadRequestException('Invalid branch ID');
       admin.branch = branch;
     }
-
-    
 
     const saved = await this.adminRepository.save(admin);
     return this.toResponseDto(saved);
@@ -419,7 +419,11 @@ current_status: dto.current_status ?? null,
     currentPassword: string,
     newPassword: string,
   ): Promise<{ message: string }> {
-    const admin = await this.adminRepository.createQueryBuilder('admin').addSelect('admin.password').where('admin.id = :id AND admin.is_deleted = false', { id }).getOne();
+    const admin = await this.adminRepository
+      .createQueryBuilder('admin')
+      .addSelect('admin.password')
+      .where('admin.id = :id AND admin.is_deleted = false', { id })
+      .getOne();
     if (!admin) throw new NotFoundException(`Admin ${id} not found`);
     if (!admin.password) throw new BadRequestException('No password set');
 
@@ -433,7 +437,7 @@ current_status: dto.current_status ?? null,
     return { message: 'Password updated' };
   }
 
-    private normalizeFamilyInfo(raw: any): FamilyInfo {
+  private normalizeFamilyInfo(raw: any): FamilyInfo {
     if (!raw) return { basic_info: null, members: [] };
     if (Array.isArray(raw)) return { basic_info: null, members: raw };
     return {

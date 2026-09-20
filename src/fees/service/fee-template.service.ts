@@ -6,7 +6,11 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { FeeTemplate } from '../entities/fee-template.entity';
-import { CreateFeeTemplateDto, FeeTemplateQueryDto, UpdateFeeTemplateDto } from '../dto/fee-template.dto';
+import {
+  CreateFeeTemplateDto,
+  FeeTemplateQueryDto,
+  UpdateFeeTemplateDto,
+} from '../dto/fee-template.dto';
 
 @Injectable()
 export class FeeTemplateService {

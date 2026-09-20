@@ -15,13 +15,13 @@ import { Subject } from '../subjects/subject.entity';
 import { Admin } from '../admins/admin.entity';
 
 export enum DayOfWeek {
-  MONDAY    = 'monday',
-  TUESDAY   = 'tuesday',
+  MONDAY = 'monday',
+  TUESDAY = 'tuesday',
   WEDNESDAY = 'wednesday',
-  THURSDAY  = 'thursday',
-  FRIDAY    = 'friday',
-  SATURDAY  = 'saturday',
-  SUNDAY    = 'sunday',
+  THURSDAY = 'thursday',
+  FRIDAY = 'friday',
+  SATURDAY = 'saturday',
+  SUNDAY = 'sunday',
 }
 
 @Entity('timetables')

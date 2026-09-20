@@ -10,9 +10,9 @@ import {
   BeforeUpdate,
   Index,
 } from 'typeorm';
-import { Student }      from '../students/student.entity';
-import { Branch }       from '../branches/branch.entity';
-import { Admin }        from '../admins/admin.entity';
+import { Student } from '../students/student.entity';
+import { Branch } from '../branches/branch.entity';
+import { Admin } from '../admins/admin.entity';
 import { AcademicYear } from '../academic_years/academic-year.entity';
 
 // =========================
@@ -21,16 +21,16 @@ import { AcademicYear } from '../academic_years/academic-year.entity';
 
 export enum NutritionalStatus {
   SEVERELY_UNDERWEIGHT = 'severely_underweight',
-  UNDERWEIGHT          = 'underweight',
-  NORMAL               = 'normal',
-  OVERWEIGHT           = 'overweight',
-  OBESE                = 'obese',
+  UNDERWEIGHT = 'underweight',
+  NORMAL = 'normal',
+  OVERWEIGHT = 'overweight',
+  OBESE = 'obese',
 }
 
 export enum WastingStatus {
-  SEVERE   = 'severe',    // MUAC < 11.5 cm
-  MODERATE = 'moderate',  // MUAC 11.5–12.5 cm
-  NORMAL   = 'normal',    // MUAC > 12.5 cm
+  SEVERE = 'severe', // MUAC < 11.5 cm
+  MODERATE = 'moderate', // MUAC 11.5–12.5 cm
+  NORMAL = 'normal', // MUAC > 12.5 cm
 }
 
 // =========================
@@ -38,9 +38,9 @@ export enum WastingStatus {
 // =========================
 
 @Entity('student_nutritions')
-@Index('idx_nutrition_student_id',   ['studentId'])
+@Index('idx_nutrition_student_id', ['studentId'])
 @Index('idx_nutrition_measure_date', ['measurement_date'])
-@Index('idx_nutrition_round',        ['studentId', 'academic_year_id', 'round_number'])
+@Index('idx_nutrition_round', ['studentId', 'academic_year_id', 'round_number'])
 export class StudentNutrition {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -191,19 +191,21 @@ export class StudentNutrition {
     //    Uses simplified cut-offs; for production use age-specific WHO z-score tables
     if (this.bmi !== null && this.bmi !== undefined) {
       const bmi = Number(this.bmi);
-      if      (bmi < 14) this.nutritional_status = NutritionalStatus.SEVERELY_UNDERWEIGHT;
-      else if (bmi < 16) this.nutritional_status = NutritionalStatus.UNDERWEIGHT;
+      if (bmi < 14)
+        this.nutritional_status = NutritionalStatus.SEVERELY_UNDERWEIGHT;
+      else if (bmi < 16)
+        this.nutritional_status = NutritionalStatus.UNDERWEIGHT;
       else if (bmi < 25) this.nutritional_status = NutritionalStatus.NORMAL;
       else if (bmi < 30) this.nutritional_status = NutritionalStatus.OVERWEIGHT;
-      else               this.nutritional_status = NutritionalStatus.OBESE;
+      else this.nutritional_status = NutritionalStatus.OBESE;
     }
 
     // 3. Wasting status from MUAC
     if (this.muac_cm !== null && this.muac_cm !== undefined) {
       const muac = Number(this.muac_cm);
-      if      (muac < 11.5) this.wasting_status = WastingStatus.SEVERE;
+      if (muac < 11.5) this.wasting_status = WastingStatus.SEVERE;
       else if (muac < 12.5) this.wasting_status = WastingStatus.MODERATE;
-      else                  this.wasting_status = WastingStatus.NORMAL;
+      else this.wasting_status = WastingStatus.NORMAL;
     }
   }
 }

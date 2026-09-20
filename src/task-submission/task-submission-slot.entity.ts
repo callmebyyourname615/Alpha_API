@@ -7,7 +7,12 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
-export type TaskSubmissionSlotStatus = 'pending' | 'submitted' | 'late' | 'missed' | 'reviewed';
+export type TaskSubmissionSlotStatus =
+  | 'pending'
+  | 'submitted'
+  | 'late'
+  | 'missed'
+  | 'reviewed';
 
 @Entity('task_submission_slots')
 @Index(['task_id', 'student_id', 'schedule_index'], { unique: true })

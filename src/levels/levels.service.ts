@@ -42,7 +42,7 @@ export class LevelsService {
     } catch (error: any) {
       if (error.code === '23503') {
         throw new ConflictException(
-          'Cannot delete this level because it is referenced by one or more year levels. Please delete them first.'
+          'Cannot delete this level because it is referenced by one or more year levels. Please delete them first.',
         );
       }
       throw error;

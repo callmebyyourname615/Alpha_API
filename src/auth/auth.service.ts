@@ -22,17 +22,18 @@ export class AuthService {
   ) {}
 
   async login(email: string, password: string) {
+    if (!email || typeof email !== 'string') {
+      throw new UnauthorizedException('Invalid email or password');
+    }
     const login = email.trim().toLowerCase();
     const admin = await this.adminRepo
       .createQueryBuilder('admin')
-      .addSelect('admin.password')
       .leftJoinAndSelect('admin.roles', 'roles')
       .leftJoinAndSelect('admin.branch', 'branch')
       .select([
         'admin.id',
         'admin.username',
         'admin.email',
-        'admin.password',
         'admin.first_name',
         'admin.last_name',
         'admin.profile_pic',
@@ -42,6 +43,7 @@ export class AuthService {
         'branch.id',
         'branch.name',
       ])
+      .addSelect('admin.password')
       .where(
         '(LOWER(TRIM(admin.email)) = :login OR LOWER(TRIM(admin.username)) = :login)',
         { login },
@@ -58,7 +60,10 @@ export class AuthService {
       throw new UnauthorizedException('No password set for this account');
     }
 
-    const isPasswordValid = await bcrypt.compare(password, admin.password);
+    const isPasswordValid = await bcrypt.compare(
+      password || '',
+      admin.password,
+    );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid email or password');
     }
@@ -87,8 +92,11 @@ export class AuthService {
   }
 
   async loginParent(email: string, password: string) {
+    if (!email || typeof email !== 'string') {
+      throw new UnauthorizedException('Invalid email or password');
+    }
     const login = email.trim().toLowerCase();
-    // passwordHash has select: false, so we must explicitly select it
+    // passwordHash has select: false, so we must explicitly addSelect it
     const parent = await this.parentRepo
       .createQueryBuilder('parent')
       .leftJoinAndSelect('parent.roles', 'roles')
@@ -96,7 +104,6 @@ export class AuthService {
         'parent.id',
         'parent.username',
         'parent.email',
-        'parent.passwordHash',
         'parent.firstName_lao',
         'parent.firstName_eng',
         'parent.lastName_lao',
@@ -109,6 +116,7 @@ export class AuthService {
         'roles.name',
         'roles.level',
       ])
+      .addSelect('parent.passwordHash')
       .where(
         '(LOWER(TRIM(parent.email)) = :login OR LOWER(TRIM(parent.username)) = :login)',
         { login },

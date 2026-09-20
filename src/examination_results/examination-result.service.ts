@@ -67,10 +67,7 @@ export class ExaminationResultService {
       );
     }
 
-    const isPassed = this.calculateIsPassed(
-      dto.score,
-      Number(exam.passScore),
-    );
+    const isPassed = this.calculateIsPassed(dto.score, Number(exam.passScore));
 
     const result = this.resultRepository.create({
       ...dto,

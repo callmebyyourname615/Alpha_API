@@ -147,7 +147,9 @@ export class PayReceiveController {
   async getStudentAvailableBalance(
     @Param('studentId', ParseUUIDPipe) studentId: string,
   ) {
-    return this.payReceiveService.getStudentAvailableBalanceBreakdown(studentId);
+    return this.payReceiveService.getStudentAvailableBalanceBreakdown(
+      studentId,
+    );
   }
 
   @Get('available-balance/:savingId')

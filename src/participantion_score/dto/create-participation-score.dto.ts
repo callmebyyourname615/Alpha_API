@@ -10,7 +10,7 @@ export class ParticipationScoreItemDto {
 export class CreateParticipationScoreDto {
   branchId: string;
   academicYearId: string;
-  levelId: string;                // ← added
+  levelId: string; // ← added
   classId: string;
   addedBy: string;
   date?: string;

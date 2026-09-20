@@ -1,6 +1,8 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddTaskPracticeFrequency1780000000007 implements MigrationInterface {
+export class AddTaskPracticeFrequency1780000000007
+  implements MigrationInterface
+{
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
       ALTER TABLE "tasks"

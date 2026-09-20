@@ -1,11 +1,11 @@
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LeaveReason } from './leave-reason.entity';
-import { CreateLeaveReasonDto, UpdateLeaveReasonDto } from './dto/leave-reason.dto';
+import {
+  CreateLeaveReasonDto,
+  UpdateLeaveReasonDto,
+} from './dto/leave-reason.dto';
 
 @Injectable()
 export class LeaveReasonService {
@@ -39,7 +39,10 @@ export class LeaveReasonService {
     return leaveReason;
   }
 
-  async update(id: string, updateDto: UpdateLeaveReasonDto): Promise<LeaveReason> {
+  async update(
+    id: string,
+    updateDto: UpdateLeaveReasonDto,
+  ): Promise<LeaveReason> {
     const existing = await this.findOne(id);
 
     if (updateDto.nameEn !== undefined) existing.nameEn = updateDto.nameEn;

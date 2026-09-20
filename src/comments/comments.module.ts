@@ -14,7 +14,17 @@ import { TaskAccessModule } from '../task-access/task-access.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Comment, CommentReaction, Admin, Parent, Task, Event, EventActivity, File, Announcement]),
+    TypeOrmModule.forFeature([
+      Comment,
+      CommentReaction,
+      Admin,
+      Parent,
+      Task,
+      Event,
+      EventActivity,
+      File,
+      Announcement,
+    ]),
     TaskAccessModule,
   ],
   controllers: [CommentsController],

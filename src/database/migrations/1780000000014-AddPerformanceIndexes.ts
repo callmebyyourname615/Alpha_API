@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddPerformanceIndexes1780000000014
-  implements MigrationInterface
-{
+export class AddPerformanceIndexes1780000000014 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
       CREATE INDEX IF NOT EXISTS "idx_students_branch_deleted"
@@ -187,36 +185,72 @@ export class AddPerformanceIndexes1780000000014
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_payment_records_status_due"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_payment_records_student_fee_due"');
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_payment_records_status_due"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_payment_records_student_fee_due"',
+    );
     await queryRunner.query('DROP INDEX IF EXISTS "idx_student_fees_student"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_student_fees_assignment_student"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_gallery_tags_student_gallery"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_gallery_posts_visibility_status"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_gallery_posts_feed_order"');
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_student_fees_assignment_student"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_gallery_tags_student_gallery"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_gallery_posts_visibility_status"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_gallery_posts_feed_order"',
+    );
     await queryRunner.query('DROP INDEX IF EXISTS "idx_files_gallery_deleted"');
     await queryRunner.query('DROP INDEX IF EXISTS "idx_files_task_deleted"');
     await queryRunner.query('DROP INDEX IF EXISTS "idx_tasks_created_at"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_tasks_academic_year_status"');
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_tasks_academic_year_status"',
+    );
     await queryRunner.query('DROP INDEX IF EXISTS "idx_tasks_class_status"');
     await queryRunner.query('DROP INDEX IF EXISTS "idx_tasks_status_deadline"');
     await queryRunner.query('DROP INDEX IF EXISTS "idx_attendances_type_date"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_attendance_rules_level_day"');
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_attendance_rules_level_day"',
+    );
     await queryRunner.query('DROP INDEX IF EXISTS "idx_attendances_date"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_attendances_student_date"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_enrollments_branch_year_active"');
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_attendances_student_date"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_enrollments_branch_year_active"',
+    );
     await queryRunner.query('DROP INDEX IF EXISTS "idx_year_levels_level"');
     await queryRunner.query('DROP INDEX IF EXISTS "idx_classes_year_level"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_enrollments_student_active"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_enrollments_student_year"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_enrollments_class_year_active"');
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_enrollments_student_active"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_enrollments_student_year"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_enrollments_class_year_active"',
+    );
     await queryRunner.query('DROP INDEX IF EXISTS "idx_students_student_id"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_student_parents_student_parent"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_student_parents_parent_student"');
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_student_parents_student_parent"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_student_parents_parent_student"',
+    );
     await queryRunner.query('DROP INDEX IF EXISTS "idx_students_name_sort"');
     await queryRunner.query('DROP INDEX IF EXISTS "idx_students_dob_deleted"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_students_approval_status"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_students_active_deleted"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_students_branch_deleted"');
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_students_approval_status"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_students_active_deleted"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_students_branch_deleted"',
+    );
   }
 }

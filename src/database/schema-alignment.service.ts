@@ -91,7 +91,9 @@ export class SchemaAlignmentService implements OnModuleInit {
             ADD COLUMN IF NOT EXISTS "practice_frequency_unit" varchar(8) NULL;
         `);
 
-        this.logger.log('Automated database schema alignment completed successfully.');
+        this.logger.log(
+          'Automated database schema alignment completed successfully.',
+        );
       } catch (error) {
         this.logger.error('Failed to align database schema:', error);
       } finally {

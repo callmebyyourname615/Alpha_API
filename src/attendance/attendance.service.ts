@@ -42,8 +42,13 @@ export class AttendanceService {
   }) {
     dto.studentId = await this.resolveStudentId(dto.studentId);
 
-    if (!dto.attendanceDate || !/^\d{4}-\d{2}-\d{2}$/.test(dto.attendanceDate)) {
-      throw new BadRequestException('Invalid attendance date format. Expected YYYY-MM-DD.');
+    if (
+      !dto.attendanceDate ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(dto.attendanceDate)
+    ) {
+      throw new BadRequestException(
+        'Invalid attendance date format. Expected YYYY-MM-DD.',
+      );
     }
 
     const levelId = await this.getStudentLevelId(
@@ -120,7 +125,10 @@ export class AttendanceService {
     dto.studentId = await this.resolveStudentId(dto.studentId);
 
     // ── 1. Load only the level needed by the rule engine ──────────────────
-    const levelId = await this.getStudentLevelId(dto.studentId, 'Student not found');
+    const levelId = await this.getStudentLevelId(
+      dto.studentId,
+      'Student not found',
+    );
     if (!levelId) throw new BadRequestException('Student level not found');
 
     // ── 2. Load rule for the day ──────────────────────────────────────────
@@ -229,7 +237,8 @@ export class AttendanceService {
   // =====================================================
   private async resolveStudentId(input: string): Promise<string> {
     const raw = String(input || '').trim();
-    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const uuidRe =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (uuidRe.test(raw)) {
       const student = await this.studentRepo.findOne({
         where: { id: raw, is_deleted: false },
@@ -238,7 +247,9 @@ export class AttendanceService {
       if (student?.id) {
         return student.id;
       }
-      throw new BadRequestException('Invalid student QR code. Student not found or deleted.');
+      throw new BadRequestException(
+        'Invalid student QR code. Student not found or deleted.',
+      );
     }
     const student = await this.studentRepo.findOne({
       where: { student_id: raw, is_deleted: false },
@@ -247,7 +258,9 @@ export class AttendanceService {
     if (student?.id) {
       return student.id;
     }
-    throw new BadRequestException('Invalid student QR code. Please scan a valid student card.');
+    throw new BadRequestException(
+      'Invalid student QR code. Please scan a valid student card.',
+    );
   }
 
   private async getStudentLevelId(
@@ -304,7 +317,9 @@ export class AttendanceService {
 
     // Determine the single date being queried (if any)
     const singleDate =
-      filters?.startDate && filters?.endDate && filters.startDate === filters.endDate
+      filters?.startDate &&
+      filters?.endDate &&
+      filters.startDate === filters.endDate
         ? filters.startDate
         : !filters?.startDate && !filters?.endDate
           ? today
@@ -338,10 +353,13 @@ export class AttendanceService {
         if (singleDate) {
           qb.where('attendance.attendance_date = :singleDate', { singleDate });
         } else if (filters?.startDate && filters?.endDate) {
-          qb.where('attendance.attendance_date BETWEEN :startDate AND :endDate', {
-            startDate: filters.startDate,
-            endDate: filters.endDate,
-          });
+          qb.where(
+            'attendance.attendance_date BETWEEN :startDate AND :endDate',
+            {
+              startDate: filters.startDate,
+              endDate: filters.endDate,
+            },
+          );
         } else if (filters?.startDate) {
           qb.where('attendance.attendance_date >= :startDate', {
             startDate: filters.startDate,
@@ -352,7 +370,9 @@ export class AttendanceService {
           });
         }
 
-        qb.andWhere('(student.is_deleted = false OR student.is_deleted IS NULL)');
+        qb.andWhere(
+          '(student.is_deleted = false OR student.is_deleted IS NULL)',
+        );
 
         const normalizedClassId = filters?.classId?.trim();
         if (normalizedClassId) {

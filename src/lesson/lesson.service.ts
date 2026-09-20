@@ -52,7 +52,10 @@ export class LessonService {
     return `uploads/lessons/${file.filename}`;
   }
 
-  private async syncLessonSubjectLink(lessonId: string, subjectId?: string): Promise<void> {
+  private async syncLessonSubjectLink(
+    lessonId: string,
+    subjectId?: string,
+  ): Promise<void> {
     const normalizedSubjectId = String(subjectId || '').trim();
 
     if (!normalizedSubjectId) {
@@ -70,9 +73,8 @@ export class LessonService {
         continue;
       }
 
-      linkedSubject.lessons = (Array.isArray(linkedSubject.lessons)
-        ? linkedSubject.lessons
-        : []
+      linkedSubject.lessons = (
+        Array.isArray(linkedSubject.lessons) ? linkedSubject.lessons : []
       ).filter((lesson) => lesson.id !== lessonId);
 
       await this.subjectRepo.save(linkedSubject);
@@ -111,8 +113,9 @@ export class LessonService {
       .getMany();
 
     for (const subject of linkedSubjects) {
-      subject.lessons = (Array.isArray(subject.lessons) ? subject.lessons : [])
-        .filter((lesson) => lesson.id !== lessonId);
+      subject.lessons = (
+        Array.isArray(subject.lessons) ? subject.lessons : []
+      ).filter((lesson) => lesson.id !== lessonId);
 
       await this.subjectRepo.save(subject);
     }
@@ -178,7 +181,9 @@ export class LessonService {
         .leftJoinAndSelect('lesson.curriculums', 'curriculum');
 
       if (subjectTypeId) {
-        query.andWhere('lesson.subjectTypeId = :subjectTypeId', { subjectTypeId });
+        query.andWhere('lesson.subjectTypeId = :subjectTypeId', {
+          subjectTypeId,
+        });
       }
       if (yearLevelId) {
         query.andWhere('lesson.yearLevelId = :yearLevelId', { yearLevelId });
@@ -222,7 +227,8 @@ export class LessonService {
       const subjectType = await this.subjectTypeRepo.findOne({
         where: { id: dto.subjectTypeId },
       });
-      if (!subjectType) throw new BadRequestException('subjectTypeId not found');
+      if (!subjectType)
+        throw new BadRequestException('subjectTypeId not found');
       lesson.subjectTypeId = dto.subjectTypeId;
       lesson.subjectType = subjectType;
     }
@@ -236,7 +242,8 @@ export class LessonService {
       lesson.yearLevel = yearLevel;
     }
 
-    const { ids: curriculumIds, provided: curriculumIdsProvided } = this.extractCurriculumIds(dto);
+    const { ids: curriculumIds, provided: curriculumIdsProvided } =
+      this.extractCurriculumIds(dto);
     if (curriculumIdsProvided) {
       lesson.curriculums = await this.resolveCurriculums(curriculumIds);
     }
@@ -308,7 +315,9 @@ export class LessonService {
     await this.subjectEvaluationRepo.delete({ lessonId });
   }
 
-  private async resolveCurriculums(curriculumIds: string[]): Promise<Curriculum[]> {
+  private async resolveCurriculums(
+    curriculumIds: string[],
+  ): Promise<Curriculum[]> {
     if (!curriculumIds.length) return [];
 
     const curriculums = await this.curriculumRepo.findBy({
@@ -322,7 +331,10 @@ export class LessonService {
     return curriculums;
   }
 
-  private extractCurriculumIds(payload: object): { ids: string[]; provided: boolean } {
+  private extractCurriculumIds(payload: object): {
+    ids: string[];
+    provided: boolean;
+  } {
     const raw = payload as Record<string, unknown>;
     const collected = new Set<string>();
     let provided = false;
@@ -369,8 +381,13 @@ export class LessonService {
     }
 
     const indexedKeys = Object.keys(raw)
-      .filter((key) => /^(curriculumIds|curriculum_ids|curriculums)\\[\\d+\\]$/.test(key))
-      .sort((a, b) => Number(a.match(/\d+/)?.[0] ?? 0) - Number(b.match(/\d+/)?.[0] ?? 0));
+      .filter((key) =>
+        /^(curriculumIds|curriculum_ids|curriculums)\\[\\d+\\]$/.test(key),
+      )
+      .sort(
+        (a, b) =>
+          Number(a.match(/\d+/)?.[0] ?? 0) - Number(b.match(/\d+/)?.[0] ?? 0),
+      );
 
     if (indexedKeys.length) {
       provided = true;

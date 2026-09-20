@@ -6,9 +6,7 @@ import { ParticipationList } from './participation_list.entity';
 import { Level } from '../levels/level.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([ParticipationList, Level]),
-  ],
+  imports: [TypeOrmModule.forFeature([ParticipationList, Level])],
   providers: [ParticipationListService],
   controllers: [ParticipationListController],
 })

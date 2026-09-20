@@ -7,7 +7,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { FeeAssignment } from '../entities/fee-assignment.entity';
 import { FeeTemplateService } from './fee-template.service';
-import { CreateFeeAssignmentDto, FeeAssignmentQueryDto } from '../dto/fee-assignment.dto';
+import {
+  CreateFeeAssignmentDto,
+  FeeAssignmentQueryDto,
+} from '../dto/fee-assignment.dto';
 
 @Injectable()
 export class FeeAssignmentService {
@@ -19,7 +22,7 @@ export class FeeAssignmentService {
 
   async create(
     dto: CreateFeeAssignmentDto,
-    assignedBy: string,       // user id from JWT / auth guard
+    assignedBy: string, // user id from JWT / auth guard
   ): Promise<FeeAssignment> {
     // Validate fee template exists and is active
     const template = await this.feeTemplateService.findOne(dto.fee_template_id);
@@ -55,9 +58,12 @@ export class FeeAssignmentService {
       .leftJoinAndSelect('fa.fee_template', 'ft')
       .orderBy('fa.created_at', 'DESC');
 
-    if (query.class_id) qb.andWhere('fa.class_id = :class_id', { class_id: query.class_id });
-    if (query.academic_year_id) qb.andWhere('fa.academic_year_id = :ay', { ay: query.academic_year_id });
-    if (query.fee_template_id) qb.andWhere('fa.fee_template_id = :ft', { ft: query.fee_template_id });
+    if (query.class_id)
+      qb.andWhere('fa.class_id = :class_id', { class_id: query.class_id });
+    if (query.academic_year_id)
+      qb.andWhere('fa.academic_year_id = :ay', { ay: query.academic_year_id });
+    if (query.fee_template_id)
+      qb.andWhere('fa.fee_template_id = :ft', { ft: query.fee_template_id });
 
     return qb.getMany();
   }
@@ -67,7 +73,8 @@ export class FeeAssignmentService {
       where: { id },
       relations: ['fee_template'],
     });
-    if (!assignment) throw new NotFoundException(`Fee assignment ${id} not found`);
+    if (!assignment)
+      throw new NotFoundException(`Fee assignment ${id} not found`);
     return assignment;
   }
 

@@ -23,7 +23,7 @@ export class CreateExaminationDto {
   @IsNotEmpty()
   classId: string;
 
-  @IsUUID()          // ✅ added
+  @IsUUID() // ✅ added
   @IsNotEmpty()
   subjectId: string;
 

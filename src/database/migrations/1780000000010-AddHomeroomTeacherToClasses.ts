@@ -1,6 +1,8 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddHomeroomTeacherToClasses1780000000010 implements MigrationInterface {
+export class AddHomeroomTeacherToClasses1780000000010
+  implements MigrationInterface
+{
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
       ALTER TABLE "classes"

@@ -51,14 +51,32 @@ export class AddNotificationAnnouncementIndexes1780000000017
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_announcements_active_window"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_announcements_branch_deleted_created"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_announcements_deleted_created"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_notifications_unseen_parent"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_notifications_module_lookup"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_notifications_student_deleted_created"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_notifications_parent_deleted_created"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_notifications_branch_deleted_created"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_notifications_deleted_created"');
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_announcements_active_window"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_announcements_branch_deleted_created"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_announcements_deleted_created"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_notifications_unseen_parent"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_notifications_module_lookup"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_notifications_student_deleted_created"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_notifications_parent_deleted_created"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_notifications_branch_deleted_created"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_notifications_deleted_created"',
+    );
   }
 }

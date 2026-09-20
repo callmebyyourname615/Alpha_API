@@ -19,9 +19,9 @@ export class SaveWithdrawReasonService {
   async create(dto: CreateSaveWithdrawReasonDto): Promise<SaveWithdrawReason> {
     const record = this.repo.create({
       nameLao: dto.nameLao,
-      nameEn:  dto.nameEn,
-      type:    dto.type,
-      status:  dto.status ?? true,
+      nameEn: dto.nameEn,
+      type: dto.type,
+      status: dto.status ?? true,
     });
     return await this.repo.save(record);
   }
@@ -41,7 +41,9 @@ export class SaveWithdrawReasonService {
 
   // ✅ new — get reasons for a specific transaction type
   // returns type=deposit + type=both  OR  type=withdraw + type=both
-  async findByType(type: SaveWithdrawReasonType): Promise<SaveWithdrawReason[]> {
+  async findByType(
+    type: SaveWithdrawReasonType,
+  ): Promise<SaveWithdrawReason[]> {
     return await this.repo.find({
       where: [
         { type, status: true },
@@ -53,11 +55,15 @@ export class SaveWithdrawReasonService {
 
   async findOne(id: string): Promise<SaveWithdrawReason> {
     const record = await this.repo.findOne({ where: { id } });
-    if (!record) throw new NotFoundException(`SaveWithdrawReason "${id}" not found`);
+    if (!record)
+      throw new NotFoundException(`SaveWithdrawReason "${id}" not found`);
     return record;
   }
 
-  async update(id: string, dto: UpdateSaveWithdrawReasonDto): Promise<SaveWithdrawReason> {
+  async update(
+    id: string,
+    dto: UpdateSaveWithdrawReasonDto,
+  ): Promise<SaveWithdrawReason> {
     const record = await this.findOne(id);
     Object.assign(record, dto);
     return await this.repo.save(record);

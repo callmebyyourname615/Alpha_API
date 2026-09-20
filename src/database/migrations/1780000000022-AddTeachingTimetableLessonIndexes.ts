@@ -71,18 +71,40 @@ export class AddTeachingTimetableLessonIndexes1780000000022
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_teach_learning_date_range"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_teach_learning_subject_updated"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_lesson_curriculums_curriculum_lesson"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_subject_lessons_lesson_subject"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_subject_lessons_subject_lesson"');
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_teach_learning_date_range"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_teach_learning_subject_updated"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_lesson_curriculums_curriculum_lesson"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_subject_lessons_lesson_subject"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_subject_lessons_subject_lesson"',
+    );
     await queryRunner.query('DROP INDEX IF EXISTS "idx_lessons_year_updated"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_lessons_subject_type_year_created"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_timetables_branch_day_time"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_timetables_teacher_day_time"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_timetables_class_day_time"');
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_lessons_subject_type_year_created"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_timetables_branch_day_time"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_timetables_teacher_day_time"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_timetables_class_day_time"',
+    );
     await queryRunner.query('DROP INDEX IF EXISTS "idx_teaching_subject"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_teaching_admin_branch_year_created"');
-    await queryRunner.query('DROP INDEX IF EXISTS "idx_teaching_branch_year_created"');
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_teaching_admin_branch_year_created"',
+    );
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "idx_teaching_branch_year_created"',
+    );
   }
 }

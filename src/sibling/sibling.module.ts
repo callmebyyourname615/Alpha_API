@@ -8,7 +8,14 @@ import { SiblingGroupController } from './sibling.controller';
 import { SiblingGroupService } from './sibling.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([SiblingGroup, SiblingGroupMember, Student, Parent])],
+  imports: [
+    TypeOrmModule.forFeature([
+      SiblingGroup,
+      SiblingGroupMember,
+      Student,
+      Parent,
+    ]),
+  ],
   controllers: [SiblingGroupController],
   providers: [SiblingGroupService],
   exports: [SiblingGroupService],

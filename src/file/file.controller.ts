@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Param, UploadedFile, UseInterceptors, Res, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  UploadedFile,
+  UseInterceptors,
+  Res,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import * as fs from 'fs';
@@ -10,12 +21,22 @@ import { TaskSubmissionService } from '../task-submission/task-submission.servic
 import { Public } from '../auth/public.decorator';
 
 const ALLOWED_MIME_TYPES = [
-  'image/jpeg', 'image/png', 'image/webp', 'image/gif',
-  'video/mp4', 'video/webm',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'video/mp4',
+  'video/webm',
   'application/pdf',
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/webm', 'audio/ogg', 'audio/x-m4a', 'audio/aac',
+  'audio/mpeg',
+  'audio/mp4',
+  'audio/wav',
+  'audio/webm',
+  'audio/ogg',
+  'audio/x-m4a',
+  'audio/aac',
 ];
 const MAX_FILE_SIZE = 150 * 1024 * 1024; // 150MB
 
@@ -67,15 +88,16 @@ export class FileController {
       // Determine content type based on file extension
       const ext = filename.split('.').pop()?.toLowerCase();
       const contentTypeMap: { [key: string]: string } = {
-        'jpg': 'image/jpeg',
-        'jpeg': 'image/jpeg',
-        'png': 'image/png',
-        'gif': 'image/gif',
-        'pdf': 'application/pdf',
-        'mp4': 'video/mp4',
-        'webp': 'image/webp',
+        jpg: 'image/jpeg',
+        jpeg: 'image/jpeg',
+        png: 'image/png',
+        gif: 'image/gif',
+        pdf: 'application/pdf',
+        mp4: 'video/mp4',
+        webp: 'image/webp',
       };
-      const contentType = contentTypeMap[ext || ''] || 'application/octet-stream';
+      const contentType =
+        contentTypeMap[ext || ''] || 'application/octet-stream';
 
       // Set headers
       res.setHeader('Content-Type', contentType);
@@ -115,7 +137,12 @@ export class FileController {
       limits: { fileSize: MAX_FILE_SIZE },
       fileFilter: (req, file, cb) => {
         if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
-          return cb(new BadRequestException(`File type '${file.mimetype}' is not allowed. Allowed: ${ALLOWED_MIME_TYPES.join(', ')}`), false);
+          return cb(
+            new BadRequestException(
+              `File type '${file.mimetype}' is not allowed. Allowed: ${ALLOWED_MIME_TYPES.join(', ')}`,
+            ),
+            false,
+          );
         }
         cb(null, true);
       },
@@ -123,7 +150,17 @@ export class FileController {
   )
   async upload(
     @UploadedFile() fileData: Express.Multer.File,
-    @Body() body: { module: 'event' | 'event_activity' | 'task' | 'comment' | 'task_submission' | 'gallery'; ownerId: string },
+    @Body()
+    body: {
+      module:
+        | 'event'
+        | 'event_activity'
+        | 'task'
+        | 'comment'
+        | 'task_submission'
+        | 'gallery';
+      ownerId: string;
+    },
   ): Promise<File> {
     const { module, ownerId } = body;
 
@@ -164,7 +201,14 @@ export class FileController {
 
   @Get('by/:module/:ownerId')
   findByModule(
-    @Param('module') module: 'event' | 'event_activity' | 'task' | 'comment' | 'task_submission' | 'gallery',
+    @Param('module')
+    module:
+      | 'event'
+      | 'event_activity'
+      | 'task'
+      | 'comment'
+      | 'task_submission'
+      | 'gallery',
     @Param('ownerId') ownerId: string,
   ): Promise<File[]> {
     return this.fileService.findByModuleAndOwner(module, ownerId);

@@ -43,7 +43,8 @@ export class TeacherHomeworkController {
       storage: diskStorage({
         destination: './uploads/homeworks',
         filename: (_req, file, cb) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
           const ext = extname(file.originalname).toLowerCase();
           cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
         },
@@ -52,7 +53,9 @@ export class TeacherHomeworkController {
         const ext = extname(file.originalname).toLowerCase();
         if (!ALLOWED_IMAGE_TYPES.includes(ext)) {
           return cb(
-            new BadRequestException('Only image files are allowed (.jpg, .jpeg, .png, .gif)'),
+            new BadRequestException(
+              'Only image files are allowed (.jpg, .jpeg, .png, .gif)',
+            ),
             false,
           );
         }
@@ -85,7 +88,8 @@ export class TeacherHomeworkController {
       storage: diskStorage({
         destination: './uploads/homeworks',
         filename: (_req, file, cb) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
           const ext = extname(file.originalname).toLowerCase();
           cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
         },
@@ -94,7 +98,9 @@ export class TeacherHomeworkController {
         const ext = extname(file.originalname).toLowerCase();
         if (!ALLOWED_IMAGE_TYPES.includes(ext)) {
           return cb(
-            new BadRequestException('Only image files are allowed (.jpg, .jpeg, .png, .gif)'),
+            new BadRequestException(
+              'Only image files are allowed (.jpg, .jpeg, .png, .gif)',
+            ),
             false,
           );
         }

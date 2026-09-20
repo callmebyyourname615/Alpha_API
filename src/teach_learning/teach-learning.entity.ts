@@ -68,8 +68,8 @@ export class TeachLearning {
   updatedAt: Date;
 
   @OneToMany(
-  () => TeacherHomework,
-  (teacherHomework) => teacherHomework.teachLearning,
-)
-teacherHomeworks: TeacherHomework[];
+    () => TeacherHomework,
+    (teacherHomework) => teacherHomework.teachLearning,
+  )
+  teacherHomeworks: TeacherHomework[];
 }

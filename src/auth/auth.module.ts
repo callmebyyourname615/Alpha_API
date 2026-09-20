@@ -12,7 +12,9 @@ import { Parent } from '../parents/parent.entity';
     JwtModule.register({
       global: true,
       secret: process.env.JWT_SECRET || 'MY_SUPER_SECRET_KEY',
-      signOptions: { expiresIn: (process.env.JWT_EXPIRES_IN as any) || '3650d' },
+      signOptions: {
+        expiresIn: (process.env.JWT_EXPIRES_IN as any) || '3650d',
+      },
     }),
   ],
   controllers: [AuthController],

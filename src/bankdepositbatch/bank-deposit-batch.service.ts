@@ -35,14 +35,18 @@ export class BankDepositBatchService {
 
   private guardBatchCanEdit(batch: BankDepositBatch, action: string): void {
     if (!batch.can_edit)
-      throw new BadRequestException(`Cannot "${action}": super admin has not enabled editing on this batch (can_edit = false)`);
+      throw new BadRequestException(
+        `Cannot "${action}": super admin has not enabled editing on this batch (can_edit = false)`,
+      );
   }
 
   /**
    * Collect unique student/class IDs from a set of pay-receive records
    * and trigger the appropriate recalculate so wallets stay in sync.
    */
-  private async recalculateWalletsForRecords(records: PayReceive[]): Promise<void> {
+  private async recalculateWalletsForRecords(
+    records: PayReceive[],
+  ): Promise<void> {
     const studentIds = new Set<string>();
     const classIds = new Set<string>();
 
@@ -55,8 +59,12 @@ export class BankDepositBatchService {
     }
 
     await Promise.all([
-      ...[...studentIds].map((id) => this.savingsService.recalculateStudentBalances(id)),
-      ...[...classIds].map((id) => this.savingsService.recalculateClassBalance(id)),
+      ...[...studentIds].map((id) =>
+        this.savingsService.recalculateStudentBalances(id),
+      ),
+      ...[...classIds].map((id) =>
+        this.savingsService.recalculateClassBalance(id),
+      ),
     ]);
   }
 
@@ -99,7 +107,9 @@ export class BankDepositBatchService {
         );
 
       const existingPapers = rec.bank_deposited_papers ?? [];
-      const incomingPaper = dto.bankDepositedPaper ? [dto.bankDepositedPaper] : [];
+      const incomingPaper = dto.bankDepositedPaper
+        ? [dto.bankDepositedPaper]
+        : [];
       const allPapers = [...existingPapers, ...incomingPaper];
       if (!allPapers.length)
         throw new BadRequestException(
@@ -152,11 +162,17 @@ export class BankDepositBatchService {
    * No wallet change needed: deposits were already credited to saving_wallet
    * when the saving rows were created. Confirming here is an audit/approval step.
    */
-  async confirmBatch(batchId: string, superAdminId: string, note?: string): Promise<BankDepositBatch> {
+  async confirmBatch(
+    batchId: string,
+    superAdminId: string,
+    note?: string,
+  ): Promise<BankDepositBatch> {
     const batch = await this.findOne(batchId);
 
     if (batch.status !== BankDepositBatchStatus.PENDING)
-      throw new BadRequestException(`Batch cannot be confirmed: status is "${batch.status}"`);
+      throw new BadRequestException(
+        `Batch cannot be confirmed: status is "${batch.status}"`,
+      );
 
     batch.status = BankDepositBatchStatus.SUPER_ADMIN_CONFIRMED;
     batch.superAdminConfirmedBy = superAdminId;
@@ -208,7 +224,9 @@ export class BankDepositBatchService {
     const batch = await this.findOne(batchId);
 
     if (batch.status !== BankDepositBatchStatus.PENDING)
-      throw new BadRequestException(`Batch cannot be rejected: status is "${batch.status}"`);
+      throw new BadRequestException(
+        `Batch cannot be rejected: status is "${batch.status}"`,
+      );
 
     batch.status = BankDepositBatchStatus.REJECTED;
     batch.superAdminRejectedBy = superAdminId;
@@ -246,11 +264,16 @@ export class BankDepositBatchService {
    * before admin can re-check the deposit paper and re-batch.
    * Only valid when batch.status = REJECTED.
    */
-  async unlockBatchForEdit(batchId: string, unlockedBy: string): Promise<BankDepositBatch> {
+  async unlockBatchForEdit(
+    batchId: string,
+    unlockedBy: string,
+  ): Promise<BankDepositBatch> {
     const batch = await this.findOne(batchId);
 
     if (batch.status !== BankDepositBatchStatus.REJECTED)
-      throw new BadRequestException(`Batch cannot be unlocked: status is "${batch.status}", expected "rejected"`);
+      throw new BadRequestException(
+        `Batch cannot be unlocked: status is "${batch.status}", expected "rejected"`,
+      );
     if (batch.can_edit)
       throw new BadRequestException('Batch is already unlocked for editing');
 
@@ -262,7 +285,10 @@ export class BankDepositBatchService {
 
     if (batch.payReceiveIds?.length) {
       const records = await this.payReceiveRepo.find({
-        where: { id: In(batch.payReceiveIds), status: PayReceiveStatus.ADMIN_RECEIVED },
+        where: {
+          id: In(batch.payReceiveIds),
+          status: PayReceiveStatus.ADMIN_RECEIVED,
+        },
       });
       for (const rec of records) rec.can_edit = true;
       await this.payReceiveRepo.save(records);
@@ -298,10 +324,13 @@ export class BankDepositBatchService {
       where: { id: payReceiveId, is_deleted: false },
       relations: ['saving'],
     });
-    if (!record) throw new NotFoundException(`PayReceive "${payReceiveId}" not found`);
+    if (!record)
+      throw new NotFoundException(`PayReceive "${payReceiveId}" not found`);
 
     if (record.status !== PayReceiveStatus.ADMIN_RECEIVED)
-      throw new BadRequestException(`Cannot update: PayReceive status is "${record.status}", expected "admin_received"`);
+      throw new BadRequestException(
+        `Cannot update: PayReceive status is "${record.status}", expected "admin_received"`,
+      );
     if (!record.can_edit)
       throw new BadRequestException(
         `Cannot update PayReceive "${payReceiveId}": super admin must call /unlock on the rejected batch first (can_edit = false)`,
@@ -310,12 +339,16 @@ export class BankDepositBatchService {
     if (dto.amount !== undefined) {
       // ✅ Use the proper service method — updates saving.amount and recalculates
       // the wallet (student or class) in one call. No private-property hacks.
-      await this.savingsService.updateSavingAmount(record.saving_id, dto.amount);
+      await this.savingsService.updateSavingAmount(
+        record.saving_id,
+        dto.amount,
+      );
       record.amount = dto.amount;
     }
 
     if (dto.note !== undefined) record.note = dto.note;
-    if (dto.bankReference !== undefined) record.bank_reference = dto.bankReference;
+    if (dto.bankReference !== undefined)
+      record.bank_reference = dto.bankReference;
     if (dto.bankDepositedPaper) {
       record.bank_deposited_papers = [
         ...(record.bank_deposited_papers ?? []),
@@ -363,10 +396,19 @@ export class BankDepositBatchService {
       .orderBy('batch.createdAt', 'ASC')
       .getMany();
 
-    const totalDeposited = batches.reduce((s, b) => s + Number(b.totalAmount), 0);
-    const confirmed = batches.filter((b) => b.status === BankDepositBatchStatus.SUPER_ADMIN_CONFIRMED);
-    const pending = batches.filter((b) => b.status === BankDepositBatchStatus.PENDING);
-    const rejected = batches.filter((b) => b.status === BankDepositBatchStatus.REJECTED);
+    const totalDeposited = batches.reduce(
+      (s, b) => s + Number(b.totalAmount),
+      0,
+    );
+    const confirmed = batches.filter(
+      (b) => b.status === BankDepositBatchStatus.SUPER_ADMIN_CONFIRMED,
+    );
+    const pending = batches.filter(
+      (b) => b.status === BankDepositBatchStatus.PENDING,
+    );
+    const rejected = batches.filter(
+      (b) => b.status === BankDepositBatchStatus.REJECTED,
+    );
 
     return {
       year,
@@ -376,7 +418,10 @@ export class BankDepositBatchService {
       pending_batches: pending.length,
       rejected_batches: rejected.length,
       total_deposited: totalDeposited,
-      confirmed_amount: confirmed.reduce((s, b) => s + Number(b.totalAmount), 0),
+      confirmed_amount: confirmed.reduce(
+        (s, b) => s + Number(b.totalAmount),
+        0,
+      ),
       pending_amount: pending.reduce((s, b) => s + Number(b.totalAmount), 0),
       rejected_amount: rejected.reduce((s, b) => s + Number(b.totalAmount), 0),
       batches,
