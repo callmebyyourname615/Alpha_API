@@ -229,12 +229,12 @@ export class StudentsService implements OnModuleInit {
     return code.slice(0, 4);
   }
 
-  // ─── Student ID Generator (XXXX-YYYY-xxxxx) ───────────────────────────
+  // ─── Student ID Generator (XXXX-YYYY-xxxx) ───────────────────────────
   /**
-   * Generates a student ID formatted as XXXX-YYYY-xxxxx
+   * Generates a student ID formatted as XXXX-YYYY-xxxx
    * - XXXX: First 4 characters of branch code (e.g. AIMS from AIMS-001)
    * - YYYY: Academic year representation (e.g. 2026-2027 -> 2627)
-   * - xxxxx: Sequential counter starting from 1 (e.g. 00001)
+   * - xxxx: Sequential counter starting from 1 (e.g. 0001)
    */
   async generateStudentId(
     branchId?: string | null,
@@ -300,7 +300,7 @@ export class StudentsService implements OnModuleInit {
       yearCode = `${String(startYr).slice(-2)}${String(endYr).slice(-2)}`;
     }
 
-    // 3. Resolve Sequential Counter (xxxxx)
+    // 3. Resolve Sequential Counter (xxxx)
     const prefix = `${branchCode}-${yearCode}-`;
 
     const latestStudent = await this.studentRepo
@@ -320,7 +320,7 @@ export class StudentsService implements OnModuleInit {
       }
     }
 
-    const counterStr = String(nextNumber).padStart(5, '0');
+    const counterStr = String(nextNumber).padStart(4, '0');
     return `${prefix}${counterStr}`;
   }
 
