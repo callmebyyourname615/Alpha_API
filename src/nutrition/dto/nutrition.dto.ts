@@ -171,8 +171,4 @@ export class UpdateStudentNutritionDto {
   @IsOptional()
   @IsString()
   note?: string;
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> e882894 (a)

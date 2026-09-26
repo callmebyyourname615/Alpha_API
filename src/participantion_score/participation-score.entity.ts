@@ -45,8 +45,4 @@ export class ParticipationScore {
 
   @UpdateDateColumn({ type: 'timestamp', nullable: true })
   updated_at: Date;
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> e882894 (a)

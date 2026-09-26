@@ -68,15 +68,6 @@ import { ChatReadModule } from './chat-read/chat-read.module';
 import { TaskActivityModule } from './task-activity/task-activity.module';
 import { ParasiteInjectionModule } from './parasite-injection/parasite.injection.module';
 import { StudentNutritionModule } from './nutrition/nutrition.module';
-<<<<<<< HEAD
-import { FoodRestrictionModule } from './food_restriction/food-restriction.module';
-import { GalleryModule } from './gallery/gallery.module';
-import { RubricSettingsModule } from './rubric_settings/rubric-settings.module';
-import { RubricReportMonthSettingModule } from './rubric_report_month_settings/rubric-report-month-setting.module';
-import { RubricEvaluationFinalScoreModule } from './rubric_evaluation_final_scores/rubric-evaluation-final-score.module';
-import { CacheModule } from './common/cache.module';
-import { SchemaAlignmentModule } from './database/schema-alignment.module';
-=======
 import { FoodRestrictionModule } from './food_restriction/food-restriction.module';
 import { GalleryModule } from './gallery/gallery.module';
 import { RubricSettingsModule } from './rubric_settings/rubric-settings.module';
@@ -84,7 +75,7 @@ import { RubricReportMonthSettingModule } from './rubric_report_month_settings/r
 import { RubricEvaluationFinalScoreModule } from './rubric_evaluation_final_scores/rubric-evaluation-final-score.module';
 import { RubricReportDataModule } from './rubric_report_data/rubric-report-data.module';
 import { CacheModule } from './common/cache.module';
->>>>>>> e882894 (a)
+import { SchemaAlignmentModule } from './database/schema-alignment.module';
 
 @Module({
   imports: [
@@ -178,20 +169,12 @@ import { CacheModule } from './common/cache.module';
     ParasiteInjectionModule,
     StudentNutritionModule,
     FoodRestrictionModule,
-<<<<<<< HEAD
-    GalleryModule,
-    RubricSettingsModule,
-    RubricReportMonthSettingModule,
-    RubricEvaluationFinalScoreModule,
-    TaskSubmissionModule,
-=======
     GalleryModule,
     RubricSettingsModule,
     RubricReportMonthSettingModule,
     RubricEvaluationFinalScoreModule,
     RubricReportDataModule,
     TaskSubmissionModule,
->>>>>>> e882894 (a)
     TaskNoteModule,
     ChatReadModule,
     TaskActivityModule,

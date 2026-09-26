@@ -6,29 +6,8 @@ import { Comment } from './comments.entity';
 import { CommentReaction } from './comment-reaction.entity';
 import { Parent } from '../parents/parent.entity';
 import { Task } from '../task/task.entity';
+import { Event } from '../event/events.entity';
 import { EventActivity } from '../eventactivity/eventActivity.entity';
-<<<<<<< HEAD
-import { File } from '../file/files.entity';
-import { Announcement } from '../announcements/announcement.entity';
-import { Admin } from '../admins/admin.entity';
-import { TaskAccessModule } from '../task-access/task-access.module';
-
-@Module({
-  imports: [
-    TypeOrmModule.forFeature([
-      Comment,
-      CommentReaction,
-      Admin,
-      Parent,
-      Task,
-      Event,
-      EventActivity,
-      File,
-      Announcement,
-    ]),
-    TaskAccessModule,
-  ],
-=======
 import { File } from '../file/files.entity';
 import { Announcement } from '../announcements/announcement.entity';
 import { Admin } from '../admins/admin.entity';
@@ -37,7 +16,6 @@ import { Admin } from '../admins/admin.entity';
   imports: [
     TypeOrmModule.forFeature([Comment, CommentReaction, Admin, Parent, Task, Event, EventActivity, File, Announcement]),
   ],
->>>>>>> e882894 (a)
   controllers: [CommentsController],
   providers: [CommentsService],
 })

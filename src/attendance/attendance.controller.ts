@@ -88,8 +88,4 @@ export class AttendanceController {
   remove(@Param('id') id: string) {
     return this.service.remove(id);
   }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> e882894 (a)

@@ -1,17 +1,4 @@
-<<<<<<< HEAD
-import {
-  Controller,
-  Post,
-  Body,
-  Get,
-  Param,
-  Patch,
-  Delete,
-  ParseIntPipe,
-} from '@nestjs/common';
-=======
 import { Controller, Post, Body, Get, Param, Patch, Delete, ParseIntPipe, Query } from '@nestjs/common';
->>>>>>> e882894 (a)
 import { EvaluationService } from './evaluation.service';
 import { CreateEvaluationDto } from './dto/create-evaluation.dto';
 import { UpdateEvaluationDto } from './dto/update-evaluation.dto';

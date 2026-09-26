@@ -1,12 +1,6 @@
-<<<<<<< HEAD
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Between, Repository } from 'typeorm';
-=======
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
->>>>>>> e882894 (a)
 import { ParticipationScore } from './participation-score.entity';
 import { CreateParticipationScoreDto } from './dto/create-participation-score.dto';
 import { UpdateParticipationScoreDto } from './dto/update-participation-score.dto';
@@ -53,13 +47,6 @@ export class ParticipationScoreService {
   }
 
   /* ================= CREATE ================= */
-<<<<<<< HEAD
-  async create(dto: CreateParticipationScoreDto) {
-    const entity = this.repo.create({
-      branchId: dto.branchId,
-      academicYearId: dto.academicYearId,
-      levelId: dto.levelId, // ← added
-=======
   async create(dto: CreateParticipationScoreDto) {
     const scores = this.requireScores(dto);
 
@@ -67,7 +54,6 @@ export class ParticipationScoreService {
       branchId: dto.branchId,
       academicYearId: dto.academicYearId,
       levelId: dto.levelId,       // ← added
->>>>>>> e882894 (a)
       classId: dto.classId,
       addedBy: dto.addedBy,
       date: dto.date ? this.normalizeDate(dto.date) : null,
@@ -140,20 +126,11 @@ export class ParticipationScoreService {
         classId: dto.classId,
         date: targetDate,
       },
-<<<<<<< HEAD
-    });
-
-    // load participation names from DB
-    const participationIds = dto.scores.map((s) => s.participationId);
-    const participations =
-      await this.participationRepo.findByIds(participationIds);
-=======
     });
 
     // load participation names from DB
     const participationIds = [...new Set(scores.map((s) => s.participationId))];
     const participations = await this.participationRepo.findByIds(participationIds);
->>>>>>> e882894 (a)
     const participationMap: Record<string, string> = {};
     participations.forEach((p) => (participationMap[p.id] = p.name));
 

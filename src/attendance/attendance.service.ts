@@ -56,10 +56,6 @@ export class AttendanceService {
     attendanceDate: string;
     deviceTime?: string;
   }) {
-<<<<<<< HEAD
-    dto.studentId = await this.resolveStudentId(dto.studentId);
-
-=======
     // Validate UUID format before hitting the DB
     const uuidRe =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -68,7 +64,6 @@ export class AttendanceService {
         'Invalid student QR code. Please scan a valid student card.',
       );
     }
->>>>>>> e882894 (a)
     if (
       !dto.attendanceDate ||
       !/^\d{4}-\d{2}-\d{2}$/.test(dto.attendanceDate)
@@ -217,16 +212,7 @@ export class AttendanceService {
   // 🔵 AUTO ABSENT (CRON SUPPORT)
   // =====================================================
   async markAbsent(date: string, clearCache = true) {
-<<<<<<< HEAD
-    await this.repo.query(`
-      DELETE FROM "attendances"
-      WHERE "student_id" IN (
-        SELECT "id" FROM "students" WHERE "is_deleted" = true
-      )
-    `);
-=======
     if (this.isFutureDate(date)) return;
->>>>>>> e882894 (a)
 
     await this.repo.query(
       `
@@ -248,12 +234,7 @@ export class AttendanceService {
           NOW(),
           NOW()
         FROM "students"
-<<<<<<< HEAD
-        WHERE ("students"."is_deleted" = false OR "students"."is_deleted" IS NULL)
-          AND ("students"."is_active" = true OR "students"."is_active" IS NULL)
-=======
         WHERE "students"."is_deleted" = false
->>>>>>> e882894 (a)
           AND NOT EXISTS (
           SELECT 1
           FROM "attendances"
@@ -389,17 +370,11 @@ export class AttendanceService {
         qb.where('student.is_deleted = false');
 
         if (singleDate) {
-<<<<<<< HEAD
-          qb.where('attendance.attendance_date = :singleDate', { singleDate });
-        } else if (filters?.startDate && filters?.endDate) {
-          qb.where(
-=======
           qb.andWhere('attendance.attendance_date = :singleDate', {
             singleDate,
           });
         } else if (filters?.startDate && filters?.endDate) {
           qb.andWhere(
->>>>>>> e882894 (a)
             'attendance.attendance_date BETWEEN :startDate AND :endDate',
             {
               startDate: filters.startDate,

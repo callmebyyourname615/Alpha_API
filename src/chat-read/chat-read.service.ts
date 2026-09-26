@@ -19,19 +19,6 @@ export class ChatReadService {
   ) {}
 
   async markRead(dto: MarkReadDto): Promise<ChatRead> {
-<<<<<<< HEAD
-    if (
-      dto.module_type === 'TASK' &&
-      dto.reader_type === ChatReaderType.ADMIN
-    ) {
-      await this.taskAccess.assertAdminCanMutateTask(
-        dto.module_id,
-        dto.reader_id,
-      );
-    }
-
-=======
->>>>>>> e882894 (a)
     const studentId = dto.student_id ?? null;
     let cursor = await this.repo.findOne({
       where: {

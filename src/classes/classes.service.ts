@@ -25,62 +25,6 @@ export class ClassesService {
     private readonly repo: Repository<Class>,
   ) {}
 
-<<<<<<< HEAD
-  async create(dto: CreateClassDto): Promise<ClassResponse | null> {
-    const entity = this.repo.create(dto);
-    const saved = await this.repo.save(entity);
-    return this.findOne(saved.id);
-  }
-
-  async findAll(): Promise<ClassResponse[]> {
-    const classes = await this.repo.find({
-      relations: ['yearLevel', 'homeroomTeacher', 'homeroomTeacher.roles'],
-    });
-    return classes.map((schoolClass) => this.toResponse(schoolClass));
-  }
-
-  async findOne(id: string): Promise<ClassResponse | null> {
-    const schoolClass = await this.repo.findOne({
-      where: { id },
-      relations: ['yearLevel', 'homeroomTeacher', 'homeroomTeacher.roles'],
-    });
-    return schoolClass ? this.toResponse(schoolClass) : null;
-  }
-
-  async update(id: string, dto: UpdateClassDto): Promise<ClassResponse | null> {
-    await this.repo.update(id, dto);
-    return this.findOne(id);
-  }
-
-  async remove(id: string): Promise<void> {
-    await this.repo.delete(id);
-  }
-
-  private toResponse(schoolClass: Class): ClassResponse {
-    const teacher = schoolClass.homeroomTeacher;
-
-    return {
-      ...schoolClass,
-      homeroomTeacher: teacher
-        ? {
-            id: teacher.id,
-            first_name: teacher.first_name,
-            last_name: teacher.last_name,
-            first_name_La: teacher.first_name_La,
-            last_name_La: teacher.last_name_La,
-            email: teacher.email,
-            phone: teacher.phone,
-            roles: (teacher.roles ?? []).map((role) => ({
-              id: role.id,
-              name: role.name,
-              level: role.level,
-            })),
-          }
-        : null,
-    };
-  }
-}
-=======
   async create(dto: CreateClassDto): Promise<ClassResponse | null> {
     const entity = this.repo.create(dto);
     const saved = await this.repo.save(entity);
@@ -154,4 +98,3 @@ export class ClassesService {
     };
   }
 }
->>>>>>> e882894 (a)

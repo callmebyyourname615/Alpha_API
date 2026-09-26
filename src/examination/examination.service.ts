@@ -103,15 +103,8 @@ export class ExaminationService {
     const saved = await this.examinationRepository.save(examination);
 
     // Send notifications asynchronously (don't block the response)
-<<<<<<< HEAD
-    this.sendExamNotifications(saved).catch(() => {
-      /* silent — notification failure shouldn't break exam creation */
-    });
-
-=======
     this.sendExamNotifications(saved).catch(() => {/* silent — notification failure shouldn't break exam creation */});
 
->>>>>>> e882894 (a)
     return this.findOne(saved.id);
   }
 
@@ -139,18 +132,10 @@ export class ExaminationService {
         module_type: 'EXAMINATION',
       });
     }
-<<<<<<< HEAD
-  }
-
-  private async sendSuperAdminApprovalRequestNotifications(
-    exam: Examination,
-  ): Promise<void> {
-=======
 
   }
 
   private async sendSuperAdminApprovalRequestNotifications(exam: Examination): Promise<void> {
->>>>>>> e882894 (a)
     const title = `Examination pending approval: ${exam.title}`;
     const message = `The checker has checked "${exam.title}". Please review and approve it.`;
 

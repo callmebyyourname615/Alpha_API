@@ -88,8 +88,4 @@ export class ExaminationResultController {
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.examinationResultService.remove(id);
   }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> e882894 (a)

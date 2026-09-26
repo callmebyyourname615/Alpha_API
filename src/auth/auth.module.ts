@@ -11,15 +11,6 @@ import { normalizeJwtExpiresIn } from './jwt-config';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Admin, Parent]),
-<<<<<<< HEAD
-    JwtModule.register({
-      global: true,
-      secret: process.env.JWT_SECRET || 'MY_SUPER_SECRET_KEY',
-      signOptions: {
-        expiresIn: (process.env.JWT_EXPIRES_IN as any) || '3650d',
-      },
-    }),
-=======
     JwtModule.registerAsync({
       global: true,
       imports: [ConfigModule],
@@ -33,7 +24,6 @@ import { normalizeJwtExpiresIn } from './jwt-config';
         },
       }),
     }),
->>>>>>> e882894 (a)
   ],
   controllers: [AuthController],
   providers: [AuthService],

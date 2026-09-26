@@ -231,8 +231,4 @@ export class ExaminationResultService {
     await this.resultRepository.save(result);
     return { message: `Examination result #${id} deleted successfully` };
   }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> e882894 (a)

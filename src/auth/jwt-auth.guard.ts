@@ -39,26 +39,15 @@ export class JwtAuthGuard implements CanActivate {
       const payload = await this.jwtService.verifyAsync(token);
       request['user'] = payload;
 
-<<<<<<< HEAD
-      // Sliding session: If token has less than 2 hours remaining while the user is active,
-      // generate a renewed 24-hour token and send it back via response header 'X-Refreshed-Token'
-=======
       // Sliding session: when the token has less than 10 minutes remaining
       // while the user is active, renew it using the JwtModule configuration.
->>>>>>> e882894 (a)
       if (payload && payload.exp) {
         const nowInSeconds = Math.floor(Date.now() / 1000);
         const remainingSeconds = payload.exp - nowInSeconds;
 
         if (remainingSeconds > 0 && remainingSeconds < 2 * 60 * 60) {
           const { exp, iat, nbf, ...cleanPayload } = payload;
-<<<<<<< HEAD
-          const refreshedToken = await this.jwtService.signAsync(cleanPayload, {
-            expiresIn: (process.env.JWT_EXPIRES_IN as any) || '3650d',
-          });
-=======
           const refreshedToken = await this.jwtService.signAsync(cleanPayload);
->>>>>>> e882894 (a)
           const response = context.switchToHttp().getResponse();
           if (response && typeof response.setHeader === 'function') {
             response.setHeader('X-Refreshed-Token', refreshedToken);

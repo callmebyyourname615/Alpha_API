@@ -12,21 +12,12 @@ import { CreateBulkSavingDto } from './dto/create-bulk-saving.dto';
 import { CreateClassSavingDto } from './dto/create-class-saving.dto';
 import { CreateStudentsSavingSessionDto } from './dto/create-students-saving-session.dto';
 import { UpdateSavingDto } from './dto/update-saving.dto';
-<<<<<<< HEAD
 import { Student } from '../students/student.entity';
 import { Class } from '../classes/class.entity';
 import { AcademicYear } from '../academic_years/academic-year.entity';
 import {
   Saving,
   SavingOwnerType,
-=======
-import { Student } from '../students/student.entity';
-import { Class } from '../classes/class.entity';
-import { AcademicYear } from '../academic_years/academic-year.entity';
-import {
-  Saving,
-  SavingOwnerType,
->>>>>>> e882894 (a)
   SavingTransactionType,
 } from './savings.entity';
 import {
@@ -47,7 +38,6 @@ export class SavingsService {
     @InjectRepository(Student)
     private readonly studentRepository: Repository<Student>,
 
-<<<<<<< HEAD
     @InjectRepository(Class)
     private readonly classRepository: Repository<Class>,
 
@@ -56,16 +46,6 @@ export class SavingsService {
 
     @InjectRepository(PayReceive)
     private readonly payReceiveRepository: Repository<PayReceive>,
-=======
-    @InjectRepository(Class)
-    private readonly classRepository: Repository<Class>,
-
-    @InjectRepository(AcademicYear)
-    private readonly academicYearRepository: Repository<AcademicYear>,
-
-    @InjectRepository(PayReceive)
-    private readonly payReceiveRepository: Repository<PayReceive>,
->>>>>>> e882894 (a)
 
     @InjectRepository(SavingSession)
     private readonly savingSessionRepository: Repository<SavingSession>,
@@ -427,21 +407,11 @@ export class SavingsService {
     // ── CLASS ─────────────────────────────────────────────────────────────────
     if (owner_type === SavingOwnerType.CLASS) {
       if (!class_id) throw new BadRequestException('class_id is required');
-<<<<<<< HEAD
-      if (!branch_id) throw new BadRequestException('branch_id is required');
-      const resolvedClassYearId = await this.resolveActiveAcademicYearId(
-        branch_id,
-        academic_year_id,
-      );
-      if (!resolvedClassYearId)
-        throw new BadRequestException('academic_year_id is required');
-=======
       if (!branch_id) throw new BadRequestException('branch_id is required');
       const resolvedAcademicYearId = await this.resolveAcademicYearId(
         branch_id,
         academic_year_id,
       );
->>>>>>> e882894 (a)
 
       const classInfo = await this.classRepository.findOne({
         where: { id: class_id },
@@ -479,19 +449,11 @@ export class SavingsService {
       const saving = this.savingRepository.create({
         owner_type: SavingOwnerType.CLASS,
         created_by,
-<<<<<<< HEAD
-        student_id: null,
-        class_id,
-        branch_id,
-        academic_year_id: resolvedClassYearId,
-        transaction_type,
-=======
         student_id: null,
         class_id,
         branch_id,
         academic_year_id: resolvedAcademicYearId,
         transaction_type,
->>>>>>> e882894 (a)
         opening_balance: currentBalance,
         amount: Number(amount),
         closing_balance: nextBalance,
@@ -575,19 +537,11 @@ export class SavingsService {
     const saving = this.savingRepository.create({
       owner_type: SavingOwnerType.CLASS,
       created_by,
-<<<<<<< HEAD
-      student_id: null,
-      class_id,
-      branch_id,
-      academic_year_id: resolvedYearId,
-      transaction_type,
-=======
       student_id: null,
       class_id,
       branch_id,
       academic_year_id: resolvedAcademicYearId,
       transaction_type,
->>>>>>> e882894 (a)
       opening_balance: currentBalance,
       amount: Number(amount),
       closing_balance: nextBalance,
