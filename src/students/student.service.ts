@@ -439,6 +439,29 @@ export class StudentsService implements OnModuleInit {
     return saved;
   }
 
+  async unlinkParent(studentId: string, parentId: string): Promise<Student> {
+    const student = await this.studentRepo.findOne({
+      where: { id: studentId, is_deleted: false },
+      relations: ['parents'],
+    });
+    if (!student) throw new NotFoundException('Student not found');
+
+    const wasLinked = (student.parents ?? []).some(
+      (parent) => parent.id === parentId,
+    );
+    if (!wasLinked) {
+      throw new NotFoundException('Parent is not linked to this student');
+    }
+
+    student.parents = (student.parents ?? []).filter(
+      (parent) => parent.id !== parentId,
+    );
+    const saved = await this.studentRepo.save(student);
+    await this.clearStudentCache(studentId);
+    await this.clearParentCache();
+    return saved;
+  }
+
   // ─── Enroll Student ───────────────────────────────────────────────────
   async enrollStudent(dto: CreateEnrollmentDto): Promise<Enrollment> {
     const student = await this.studentRepo.findOne({
@@ -726,13 +749,23 @@ export class StudentsService implements OnModuleInit {
 
   // ─── Find By Class ────────────────────────────────────────────────────
   async findByClass(dto: SearchStudentByClassDto): Promise<Student[]> {
+    const classIds = [...new Set(dto.classIds ?? [])]
+      .map((id) => String(id ?? '').trim())
+      .filter(Boolean);
+    const branchId = String(dto.branchId ?? '').trim();
+    const academicYearId = String(dto.academicYearId ?? '').trim();
+
+    if (classIds.length === 0) return [];
+
     return this.cache.getOrSet(
-      this.getStudentByClassCacheKey(dto),
+      this.getStudentByClassCacheKey({ ...dto, classIds }),
       this.studentListTtlSeconds,
       async () => {
         const enrollments = await this.enrollmentRepo.find({
           where: {
-            classId: In(dto.classIds),
+            classId: In(classIds),
+            ...(branchId ? { branchId } : {}),
+            ...(academicYearId ? { academicYearId } : {}),
             ...(dto.isActive !== undefined
               ? { is_active: dto.isActive }
               : { is_active: true }),
@@ -821,7 +854,10 @@ export class StudentsService implements OnModuleInit {
   }
 
   private getStudentByClassCacheKey(dto: SearchStudentByClassDto): string {
-    const classIds = [...new Set(dto.classIds ?? [])].sort();
+    const classIds = [...new Set(dto.classIds ?? [])]
+      .map((id) => String(id ?? '').trim())
+      .filter(Boolean)
+      .sort();
     const isActive =
       dto.isActive === undefined ? 'default-active' : String(dto.isActive);
     const branchId = String((dto as any).branchId ?? '').trim() || 'all';

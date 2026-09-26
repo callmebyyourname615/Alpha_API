@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import {
   Body,
   Controller,
@@ -7,6 +8,9 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+=======
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+>>>>>>> e882894 (a)
 import { StudentLinkRequestStatus } from './student-link-request.entity';
 import { StudentLinkRequestsService } from './student-link-request.service';
 
@@ -53,6 +57,12 @@ export class StudentLinkRequestsController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.service.findOne(id);
+  }
+
+  /** DELETE /student-link-requests/:id — parent cancels a pending request. */
+  @Delete(':id')
+  cancel(@Param('id') id: string) {
+    return this.service.cancel(id);
   }
 
   /** PATCH /student-link-requests/:id/approve */

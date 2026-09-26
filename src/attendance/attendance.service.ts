@@ -14,6 +14,22 @@ import { Student } from '../students/student.entity';
 import { AttendanceRule } from './attendance_rules';
 import { CacheService } from '../common/cache.service';
 
+export const ATTENDANCE_TIME_ZONE = 'Asia/Vientiane';
+
+export function attendanceLocalDateKey(date = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: ATTENDANCE_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+
+  const value = (type: string) =>
+    parts.find((part) => part.type === type)?.value ?? '';
+
+  return `${value('year')}-${value('month')}-${value('day')}`;
+}
+
 @Injectable()
 export class AttendanceService {
   constructor(
@@ -40,8 +56,19 @@ export class AttendanceService {
     attendanceDate: string;
     deviceTime?: string;
   }) {
+<<<<<<< HEAD
     dto.studentId = await this.resolveStudentId(dto.studentId);
 
+=======
+    // Validate UUID format before hitting the DB
+    const uuidRe =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!dto.studentId || !uuidRe.test(dto.studentId)) {
+      throw new BadRequestException(
+        'Invalid student QR code. Please scan a valid student card.',
+      );
+    }
+>>>>>>> e882894 (a)
     if (
       !dto.attendanceDate ||
       !/^\d{4}-\d{2}-\d{2}$/.test(dto.attendanceDate)
@@ -190,12 +217,16 @@ export class AttendanceService {
   // 🔵 AUTO ABSENT (CRON SUPPORT)
   // =====================================================
   async markAbsent(date: string, clearCache = true) {
+<<<<<<< HEAD
     await this.repo.query(`
       DELETE FROM "attendances"
       WHERE "student_id" IN (
         SELECT "id" FROM "students" WHERE "is_deleted" = true
       )
     `);
+=======
+    if (this.isFutureDate(date)) return;
+>>>>>>> e882894 (a)
 
     await this.repo.query(
       `
@@ -217,8 +248,12 @@ export class AttendanceService {
           NOW(),
           NOW()
         FROM "students"
+<<<<<<< HEAD
         WHERE ("students"."is_deleted" = false OR "students"."is_deleted" IS NULL)
           AND ("students"."is_active" = true OR "students"."is_active" IS NULL)
+=======
+        WHERE "students"."is_deleted" = false
+>>>>>>> e882894 (a)
           AND NOT EXISTS (
           SELECT 1
           FROM "attendances"
@@ -312,8 +347,9 @@ export class AttendanceService {
     startDate?: string;
     endDate?: string;
     classId?: string;
+    branchId?: string;
   }) {
-    const today = new Date().toISOString().split('T')[0];
+    const today = attendanceLocalDateKey();
 
     // Determine the single date being queried (if any)
     const singleDate =
@@ -335,6 +371,7 @@ export class AttendanceService {
         startDate: filters?.startDate,
         endDate: filters?.endDate,
         classId: filters?.classId,
+        branchId: filters?.branchId,
       })}`,
       this.attendanceListTtlSeconds,
       async () => {
@@ -349,11 +386,20 @@ export class AttendanceService {
           .leftJoinAndSelect('enrollment.class', 'class')
           .leftJoinAndSelect('class.yearLevel', 'yearLevel')
           .leftJoinAndSelect('yearLevel.level', 'level');
+        qb.where('student.is_deleted = false');
 
         if (singleDate) {
+<<<<<<< HEAD
           qb.where('attendance.attendance_date = :singleDate', { singleDate });
         } else if (filters?.startDate && filters?.endDate) {
           qb.where(
+=======
+          qb.andWhere('attendance.attendance_date = :singleDate', {
+            singleDate,
+          });
+        } else if (filters?.startDate && filters?.endDate) {
+          qb.andWhere(
+>>>>>>> e882894 (a)
             'attendance.attendance_date BETWEEN :startDate AND :endDate',
             {
               startDate: filters.startDate,
@@ -361,11 +407,11 @@ export class AttendanceService {
             },
           );
         } else if (filters?.startDate) {
-          qb.where('attendance.attendance_date >= :startDate', {
+          qb.andWhere('attendance.attendance_date >= :startDate', {
             startDate: filters.startDate,
           });
         } else if (filters?.endDate) {
-          qb.where('attendance.attendance_date <= :endDate', {
+          qb.andWhere('attendance.attendance_date <= :endDate', {
             endDate: filters.endDate,
           });
         }
@@ -378,6 +424,13 @@ export class AttendanceService {
         if (normalizedClassId) {
           qb.andWhere('enrollment.class_id = :classId', {
             classId: normalizedClassId,
+          });
+        }
+
+        const normalizedBranchId = filters?.branchId?.trim();
+        if (normalizedBranchId) {
+          qb.andWhere('student.branch_id = :branchId', {
+            branchId: normalizedBranchId,
           });
         }
 
@@ -428,6 +481,8 @@ export class AttendanceService {
   }
 
   private async ensureAbsentMarked(date: string): Promise<void> {
+    if (this.isFutureDate(date)) return;
+
     await this.cache.getOrSet(
       `attendances:auto-absent:${date}`,
       this.attendanceListTtlSeconds,
@@ -448,5 +503,9 @@ export class AttendanceService {
     return entries
       .map(([key, item]) => `${key}=${String(item).trim()}`)
       .join(':');
+  }
+
+  private isFutureDate(date: string): boolean {
+    return /^\d{4}-\d{2}-\d{2}$/.test(date) && date > attendanceLocalDateKey();
   }
 }

@@ -6,6 +6,7 @@ import {
   Patch,
   Delete,
   Param,
+  Query,
   Body,
   UploadedFiles,
   UseInterceptors,
@@ -89,6 +90,15 @@ export class ExaminationController {
   @Get()
   findAll() {
     return this.service.findAll();
+  }
+
+  @Get('summary')
+  findSummaries(
+    @Query('ids') ids = '',
+    @Query('classId') classId = '',
+    @Query('academicYearId') academicYearId = '',
+  ) {
+    return this.service.findSummaries({ ids, classId, academicYearId });
   }
 
   @Get(':id')

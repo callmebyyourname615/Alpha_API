@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Examination } from './examination.entity';
 import { Subject } from '../subjects/subject.entity';
 import { Admin } from '../admins/admin.entity';
@@ -23,8 +23,6 @@ const RELATIONS = [
   'subject.lessons.subjectType',
   'subject.lessons.yearLevel',
   'subject.lessons.curriculums',
-  'createdBy',
-  'checker',
   'superAdminRole',
 ];
 
@@ -105,10 +103,15 @@ export class ExaminationService {
     const saved = await this.examinationRepository.save(examination);
 
     // Send notifications asynchronously (don't block the response)
+<<<<<<< HEAD
     this.sendExamNotifications(saved).catch(() => {
       /* silent — notification failure shouldn't break exam creation */
     });
 
+=======
+    this.sendExamNotifications(saved).catch(() => {/* silent — notification failure shouldn't break exam creation */});
+
+>>>>>>> e882894 (a)
     return this.findOne(saved.id);
   }
 
@@ -136,11 +139,18 @@ export class ExaminationService {
         module_type: 'EXAMINATION',
       });
     }
+<<<<<<< HEAD
   }
 
   private async sendSuperAdminApprovalRequestNotifications(
     exam: Examination,
   ): Promise<void> {
+=======
+
+  }
+
+  private async sendSuperAdminApprovalRequestNotifications(exam: Examination): Promise<void> {
+>>>>>>> e882894 (a)
     const title = `Examination pending approval: ${exam.title}`;
     const message = `The checker has checked "${exam.title}". Please review and approve it.`;
 
@@ -153,7 +163,7 @@ export class ExaminationService {
       .getMany();
 
     for (const superAdmin of superAdmins) {
-      if (superAdmin.id === exam.checkerId) continue;
+      if (superAdmin.id === exam.checkerId || superAdmin.id === exam.createdById) continue;
 
       await this.notificationsService.create({
         title,
@@ -168,14 +178,34 @@ export class ExaminationService {
   }
 
   private async sendExamApprovedNotification(exam: Examination): Promise<void> {
-    if (!exam.checkerId) return;
+    if (!exam.createdById) return;
 
     await this.notificationsService.create({
       title: `Examination approved: ${exam.title}`,
       message: `Super admin has approved "${exam.title}".`,
-      description: `The examination "${exam.title}" has been approved and is ready for the next step.`,
+      description: `The examination "${exam.title}" has been approved. You can now submit student scores.`,
       branch_id: exam.branchId,
-      admin_id: exam.checkerId,
+      admin_id: exam.createdById,
+      module_id: exam.id,
+      module_type: 'EXAMINATION',
+    });
+  }
+
+  private async sendExamRejectedNotification(
+    exam: Examination,
+    comment: string,
+    rejectedBySuperAdmin: boolean,
+  ): Promise<void> {
+    if (!exam.createdById) return;
+
+    const reviewer = rejectedBySuperAdmin ? 'Super admin' : 'Checker';
+    const feedback = comment || 'No correction details were provided.';
+    await this.notificationsService.create({
+      title: `Examination rejected: ${exam.title}`,
+      message: `${reviewer} rejected "${exam.title}".`,
+      description: `${reviewer} feedback: ${feedback}`,
+      branch_id: exam.branchId,
+      admin_id: exam.createdById,
       module_id: exam.id,
       module_type: 'EXAMINATION',
     });
@@ -298,8 +328,9 @@ export class ExaminationService {
   async reject(id: string, comment?: string): Promise<Examination> {
     const examination = await this.findOne(id);
     const rejectComment = String(comment || '').trim();
+    const rejectedBySuperAdmin = examination.checkerStatus === 'CHECKED';
 
-    if (examination.checkerStatus === 'CHECKED') {
+    if (rejectedBySuperAdmin) {
       examination.superAdminStatus = 'REJECTED';
       examination.superAdminRejectComment = rejectComment || null;
     } else {
@@ -309,7 +340,34 @@ export class ExaminationService {
     }
 
     await this.examinationRepository.save(examination);
+    this.sendExamRejectedNotification(examination, rejectComment, rejectedBySuperAdmin).catch(() => {/* silent — notification failure shouldn't break rejection */});
     return this.findOne(id);
+  }
+
+  async findSummaries(filters: { ids?: string; classId?: string; academicYearId?: string }): Promise<Partial<Examination>[]> {
+    const ids = [...new Set(String(filters.ids || '').split(',').map((id) => id.trim()).filter(Boolean))];
+    const classId = String(filters.classId || '').trim();
+    const academicYearId = String(filters.academicYearId || '').trim();
+    if (!ids.length && !classId && !academicYearId) return [];
+    if (ids.length > 100) throw new BadRequestException('A maximum of 100 examination IDs can be requested at once.');
+    const where: Record<string, unknown> = { isDeleted: false };
+    if (ids.length) where.id = In(ids);
+    if (classId) where.classId = classId;
+    if (academicYearId) where.academicYearId = academicYearId;
+    return this.examinationRepository.find({
+      select: {
+        id: true,
+        academicYearId: true,
+        classId: true,
+        subjectId: true,
+        title: true,
+        examDate: true,
+        maxScore: true,
+        passScore: true,
+      },
+      where,
+      order: { examDate: 'ASC' },
+    });
   }
 
   async approve(id: string): Promise<Examination> {

@@ -9,6 +9,7 @@ import {
   Min,
   MaxLength,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateExaminationDto {
   @IsUUID()
@@ -39,15 +40,18 @@ export class CreateExaminationDto {
   @IsDateString()
   examDate: string;
 
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   durationMinutes: number;
 
+  @Type(() => Number)
   @IsNumber()
   @Min(0)
   @IsOptional()
   maxScore?: number;
 
+  @Type(() => Number)
   @IsNumber()
   @Min(0)
   @IsOptional()

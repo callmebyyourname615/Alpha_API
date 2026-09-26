@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import {
   Body,
   Controller,
@@ -7,14 +8,17 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+=======
+import { Body, Controller, HttpCode, HttpStatus, Post, Req } from '@nestjs/common';
+>>>>>>> e882894 (a)
 import type { Request } from 'express';
 import { AuthService } from './auth.service';
 import { LoginParentDto } from './dto/login-parent.dto';
 import { Public } from './public.decorator';
-import { LoginRateLimitGuard } from './login-rate-limit.guard';
 
 @Controller('auth')
 export class AuthController {
+<<<<<<< HEAD
   constructor(private authService: AuthService) {}
 
   @Public()
@@ -51,6 +55,22 @@ export class AuthController {
       throw err;
     }
   }
+=======
+  constructor(private authService: AuthService) {}
+
+  @Public()
+  @Post('login')
+  async login(@Body() body: { email: string; password: string }) {
+    return this.authService.login(body.email, body.password);
+  }
+
+  @Public()
+  @Post('parent/login')
+  @HttpCode(HttpStatus.OK)
+  async loginParent(@Body() dto: LoginParentDto) {
+    return this.authService.loginParent(dto.email, dto.password);
+  }
+>>>>>>> e882894 (a)
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)

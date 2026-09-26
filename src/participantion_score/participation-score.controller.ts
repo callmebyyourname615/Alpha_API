@@ -66,6 +66,7 @@ export class ParticipationScoreController {
   ): Promise<ScoreResult[]> {
     return this.service.getScoresByFilter({
       branchId: body.branchId,
+<<<<<<< HEAD
       academicYearId: body.academicYearId,
       levelId: body.levelId, // ← added
       classId: body.classId,
@@ -73,3 +74,12 @@ export class ParticipationScoreController {
     });
   }
 }
+=======
+      academicYearId: body.academicYearId,
+      levelId: body.levelId,      // ← added
+      classId: body.classId,
+      date: body.date,
+    });
+  }
+}
+>>>>>>> e882894 (a)

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import {
   Controller,
   Post,
@@ -8,6 +9,9 @@ import {
   Delete,
   ParseIntPipe,
 } from '@nestjs/common';
+=======
+import { Controller, Post, Body, Get, Param, Patch, Delete, ParseIntPipe, Query } from '@nestjs/common';
+>>>>>>> e882894 (a)
 import { EvaluationService } from './evaluation.service';
 import { CreateEvaluationDto } from './dto/create-evaluation.dto';
 import { UpdateEvaluationDto } from './dto/update-evaluation.dto';
@@ -25,6 +29,17 @@ export class EvaluationController {
   @Get()
   findAll(): Promise<Evaluation[]> {
     return this.evaluationService.findAll();
+  }
+
+  @Get('report-source')
+  findReportSource(
+    @Query('classId') classId: string,
+    @Query('subjectEvaluationIds') subjectEvaluationIds = '',
+  ) {
+    return this.evaluationService.findReportSource(
+      classId,
+      subjectEvaluationIds.split(',').map((id) => id.trim()).filter(Boolean),
+    );
   }
 
   @Get('student/:studentId')

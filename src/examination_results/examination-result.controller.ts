@@ -43,6 +43,14 @@ export class ExaminationResultController {
     return this.examinationResultService.findAll();
   }
 
+  // GET /examination-results/summary/examination/:examinationId
+  @Get('summary/examination/:examinationId')
+  findSummaryByExamination(
+    @Param('examinationId', ParseUUIDPipe) examinationId: string,
+  ) {
+    return this.examinationResultService.findSummaryByExamination(examinationId);
+  }
+
   // GET /examination-results/:id
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string) {
@@ -80,4 +88,8 @@ export class ExaminationResultController {
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.examinationResultService.remove(id);
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> e882894 (a)

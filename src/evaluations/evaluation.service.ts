@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Evaluation } from './evaluation.entity';
 import { CreateEvaluationDto } from './dto/create-evaluation.dto';
 import { UpdateEvaluationDto } from './dto/update-evaluation.dto';
@@ -83,6 +83,34 @@ export class EvaluationService {
     return this.evaluationRepo.find({
       order: { created_at: 'DESC', id: 'DESC' },
     });
+  }
+
+  async findReportSource(classId: string, subjectEvaluationIds: string[]) {
+    const definitionIds = [...new Set(subjectEvaluationIds)].slice(0, 250);
+    if (!classId || !definitionIds.length) return { evaluations: [], definitions: [] };
+
+    const [definitions, rows] = await Promise.all([
+      this.subjectEvaluationRepo.find({
+        where: { id: In(definitionIds) },
+        relations: ['lesson', 'lesson.subjectType'],
+      }),
+      this.evaluationRepo
+        .createQueryBuilder('evaluation')
+        .select('evaluation.id', 'id')
+        .addSelect('evaluation.student_id', 'studentId')
+        .addSelect('evaluation.subject_evaluation_id', 'subjectEvaluationId')
+        .addSelect('evaluation.content_index', 'contentIndex')
+        .addSelect('evaluation.score', 'score')
+        .addSelect('evaluation.updated_at', 'updatedAt')
+        .where('evaluation.class_id = :classId', { classId })
+        .andWhere('evaluation.subject_evaluation_id IN (:...definitionIds)', { definitionIds })
+        .orderBy('evaluation.student_id', 'ASC')
+        .addOrderBy('evaluation.subject_evaluation_id', 'ASC')
+        .addOrderBy('evaluation.content_index', 'ASC')
+        .getRawMany(),
+    ]);
+
+    return { evaluations: rows, definitions };
   }
 
   async findByStudent(studentId: string): Promise<Evaluation[]> {

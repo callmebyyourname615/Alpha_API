@@ -54,12 +54,15 @@ export class AttendanceController {
   @ApiQuery({ name: 'start_date', required: false, example: '2026-05-16' })
   @ApiQuery({ name: 'end_date', required: false, example: '2026-05-16' })
   @ApiQuery({ name: 'class_id', required: false })
+  @ApiQuery({ name: 'branch_id', required: false })
   findAll(
     @Query('start_date') startDate?: string,
     @Query('end_date') endDate?: string,
     @Query('class_id') classId?: string,
+    @Query('branch_id') branchId?: string,
+    @Query('branchId') branchIdAlias?: string,
   ) {
-    return this.service.findAll({ startDate, endDate, classId });
+    return this.service.findAll({ startDate, endDate, classId, branchId: branchId ?? branchIdAlias });
   }
 
   @Get(':id')
@@ -85,4 +88,8 @@ export class AttendanceController {
   remove(@Param('id') id: string) {
     return this.service.remove(id);
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> e882894 (a)

@@ -164,6 +164,16 @@ export class StudentsController {
     return this.service.findById(id);
   }
 
+  // Remove only the selected parent/student relationship. This intentionally
+  // does not delete the student's school record.
+  @Delete(':studentId/parents/:parentId')
+  unlinkParent(
+    @Param('studentId') studentId: string,
+    @Param('parentId') parentId: string,
+  ) {
+    return this.service.unlinkParent(studentId, parentId);
+  }
+
   // ================= UPLOAD: LiveWith nested images =================
   // POST /students/:id/live-with/:index/upload
   @Post(':id/live-with/:index/upload')

@@ -169,4 +169,14 @@ export class StudentLinkRequestsService {
     request.rejectionReason = (reason ?? '').trim() || null;
     return this.repo.save(request);
   }
+
+  async cancel(id: string): Promise<{ deleted: true }> {
+    const request = await this.findOne(id);
+    if (request.status !== StudentLinkRequestStatus.PENDING) {
+      throw new BadRequestException('Only pending requests can be cancelled.');
+    }
+    request.isDeleted = true;
+    await this.repo.save(request);
+    return { deleted: true };
+  }
 }

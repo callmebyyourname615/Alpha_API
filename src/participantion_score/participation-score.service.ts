@@ -1,6 +1,12 @@
+<<<<<<< HEAD
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, Repository } from 'typeorm';
+=======
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+>>>>>>> e882894 (a)
 import { ParticipationScore } from './participation-score.entity';
 import { CreateParticipationScoreDto } from './dto/create-participation-score.dto';
 import { UpdateParticipationScoreDto } from './dto/update-participation-score.dto';
@@ -29,25 +35,46 @@ export class ParticipationScoreService {
   ) {}
 
   /* ================= HELPER ================= */
-  private normalizeDate(date: Date | string): Date {
-    const d = new Date(date);
-    d.setHours(0, 0, 0, 0);
-    return d;
+  private normalizeDate(date: Date | string): string {
+    if (date instanceof Date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+    return String(date).slice(0, 10);
+  }
+
+  private requireScores(dto: CreateParticipationScoreDto | UpdateParticipationScoreDto) {
+    if (!Array.isArray(dto.scores) || dto.scores.length === 0) {
+      throw new BadRequestException('No participation scores provided');
+    }
+    return dto.scores;
   }
 
   /* ================= CREATE ================= */
+<<<<<<< HEAD
   async create(dto: CreateParticipationScoreDto) {
     const entity = this.repo.create({
       branchId: dto.branchId,
       academicYearId: dto.academicYearId,
       levelId: dto.levelId, // ← added
+=======
+  async create(dto: CreateParticipationScoreDto) {
+    const scores = this.requireScores(dto);
+
+    const entity = this.repo.create({
+      branchId: dto.branchId,
+      academicYearId: dto.academicYearId,
+      levelId: dto.levelId,       // ← added
+>>>>>>> e882894 (a)
       classId: dto.classId,
       addedBy: dto.addedBy,
       date: dto.date ? this.normalizeDate(dto.date) : null,
-      scores: dto.scores.map((s) => ({
+      scores: scores.map((s) => ({
         studentId: s.studentId,
         participationId: s.participationId,
-        participationName: s.name,
+        participationName: s.name || 'Unknown Activity',
         score: s.score,
       })),
     });
@@ -80,10 +107,11 @@ export class ParticipationScoreService {
     if (dto.date) record.date = this.normalizeDate(dto.date);
 
     if (dto.scores) {
-      record.scores = dto.scores.map((s) => ({
+      const scores = this.requireScores(dto);
+      record.scores = scores.map((s) => ({
         studentId: s.studentId,
         participationId: s.participationId,
-        participationName: s.name,
+        participationName: s.name || 'Unknown Activity',
         score: s.score,
       }));
     }
@@ -101,6 +129,7 @@ export class ParticipationScoreService {
 
   /* ================= BULK UPSERT ================= */
   async bulkUpsert(dto: CreateParticipationScoreDto) {
+    const scores = this.requireScores(dto);
     const targetDate = dto.date ? this.normalizeDate(dto.date) : undefined;
 
     const existing = await this.repo.findOne({
@@ -111,17 +140,27 @@ export class ParticipationScoreService {
         classId: dto.classId,
         date: targetDate,
       },
+<<<<<<< HEAD
     });
 
     // load participation names from DB
     const participationIds = dto.scores.map((s) => s.participationId);
     const participations =
       await this.participationRepo.findByIds(participationIds);
+=======
+    });
+
+    // load participation names from DB
+    const participationIds = [...new Set(scores.map((s) => s.participationId))];
+    const participations = await this.participationRepo.findByIds(participationIds);
+>>>>>>> e882894 (a)
     const participationMap: Record<string, string> = {};
     participations.forEach((p) => (participationMap[p.id] = p.name));
 
     if (existing) {
-      dto.scores.forEach((s) => {
+      existing.scores = Array.isArray(existing.scores) ? existing.scores : [];
+
+      scores.forEach((s) => {
         const idx = existing.scores.findIndex(
           (sc) =>
             sc.studentId === s.studentId &&
@@ -154,7 +193,7 @@ export class ParticipationScoreService {
       classId: dto.classId,
       addedBy: dto.addedBy,
       date: targetDate,
-      scores: dto.scores.map((s) => ({
+      scores: scores.map((s) => ({
         studentId: s.studentId,
         participationId: s.participationId,
         participationName:
@@ -172,12 +211,9 @@ export class ParticipationScoreService {
     academicYearId: string;
     levelId: string; // ← added
     classId: string;
-    date: Date;
+    date: Date | string;
   }): Promise<ScoreResult[]> {
-    const startOfDay = new Date(filter.date);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(filter.date);
-    endOfDay.setHours(23, 59, 59, 999);
+    const targetDate = this.normalizeDate(filter.date);
 
     const scoreRecord = await this.repo.findOne({
       where: {
@@ -185,7 +221,7 @@ export class ParticipationScoreService {
         academicYearId: filter.academicYearId,
         levelId: filter.levelId, // ← added
         classId: filter.classId,
-        date: Between(startOfDay, endOfDay),
+        date: targetDate,
       },
     });
 

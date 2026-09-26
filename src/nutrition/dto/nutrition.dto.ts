@@ -7,6 +7,7 @@ import {
   IsInt,
   IsNumber,
   IsPositive,
+  IsDateString,
   Min,
   Max,
 } from 'class-validator';
@@ -34,7 +35,7 @@ export class CreateStudentNutritionDto {
   recordedById?: string;
 
   // ── Measurements ───────────────────────────────────────────────────────────
-  @IsString()
+  @IsDateString({ strict: true })
   measurement_date: string; // yyyy-mm-dd
 
   @IsNumber()
@@ -83,7 +84,7 @@ export class CreateStudentNutritionDto {
   round_number: number;
 
   @IsOptional()
-  @IsString()
+  @IsDateString({ strict: true })
   next_screening_date?: string;
 
   @IsOptional()
@@ -113,7 +114,7 @@ export class UpdateStudentNutritionDto {
   recordedById?: string;
 
   @IsOptional()
-  @IsString()
+  @IsDateString({ strict: true })
   measurement_date?: string;
 
   @IsOptional()
@@ -160,7 +161,7 @@ export class UpdateStudentNutritionDto {
   round_number?: number;
 
   @IsOptional()
-  @IsString()
+  @IsDateString({ strict: true })
   next_screening_date?: string;
 
   @IsOptional()
@@ -170,4 +171,8 @@ export class UpdateStudentNutritionDto {
   @IsOptional()
   @IsString()
   note?: string;
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> e882894 (a)

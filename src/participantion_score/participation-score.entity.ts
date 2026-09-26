@@ -38,11 +38,15 @@ export class ParticipationScore {
   addedBy: string;
 
   @Column({ type: 'date', nullable: true })
-  date: Date | null;
+  date: string | null;
 
   @CreateDateColumn({ type: 'timestamp', nullable: true })
   created_at: Date;
 
   @UpdateDateColumn({ type: 'timestamp', nullable: true })
   updated_at: Date;
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> e882894 (a)

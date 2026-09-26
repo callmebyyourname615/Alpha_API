@@ -168,6 +168,19 @@ export class ExaminationResultService {
     });
   }
 
+  async findSummaryByExamination(examinationId: string): Promise<Partial<ExaminationResult>[]> {
+    return this.resultRepository.find({
+      select: {
+        id: true,
+        examinationId: true,
+        studentId: true,
+        score: true,
+      },
+      where: { examinationId, isDeleted: false },
+      order: { score: 'DESC' },
+    });
+  }
+
   // -------------------------------------------------------
   // FIND BY STUDENT — all exam results for one student
   // -------------------------------------------------------
@@ -218,4 +231,8 @@ export class ExaminationResultService {
     await this.resultRepository.save(result);
     return { message: `Examination result #${id} deleted successfully` };
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> e882894 (a)

@@ -15,9 +15,20 @@ export class RubricEvaluationFinalScoreController {
 
   @Put()
   async saveScore(@Body() body: { score?: SaveRubricEvaluationFinalScoreDto }) {
+<<<<<<< HEAD
     const score = await this.service.save(
       body?.score || (body as SaveRubricEvaluationFinalScoreDto),
     );
     return { data: await this.service.findAll(), score };
+=======
+    const score = await this.service.save(body?.score || (body as SaveRubricEvaluationFinalScoreDto));
+    return { score };
+  }
+
+  @Put('bulk')
+  async saveScores(@Body() body: { scores?: SaveRubricEvaluationFinalScoreDto[] }) {
+    const scores = Array.isArray(body?.scores) ? body.scores : [];
+    return { data: await this.service.saveMany(scores) };
+>>>>>>> e882894 (a)
   }
 }

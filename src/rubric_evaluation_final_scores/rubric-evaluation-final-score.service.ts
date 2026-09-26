@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { RubricEvaluationFinalScore } from './rubric-evaluation-final-score.entity';
 
 export interface SaveRubricEvaluationFinalScoreDto {
@@ -21,11 +21,17 @@ export interface SaveRubricEvaluationFinalScoreDto {
   totalScore?: number | string | null;
   averageScore?: number | string | null;
   finalScore?: number | string | null;
+  reportMaximum?: number | string | null;
   totalCell?: string | null;
   averageCell?: string | null;
   finalCell?: string | null;
   scoreCells?: Record<string, unknown> | null;
   source?: string | null;
+}
+
+export interface FindRubricEvaluationFinalScoreDto extends Partial<SaveRubricEvaluationFinalScoreDto> {
+  reportMonths?: string | number[];
+  reportYears?: string | Array<string | number>;
 }
 
 @Injectable()
@@ -50,7 +56,12 @@ export class RubricEvaluationFinalScoreService {
     return Number.isFinite(parsed) ? parsed : null;
   }
 
-  findAll(query: Partial<SaveRubricEvaluationFinalScoreDto> = {}) {
+  private list(value: unknown) {
+    if (Array.isArray(value)) return value.map((item) => this.text(item)).filter(Boolean);
+    return this.text(value).split(',').map((item) => item.trim()).filter(Boolean);
+  }
+
+  findAll(query: FindRubricEvaluationFinalScoreDto = {}) {
     const where: Record<string, unknown> = {};
     const filters: Array<[keyof SaveRubricEvaluationFinalScoreDto, string]> = [
       ['classId', 'classId'],
@@ -65,8 +76,18 @@ export class RubricEvaluationFinalScoreService {
       if (value) where[targetKey] = value;
     });
 
-    const reportMonth = this.optionalNumber(query.reportMonth);
-    if (reportMonth !== null) where.reportMonth = Math.floor(reportMonth);
+    const reportMonths = this.list(query.reportMonths)
+      .map((value) => this.optionalNumber(value))
+      .filter((value): value is number => value !== null)
+      .map(Math.floor);
+    if (reportMonths.length) where.reportMonth = In([...new Set(reportMonths)]);
+    else {
+      const reportMonth = this.optionalNumber(query.reportMonth);
+      if (reportMonth !== null) where.reportMonth = Math.floor(reportMonth);
+    }
+
+    const reportYears = this.list(query.reportYears);
+    if (reportYears.length) where.reportYear = In([...new Set(reportYears)]);
 
     return this.repo.find({
       where,
@@ -74,7 +95,7 @@ export class RubricEvaluationFinalScoreService {
     });
   }
 
-  async save(dto: SaveRubricEvaluationFinalScoreDto) {
+  private normalize(dto: SaveRubricEvaluationFinalScoreDto) {
     const classId = this.text(dto.classId);
     const className = this.text(dto.className);
     const studentId = this.text(dto.studentId);
@@ -93,7 +114,23 @@ export class RubricEvaluationFinalScoreService {
     const lessonTo = this.integer(dto.lessonTo, lessonFrom);
     const totalScore = this.optionalNumber(dto.totalScore);
     const averageScore = this.optionalNumber(dto.averageScore);
-    const finalScore = this.optionalNumber(dto.finalScore);
+    const parsedFinalScore = this.optionalNumber(dto.finalScore);
+    const reportMaximum = this.optionalNumber(dto.reportMaximum);
+    if (reportMaximum !== null && reportMaximum <= 0) {
+      throw new BadRequestException('reportMaximum must be greater than zero.');
+    }
+    const roundedFinalScore = parsedFinalScore === null ? null : Math.max(0, Math.round(parsedFinalScore));
+    const finalScore = roundedFinalScore === null || reportMaximum === null
+      ? roundedFinalScore
+      : Math.min(reportMaximum, roundedFinalScore);
+    const finalCell = this.text(dto.finalCell);
+    const scoreCells = dto.scoreCells && typeof dto.scoreCells === 'object'
+      ? { ...dto.scoreCells }
+      : null;
+    // Keep the persisted report cell and the scalar final score consistent.
+    // Monthly reports intentionally treat the rendered final cell as the
+    // authoritative teacher-facing score.
+    if (scoreCells && finalCell && finalScore !== null) scoreCells[finalCell] = String(finalScore);
 
     if (!studentId || !subjectKey || !reportForm) {
       throw new BadRequestException(
@@ -107,46 +144,63 @@ export class RubricEvaluationFinalScoreService {
       throw new BadRequestException('Invalid lesson range.');
     }
 
+    return {
+      classId,
+      className,
+      studentId,
+      studentName,
+      subjectId,
+      subjectKey,
+      subjectName,
+      reportForm,
+      reportTemplate,
+      gradeLevel: gradeLevel === null ? null : Math.floor(gradeLevel),
+      reportMonth,
+      reportYear,
+      lessonFrom,
+      lessonTo,
+      totalScore,
+      averageScore,
+      finalScore,
+      totalCell: this.text(dto.totalCell),
+      averageCell: this.text(dto.averageCell),
+      finalCell,
+      scoreCells,
+      source: this.text(dto.source),
+    };
+  }
+
+  async save(dto: SaveRubricEvaluationFinalScoreDto) {
+    const value = this.normalize(dto);
     let record = await this.repo.findOne({
       where: {
-        classId,
-        studentId,
-        subjectKey,
-        reportForm,
-        reportMonth,
-        reportYear,
+        classId: value.classId,
+        studentId: value.studentId,
+        subjectKey: value.subjectKey,
+        reportForm: value.reportForm,
+        reportMonth: value.reportMonth,
+        reportYear: value.reportYear,
+        lessonFrom: value.lessonFrom,
+        lessonTo: value.lessonTo,
       },
       order: { updatedAt: 'DESC' },
     });
 
-    if (!record) {
-      record = this.repo.create({
-        classId,
-        studentId,
-        subjectKey,
-        reportForm,
-        reportMonth,
-        reportYear,
-      });
-    }
-
-    record.lessonFrom = lessonFrom;
-    record.lessonTo = lessonTo;
-    record.className = className;
-    record.studentName = studentName;
-    record.subjectId = subjectId;
-    record.subjectName = subjectName;
-    record.reportTemplate = reportTemplate;
-    record.gradeLevel = gradeLevel === null ? null : Math.floor(gradeLevel);
-    record.totalScore = totalScore;
-    record.averageScore = averageScore;
-    record.finalScore = finalScore;
-    record.totalCell = this.text(dto.totalCell);
-    record.averageCell = this.text(dto.averageCell);
-    record.finalCell = this.text(dto.finalCell);
-    record.scoreCells = dto.scoreCells || null;
-    record.source = this.text(dto.source);
-
+    record = record ? this.repo.merge(record, value) : this.repo.create(value);
     return this.repo.save(record);
+  }
+
+  async saveMany(dtos: SaveRubricEvaluationFinalScoreDto[]) {
+    if (!dtos.length) throw new BadRequestException('At least one score is required.');
+    if (dtos.length > 500) throw new BadRequestException('A maximum of 500 scores can be saved at once.');
+    const values = dtos.map((dto) => this.normalize(dto));
+    const records = this.repo.create(values);
+    // TypeORM's JSONB DeepPartial type rejects Record<string, unknown> even
+    // though the PostgreSQL driver accepts it correctly at runtime.
+    await this.repo.upsert(records as any, {
+      conflictPaths: ['classId', 'studentId', 'subjectKey', 'reportForm', 'reportMonth', 'reportYear', 'lessonFrom', 'lessonTo'],
+      skipUpdateIfNoValuesChanged: true,
+    });
+    return { saved: values.length };
   }
 }
